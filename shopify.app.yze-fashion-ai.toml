@@ -1,0 +1,23 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b31aa12cc0306d187aa1b40226b9e990"
+name = "YZE Fashion AI"
+handle = "yze-fashion-ai"
+application_url = "https://ti-commons-pleasure-lucky.trycloudflare.com"
+embedded = true
+
+[build]
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = ["https://ti-commons-pleasure-lucky.trycloudflare.com/auth/callback", "https://ti-commons-pleasure-lucky.trycloudflare.com/auth/shopify/callback", "https://ti-commons-pleasure-lucky.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false

@@ -1,0 +1,36 @@
+# Learn more about configuring your extension at https://shopify.dev/docs/apps/app-extensions/configuration
+
+
+uid = "8a08d7b0-f2b0-20d3-ae42-047c00b97e9969058989"
+
+
+type = "theme_app_extension"
+name = "Body Shape Advisor"
+
+[settings]
+  [[settings.groups]]
+  name = "Body Shape Advisor Settings"
+
+    [[settings.groups.settings]]
+    type = "text"
+    id = "heading"
+    label = "Section Heading"
+    default = "Find Your Perfect Fit"
+
+    [[settings.groups.settings]]
+    type = "textarea"
+    id = "description"
+    label = "Description"
+    default = "Get personalized clothing recommendations based on your body shape"
+
+    [[settings.groups.settings]]
+    type = "color"
+    id = "primary_color"
+    label = "Primary Color"
+    default = "#000000"
+
+    [[settings.groups.settings]]
+    type = "color"
+    id = "background_color"
+    label = "Background Color"
+    default = "#ffffff"

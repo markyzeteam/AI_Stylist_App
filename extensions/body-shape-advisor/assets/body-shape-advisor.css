@@ -1,0 +1,403 @@
+/**
+ * Body Shape Advisor - Customer-facing styles
+ */
+
+.body-shape-advisor {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+}
+
+/* Common elements */
+.bsa-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.bsa-btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.bsa-btn-primary:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.bsa-btn-secondary {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.bsa-btn-secondary:hover {
+  background-color: #f1f5f9;
+}
+
+.bsa-btn-link {
+  background: none;
+  color: #2563eb;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.bsa-btn-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Welcome screen */
+.bsa-welcome {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.bsa-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.bsa-welcome h3 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.bsa-welcome p {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Path selection */
+.bsa-path-selection {
+  padding: 2rem;
+}
+
+.bsa-path-selection h3 {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: #1e293b;
+}
+
+.bsa-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-option {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.bsa-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.bsa-option-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.bsa-option h4 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.bsa-option p {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+/* Calculator form */
+.bsa-calculator {
+  padding: 2rem;
+}
+
+.bsa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bsa-header h3 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.bsa-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bsa-form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.bsa-form-section h4 {
+  margin: 0 0 1rem 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+}
+
+.bsa-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bsa-form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.bsa-form-field label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.bsa-form-field input,
+.bsa-form-field select {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.bsa-form-field input:focus,
+.bsa-form-field select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.bsa-form-field small {
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Known shape selection */
+.bsa-known-shape {
+  padding: 2rem;
+}
+
+.bsa-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-shape-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bsa-shape-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #2563eb;
+}
+
+.bsa-shape-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.bsa-shape-card h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+}
+
+.bsa-shape-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.bsa-help {
+  text-align: center;
+  padding: 1rem;
+  background: #fef3c7;
+  border-radius: 8px;
+}
+
+/* Results */
+.bsa-results {
+  padding: 2rem;
+}
+
+.bsa-result-card {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.bsa-result-header h4 {
+  margin: 0;
+  color: #065f46;
+  font-size: 1.25rem;
+}
+
+.bsa-confidence {
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.bsa-result-card p {
+  margin: 0;
+  color: #047857;
+}
+
+.bsa-recommendations {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-recommendations h4 {
+  margin: 0 0 1rem 0;
+  color: #1e293b;
+}
+
+.bsa-recommendations ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.bsa-recommendations li {
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.bsa-next-steps {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.bsa-next-steps h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+}
+
+.bsa-next-steps p {
+  margin: 0 0 1.5rem 0;
+  opacity: 0.9;
+}
+
+.bsa-next-steps .bsa-btn-primary {
+  background: white;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.bsa-next-steps .bsa-btn-primary:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .bsa-options {
+    grid-template-columns: 1fr;
+  }
+
+  .bsa-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .bsa-shape-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .bsa-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .body-shape-advisor {
+    padding: 1rem;
+  }
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #64748b;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bsa-welcome,
+.bsa-path-selection,
+.bsa-calculator,
+.bsa-known-shape,
+.bsa-results {
+  animation: fadeIn 0.3s ease-out;
+}

@@ -30,3 +30,39 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model ProductBodyShapeMapping {
+  id           String   @id @default(cuid())
+  productId    String   // Shopify Product ID
+  bodyShapes   String   // JSON array of suitable body shapes
+  sizeChart    String?  // JSON object with size mappings
+  category     String?  // clothing category (tops, bottoms, dresses, etc.)
+  confidence   Float    @default(0.8) // how confident we are in this mapping
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([productId])
+}
+
+model CustomerBodyProfile {
+  id           String   @id @default(cuid())
+  customerId   String?  // Shopify Customer ID (optional for guests)
+  sessionId    String?  // For guest users
+  bodyShape    String
+  measurements String?  // JSON object with measurements
+  preferences  String?  // JSON object with style preferences
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SizeRecommendation {
+  id           String   @id @default(cuid())
+  productId    String
+  bodyShape    String
+  recommendedSize String
+  confidence   Float    @default(0.8)
+  reasoning    String?  // explanation for the size recommendation
+  createdAt    DateTime @default(now())
+
+  @@unique([productId, bodyShape])
+}
