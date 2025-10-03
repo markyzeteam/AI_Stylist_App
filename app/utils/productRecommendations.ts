@@ -30,6 +30,7 @@ export interface ProductRecommendation {
   recommendedSize?: string;
   reasoning: string;
   category: string;
+  stylingTip?: string;
 }
 
 // Mapping body shapes to suitable clothing categories and styles

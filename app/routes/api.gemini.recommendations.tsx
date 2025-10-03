@@ -92,6 +92,7 @@ For each recommendation, provide:
 - score: Suitability score (0-100)
 - reasoning: Why it suits them (1-2 sentences)
 - sizeAdvice: Specific size guidance
+- stylingTip: A unique styling suggestion for THIS specific product and body shape (e.g., "Pair with a belt to define waist", "Style with wide-leg jeans", "Add statement earrings to balance proportions")
 
 Respond with ONLY valid JSON (no markdown):
 {
@@ -100,7 +101,8 @@ Respond with ONLY valid JSON (no markdown):
       "index": 0,
       "score": 95,
       "reasoning": "This flatters your body shape because...",
-      "sizeAdvice": "Size for your hips..."
+      "sizeAdvice": "Size for your hips...",
+      "stylingTip": "Pair this with a statement belt to accentuate your waist"
     }
   ]
 }`;
@@ -125,7 +127,8 @@ function parseResponse(text: string, products: any[]): any[] {
           ...products[idx],
           match: rec.score,
           reasoning: rec.reasoning || "Recommended by AI stylist",
-          sizeAdvice: rec.sizeAdvice || "Check size chart"
+          sizeAdvice: rec.sizeAdvice || "Check size chart",
+          stylingTip: rec.stylingTip || ""
         });
       }
     }

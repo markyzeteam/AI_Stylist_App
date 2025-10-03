@@ -611,9 +611,12 @@ export default function Index() {
 
               {recommendations.length > 0 && (
                 <BlockStack gap="300">
-                  <Text variant="bodyMd" color="subdued">
-                    Found {recommendations.length} products perfect for your {bodyShapeResult.shape} body shape:
-                  </Text>
+                  <InlineStack align="space-between">
+                    <Text variant="bodyMd" color="subdued">
+                      Found {recommendations.length} products perfect for your {bodyShapeResult.shape} body shape:
+                    </Text>
+                    <Badge>✨ AI Powered</Badge>
+                  </InlineStack>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                     {recommendations.map((rec, index) => (
@@ -645,6 +648,14 @@ export default function Index() {
                             <Text variant="bodySm" color="subdued">
                               {rec.reasoning}
                             </Text>
+
+                            {(rec as any).stylingTip && (
+                              <Box background="bg-surface-secondary" padding="200" borderRadius="100">
+                                <Text variant="bodySm">
+                                  💡 <strong>Styling tip:</strong> {(rec as any).stylingTip}
+                                </Text>
+                              </Box>
+                            )}
 
                             <Text variant="bodySm">
                               <strong>Size advice:</strong> {rec.recommendedSize}

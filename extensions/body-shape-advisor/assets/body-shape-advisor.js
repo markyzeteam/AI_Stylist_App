@@ -563,6 +563,7 @@ class BodyShapeAdvisor {
       <div class="bsa-products">
         <div class="bsa-header">
           <h3>🛍️ Recommended Products for ${this.bodyShapeResult.shape}</h3>
+          <span class="bsa-ai-badge">✨ AI Powered</span>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
             ← Back to Results
           </button>
@@ -570,7 +571,7 @@ class BodyShapeAdvisor {
 
         ${products.length === 0 ? `
           <div class="bsa-loading">
-            <p>Finding the perfect products for your ${this.bodyShapeResult.shape} body shape...</p>
+            <p>✨ AI is analyzing products for your ${this.bodyShapeResult.shape} body shape...</p>
           </div>
         ` : `
           <div class="bsa-product-grid">
@@ -586,6 +587,9 @@ class BodyShapeAdvisor {
                     <span class="bsa-product-match">${product.match}% match</span>
                   ` : ''}
                   <p class="bsa-product-reason">${product.reasoning}</p>
+                  ${product.stylingTip ? `
+                    <p class="bsa-product-styling-tip">💡 <strong>Styling tip:</strong> ${product.stylingTip}</p>
+                  ` : ''}
                   <p class="bsa-product-size"><strong>Size advice:</strong> ${product.sizeAdvice}</p>
                   <a href="/products/${product.handle}" class="bsa-btn bsa-btn-primary">View Product</a>
                 </div>

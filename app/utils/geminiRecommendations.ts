@@ -92,6 +92,7 @@ Instructions:
    - Suitability score (0-100)
    - Brief reasoning (1-2 sentences why it suits this body shape)
    - Specific size advice for this body shape
+   - A unique styling tip for THIS specific product (e.g., "Pair with a belt", "Style with heels", "Add statement jewelry")
 
 Format your response EXACTLY as JSON (no markdown, no extra text):
 {
@@ -100,7 +101,8 @@ Format your response EXACTLY as JSON (no markdown, no extra text):
       "index": 0,
       "score": 95,
       "reasoning": "This A-line dress perfectly flatters pear shapes by balancing proportions...",
-      "sizeAdvice": "Choose based on hip measurement, may need to size up"
+      "sizeAdvice": "Choose based on hip measurement, may need to size up",
+      "stylingTip": "Pair with a statement belt to define your waist"
     }
   ]
 }
@@ -130,7 +132,8 @@ function parseGeminiResponse(text: string, products: Product[]): ProductRecommen
           suitabilityScore: rec.score / 100, // Convert to 0-1 scale
           recommendedSize: rec.sizeAdvice || "Check size chart",
           reasoning: rec.reasoning || "Recommended by AI stylist",
-          category: determineCategory(product)
+          category: determineCategory(product),
+          stylingTip: rec.stylingTip || ""
         });
       }
     }
