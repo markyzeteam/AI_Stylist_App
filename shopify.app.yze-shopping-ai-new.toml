@@ -2,7 +2,7 @@
 
 client_id = "035f689779a07f1d51e0afdff4994a33"
 name = "YZE Shopping AI New"
-application_url = "https://example.com"
+application_url = "https://aistylistapp-production.up.railway.app"
 embedded = true
 
 [build]
@@ -16,4 +16,4 @@ api_version = "2025-10"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://aistylistapp-production.up.railway.app/auth/callback" ]

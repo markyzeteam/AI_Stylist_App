@@ -1,38 +1,32 @@
 {% comment %}
-Body Shape Advisor App Block
+Body Shape Advisor App Block - Interactive storefront widget
 {% endcomment %}
 
+<!-- Load CSS first -->
+{{ 'body-shape-advisor.css' | asset_url | stylesheet_tag }}
+
 <div class="body-shape-advisor"
-     style="background-color: {{ block.settings.background_color }}; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+     style="background-color: {{ block.settings.background_color }}; padding: 2rem; border-radius: 8px; margin: 2rem auto; max-width: 1200px;">
 
-  <div class="body-shape-advisor__header" style="text-align: center; margin-bottom: 2rem;">
-    <h2 style="color: {{ block.settings.primary_color }}; margin-bottom: 0.5rem;">
-      {{ block.settings.heading | default: 'Find Your Perfect Fit' }}
-    </h2>
-    <p style="color: #666; margin-bottom: 2rem;">
-      {{ block.settings.description | default: 'Get personalized clothing recommendations based on your body shape' }}
-    </p>
-  </div>
-
-  <div id="body-shape-advisor-app" style="max-width: 800px; margin: 0 auto;">
-    <!-- React app will mount here -->
+  <div id="body-shape-advisor-app">
+    <!-- JavaScript app will mount here -->
     <div class="loading-state" style="text-align: center; padding: 2rem;">
       <p>Loading Body Shape Advisor...</p>
     </div>
   </div>
 
-  <!-- Include the app JavaScript -->
+  <!-- Configuration for the JavaScript app -->
   <script>
     window.BodyShapeAdvisorConfig = {
       shopDomain: '{{ shop.domain }}',
       primaryColor: '{{ block.settings.primary_color }}',
       backgroundColor: '{{ block.settings.background_color }}',
-      apiEndpoint: '{{ app.api_url | default: "https://your-app-domain.com" }}/api/body-shape'
+      apiEndpoint: 'https://aistylistapp-production.up.railway.app/api/recommendations'
     };
   </script>
 
+  <!-- Load JavaScript -->
   <script src="{{ 'body-shape-advisor.js' | asset_url }}" defer></script>
-  {{ 'body-shape-advisor.css' | asset_url | stylesheet_tag }}
 </div>
 
 {% schema %}
