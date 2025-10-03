@@ -22,9 +22,9 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>YZE AI Shopping Stylist</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Personalized fashion recommendations powered by AI body shape analysis. Help your customers find their perfect fit.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -40,16 +40,13 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>AI Body Shape Analysis</strong>. Advanced algorithm identifies customer body shapes with high accuracy for precise recommendations.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Smart Product Matching</strong>. Automatically recommends products from your catalog that complement each body type.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Personalized Size Guidance</strong>. Provides specific sizing advice to reduce returns and increase customer satisfaction.
           </li>
         </ul>
       </div>
