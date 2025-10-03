@@ -382,6 +382,93 @@
   color: #64748b;
 }
 
+/* Product grid */
+.bsa-products {
+  padding: 2rem;
+}
+
+.bsa-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.bsa-product-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.bsa-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.bsa-product-image {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.bsa-product-info {
+  padding: 1.5rem;
+}
+
+.bsa-product-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  min-height: 2.4em;
+}
+
+.bsa-product-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0.5rem 0;
+}
+
+.bsa-product-match {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0.5rem 0;
+}
+
+.bsa-product-reason {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+  line-height: 1.5;
+}
+
+.bsa-product-size {
+  color: #475569;
+  font-size: 0.875rem;
+  margin: 0.75rem 0 1rem 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.bsa-product-card .bsa-btn-primary {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.bsa-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -398,6 +485,7 @@
 .bsa-path-selection,
 .bsa-calculator,
 .bsa-known-shape,
-.bsa-results {
+.bsa-results,
+.bsa-products {
   animation: fadeIn 0.3s ease-out;
 }

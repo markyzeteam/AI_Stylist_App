@@ -9,6 +9,7 @@ class BodyShapeAdvisor {
     this.config = config;
     this.currentStep = 'welcome';
     this.bodyShapeResult = null;
+    this.productRecommendations = [];
     this.measurements = {
       gender: '',
       age: '',
@@ -35,7 +36,8 @@ class BodyShapeAdvisor {
       pathSelection: this.renderPathSelection.bind(this),
       calculator: this.renderCalculator.bind(this),
       knownShape: this.renderKnownShape.bind(this),
-      results: this.renderResults.bind(this)
+      results: this.renderResults.bind(this),
+      products: this.renderProducts.bind(this)
     };
 
     this.container.innerHTML = steps[this.currentStep]();
@@ -420,9 +422,148 @@ class BodyShapeAdvisor {
     return recommendations[shape] || [];
   }
 
-  browseProducts() {
-    // Redirect to collection page or trigger product search
-    window.location.href = `/collections/all?body_shape=${encodeURIComponent(this.bodyShapeResult.shape)}`;
+  async browseProducts() {
+    // Calculate product suitability from preloaded products
+    this.currentStep = 'products';
+    this.render();
+
+    const allProducts = this.config.products || [];
+    const bodyShape = this.bodyShapeResult.shape;
+
+    // Calculate suitability for each product
+    const scoredProducts = allProducts.map(product => {
+      const score = this.calculateProductSuitability(product, bodyShape);
+      return {
+        ...product,
+        match: Math.round(score * 100),
+        reasoning: this.generateReasoning(product, bodyShape, score),
+        sizeAdvice: this.getSizeAdvice(product, bodyShape)
+      };
+    });
+
+    // Filter and sort by suitability
+    this.productRecommendations = scoredProducts
+      .filter(p => p.match > 30) // Only show products with >30% match
+      .sort((a, b) => b.match - a.match)
+      .slice(0, 12); // Top 12 products
+
+    this.render();
+  }
+
+  calculateProductSuitability(product, bodyShape) {
+    const preferences = this.getBodyShapePreferences(bodyShape);
+    if (!preferences) return 0.5;
+
+    let score = 0.5;
+    const productText = `${product.title} ${product.description} ${product.productType} ${product.tags.join(' ')}`.toLowerCase();
+
+    // Check for favorable keywords
+    preferences.keywords.forEach(keyword => {
+      if (productText.includes(keyword.toLowerCase())) {
+        score += 0.15;
+      }
+    });
+
+    // Check product tags
+    product.tags.forEach(tag => {
+      const tagLower = tag.toLowerCase();
+      if (preferences.keywords.some(kw => tagLower.includes(kw.toLowerCase()))) {
+        score += 0.1;
+      }
+    });
+
+    return Math.max(0, Math.min(1, score));
+  }
+
+  getBodyShapePreferences(bodyShape) {
+    const preferences = {
+      "Pear/Triangle": {
+        keywords: ["a-line", "fit-and-flare", "empire-waist", "bootcut", "wide-leg", "structured-shoulders", "top", "blouse", "jacket"]
+      },
+      "Apple/Round": {
+        keywords: ["empire-waist", "v-neck", "scoop-neck", "high-waisted", "flowing", "wrap", "tunic", "dress"]
+      },
+      "Hourglass": {
+        keywords: ["fitted", "wrap", "belted", "high-waisted", "curve-hugging", "bodycon", "dress"]
+      },
+      "Inverted Triangle": {
+        keywords: ["a-line", "wide-leg", "bootcut", "scoop-neck", "v-neck", "skirt", "pant"]
+      },
+      "Rectangle/Straight": {
+        keywords: ["belted", "peplum", "structured", "layered", "cropped", "fitted"]
+      },
+      "V-Shape/Athletic": {
+        keywords: ["fitted", "straight-leg", "v-neck", "minimal", "athletic", "casual"]
+      }
+    };
+
+    return preferences[bodyShape];
+  }
+
+  generateReasoning(product, bodyShape, score) {
+    if (score > 0.7) {
+      return `Excellent match for ${bodyShape} body shape - this style is highly recommended for your figure`;
+    } else if (score > 0.5) {
+      return `Good choice for ${bodyShape} body shape - this style complements your figure well`;
+    } else {
+      return `Suitable option for ${bodyShape} body shape - consider your personal style preferences`;
+    }
+  }
+
+  getSizeAdvice(product, bodyShape) {
+    const advice = {
+      "Pear/Triangle": "Focus on hip measurement, may need larger size for bottoms",
+      "Apple/Round": "Empire waist or flowing styles work well, size for bust",
+      "Hourglass": "Size for largest measurement, fitted styles work best",
+      "Inverted Triangle": "Size for shoulders/bust, A-line styles recommended",
+      "Rectangle/Straight": "Standard sizing, belted styles create curves",
+      "V-Shape/Athletic": "Size for chest/shoulders, fitted cuts work well"
+    };
+
+    return advice[bodyShape] || "Check the size chart for best fit";
+  }
+
+  renderProducts() {
+    if (!this.bodyShapeResult) return '';
+
+    const products = this.productRecommendations || [];
+
+    return `
+      <div class="bsa-products">
+        <div class="bsa-header">
+          <h3>🛍️ Recommended Products for ${this.bodyShapeResult.shape}</h3>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
+            ← Back to Results
+          </button>
+        </div>
+
+        ${products.length === 0 ? `
+          <div class="bsa-loading">
+            <p>Finding the perfect products for your ${this.bodyShapeResult.shape} body shape...</p>
+          </div>
+        ` : `
+          <div class="bsa-product-grid">
+            ${products.map(product => `
+              <div class="bsa-product-card">
+                ${product.image ? `
+                  <img src="${product.image}" alt="${product.title}" class="bsa-product-image">
+                ` : ''}
+                <div class="bsa-product-info">
+                  <h4>${product.title}</h4>
+                  ${product.price ? `<p class="bsa-product-price">$${product.price}</p>` : ''}
+                  ${product.match ? `
+                    <span class="bsa-product-match">${product.match}% match</span>
+                  ` : ''}
+                  <p class="bsa-product-reason">${product.reasoning}</p>
+                  <p class="bsa-product-size"><strong>Size advice:</strong> ${product.sizeAdvice}</p>
+                  <a href="/products/${product.handle}" class="bsa-btn bsa-btn-primary">View Product</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
   }
 
   attachEventListeners() {
