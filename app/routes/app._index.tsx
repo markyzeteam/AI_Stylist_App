@@ -23,6 +23,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { calculateBodyShape, type BodyShapeResult } from "../utils/bodyShape";
 import { getProductRecommendations, type ProductRecommendation } from "../utils/productRecommendations";
+import { getGeminiProductRecommendations } from "../utils/geminiRecommendations";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -35,14 +36,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const formData = await request.formData();
   const bodyShape = formData.get("bodyShape") as string;
+  const useAI = formData.get("useAI") === "true";
+
+  // Get measurements if available for AI
+  const measurements = {
+    gender: formData.get("gender") as string,
+    age: formData.get("age") as string,
+    bust: parseFloat(formData.get("bust") as string || "0"),
+    waist: parseFloat(formData.get("waist") as string || "0"),
+    hips: parseFloat(formData.get("hips") as string || "0"),
+    shoulders: parseFloat(formData.get("shoulders") as string || "0")
+  };
 
   if (!bodyShape) {
     return { error: "Body shape is required" };
   }
 
   try {
-    const recommendations = await getProductRecommendations(admin, bodyShape, 12);
-    return { recommendations };
+    // Use Gemini AI for smarter recommendations
+    const recommendations = await getGeminiProductRecommendations(
+      admin,
+      bodyShape,
+      measurements.bust > 0 ? measurements : undefined,
+      12
+    );
+    return { recommendations, usedAI: true };
   } catch (error) {
     console.error("Error fetching recommendations:", error);
     return { error: "Failed to fetch product recommendations" };
@@ -479,6 +497,16 @@ export default function Index() {
     const loadProducts = () => {
       const formData = new FormData();
       formData.append("bodyShape", bodyShapeResult.shape);
+      formData.append("useAI", "true");
+
+      // Include measurements for AI analysis
+      formData.append("gender", measurements.gender);
+      formData.append("age", measurements.age);
+      formData.append("bust", measurements.bust);
+      formData.append("waist", measurements.waist);
+      formData.append("hips", measurements.hips);
+      formData.append("shoulders", measurements.shoulders);
+
       productFetcher.submit(formData, { method: "POST" });
     };
 

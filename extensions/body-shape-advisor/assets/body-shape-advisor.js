@@ -423,14 +423,47 @@ class BodyShapeAdvisor {
   }
 
   async browseProducts() {
-    // Calculate product suitability from preloaded products
+    // Use Gemini AI to get smart product recommendations
     this.currentStep = 'products';
     this.render();
 
     const allProducts = this.config.products || [];
     const bodyShape = this.bodyShapeResult.shape;
 
-    // Calculate suitability for each product
+    try {
+      // Call Gemini API for AI-powered recommendations
+      const response = await fetch('https://aistylistapp-production.up.railway.app/api/gemini/recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bodyShape: bodyShape,
+          products: allProducts,
+          measurements: this.measurements
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.recommendations && data.recommendations.length > 0) {
+        // Use AI recommendations
+        this.productRecommendations = data.recommendations;
+      } else {
+        // Fallback to algorithmic approach
+        this.productRecommendations = this.fallbackRecommendations(allProducts, bodyShape);
+      }
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+      // Fallback to algorithmic approach
+      this.productRecommendations = this.fallbackRecommendations(allProducts, bodyShape);
+    }
+
+    this.render();
+  }
+
+  fallbackRecommendations(allProducts, bodyShape) {
+    // Calculate suitability for each product (old algorithm as backup)
     const scoredProducts = allProducts.map(product => {
       const score = this.calculateProductSuitability(product, bodyShape);
       return {
@@ -442,12 +475,10 @@ class BodyShapeAdvisor {
     });
 
     // Filter and sort by suitability
-    this.productRecommendations = scoredProducts
-      .filter(p => p.match > 30) // Only show products with >30% match
+    return scoredProducts
+      .filter(p => p.match > 30)
       .sort((a, b) => b.match - a.match)
-      .slice(0, 12); // Top 12 products
-
-    this.render();
+      .slice(0, 12);
   }
 
   calculateProductSuitability(product, bodyShape) {
