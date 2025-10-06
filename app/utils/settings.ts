@@ -57,6 +57,25 @@ export async function saveSettings(
   settings: AppSettings
 ): Promise<boolean> {
   try {
+    // First, get the shop's GID
+    const shopResponse = await admin.graphql(
+      `#graphql
+        query GetShop {
+          shop {
+            id
+          }
+        }`
+    );
+
+    const shopData = await shopResponse.json();
+    const shopId = shopData.data?.shop?.id;
+
+    if (!shopId) {
+      console.error("Could not get shop ID");
+      return false;
+    }
+
+    // Now save the metafield
     const response = await admin.graphql(
       `#graphql
         mutation CreateAppSettingsMetafield($metafields: [MetafieldsSetInput!]!) {
@@ -81,7 +100,7 @@ export async function saveSettings(
               key: METAFIELD_KEY,
               type: "json",
               value: JSON.stringify(settings),
-              ownerId: "gid://shopify/Shop/1"
+              ownerId: shopId
             }
           ]
         }
@@ -96,6 +115,7 @@ export async function saveSettings(
       return false;
     }
 
+    console.log("Settings saved successfully:", settings);
     return true;
   } catch (error) {
     console.error("Error saving settings:", error);
