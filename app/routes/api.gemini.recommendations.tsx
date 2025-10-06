@@ -1,20 +1,28 @@
-import type { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400",
+};
+
+// Handle OPTIONS preflight requests
+export async function loader({ request }: LoaderFunctionArgs) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  return json({ error: "Use POST method" }, { status: 405, headers: corsHeaders });
+}
+
 // Public API for storefront - uses Gemini to analyze products
 export async function action({ request }: ActionFunctionArgs) {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-    "Access-Control-Max-Age": "86400",
-  };
-
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -24,11 +32,11 @@ export async function action({ request }: ActionFunctionArgs) {
     const measurements = bodyData.measurements;
 
     if (!bodyShape) {
-      return json({ error: "Body shape is required" }, { status: 400, headers });
+      return json({ error: "Body shape is required" }, { status: 400, headers: corsHeaders });
     }
 
     if (products.length === 0) {
-      return json({ error: "No products provided" }, { status: 400, headers });
+      return json({ error: "No products provided" }, { status: 400, headers: corsHeaders });
     }
 
     // Filter out sold out products and prepare for AI
@@ -40,6 +48,8 @@ export async function action({ request }: ActionFunctionArgs) {
       // If no variants info, assume available
       return p.available !== false;
     });
+
+    console.log(`[Gemini API] Processing ${availableProducts.length} available products for ${bodyShape}`);
 
     // Prepare products for AI (limit data size)
     const productsForAI = availableProducts.slice(0, 50).map((p: any, index: number) => ({
@@ -60,19 +70,23 @@ export async function action({ request }: ActionFunctionArgs) {
     const response = await result.response;
     const text = response.text();
 
+    console.log(`[Gemini API] Received response, parsing...`);
+
     // Parse response
     const recommendations = parseResponse(text, availableProducts);
 
-    return json({ recommendations: recommendations.slice(0, 12) }, { headers });
+    console.log(`[Gemini API] Returning ${recommendations.length} recommendations`);
+
+    return json({ recommendations: recommendations.slice(0, 12) }, { headers: corsHeaders });
   } catch (error) {
-    console.error("Error in Gemini API:", error);
-    console.error("Error details:", error instanceof Error ? error.message : "Unknown error");
+    console.error("[Gemini API] Error:", error);
+    console.error("[Gemini API] Error details:", error instanceof Error ? error.message : "Unknown error");
     return json(
       {
         error: "Failed to get AI recommendations",
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { status: 500, headers }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -164,10 +178,19 @@ function parseResponse(text: string, products: any[]): any[] {
 
     const parsed = JSON.parse(jsonText);
     const recommendations: any[] = [];
+    const seenIndices = new Set<number>(); // Track which product indices we've used
 
     for (const rec of parsed.recommendations || []) {
       const idx = rec.index;
+
+      // Skip if we've already added this product (deduplication)
+      if (seenIndices.has(idx)) {
+        console.log(`[Gemini API] Skipping duplicate product at index ${idx}`);
+        continue;
+      }
+
       if (idx >= 0 && idx < products.length) {
+        seenIndices.add(idx);
         recommendations.push({
           ...products[idx],
           match: rec.score,
@@ -178,18 +201,12 @@ function parseResponse(text: string, products: any[]): any[] {
       }
     }
 
+    console.log(`[Gemini API] Parsed ${recommendations.length} unique recommendations from ${parsed.recommendations?.length || 0} total`);
+
     return recommendations;
   } catch (error) {
-    console.error("Error parsing Gemini response:", error);
+    console.error("[Gemini API] Error parsing response:", error);
+    console.error("[Gemini API] Raw text:", text.substring(0, 500));
     return [];
   }
-}
-
-export async function loader() {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-  };
-  return json({ error: "Use POST method" }, { status: 405, headers });
 }
