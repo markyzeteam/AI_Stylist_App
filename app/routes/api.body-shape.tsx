@@ -4,11 +4,19 @@ import { authenticate } from "../shopify.server";
 import { calculateBodyShape } from "../utils/bodyShape";
 
 export async function action({ request }: ActionFunctionArgs) {
-  // This endpoint is for customer-facing requests, so we don't need admin auth
-  // But we need to validate the request comes from the same shop
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Max-Age": "86400",
+  };
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers });
+  }
 
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return json({ error: "Method not allowed" }, { status: 405, headers });
   }
 
   try {
@@ -18,28 +26,33 @@ export async function action({ request }: ActionFunctionArgs) {
     switch (actionType) {
       case "calculate":
         if (!measurements) {
-          return json({ error: "Measurements required" }, { status: 400 });
+          return json({ error: "Measurements required" }, { status: 400, headers });
         }
 
         const result = calculateBodyShape(measurements);
-        return json({ result });
+        return json({ result }, { headers });
 
       case "recommendations":
         if (!bodyShape) {
-          return json({ error: "Body shape required" }, { status: 400 });
+          return json({ error: "Body shape required" }, { status: 400, headers });
         }
 
         // For customer-facing interface, we'll return static recommendations
         // In a full implementation, this would connect to your product catalog
         const recommendations = getStaticRecommendations(bodyShape);
-        return json({ recommendations });
+        return json({ recommendations }, { headers });
 
       default:
-        return json({ error: "Invalid action" }, { status: 400 });
+        return json({ error: "Invalid action" }, { status: 400, headers });
     }
   } catch (error) {
     console.error("API Error:", error);
-    return json({ error: "Internal server error" }, { status: 500 });
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    };
+    return json({ error: "Internal server error" }, { status: 500, headers });
   }
 }
 

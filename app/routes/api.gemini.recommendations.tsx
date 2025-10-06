@@ -8,12 +8,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export async function action({ request }: ActionFunctionArgs) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Max-Age": "86400",
   };
 
   if (request.method === "OPTIONS") {
-    return new Response(null, { headers });
+    return new Response(null, { status: 204, headers });
   }
 
   try {
@@ -185,5 +186,10 @@ function parseResponse(text: string, products: any[]): any[] {
 }
 
 export async function loader() {
-  return json({ error: "Use POST method" }, { status: 405 });
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  };
+  return json({ error: "Use POST method" }, { status: 405, headers });
 }
