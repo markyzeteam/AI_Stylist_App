@@ -51,6 +51,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
     console.log(`[Gemini API] Processing ${availableProducts.length} available products for ${bodyShape}`);
 
+    // Check if Gemini API key is configured
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("[Gemini API] No API key configured, using fallback");
+      const fallbackRecs = fallbackRecommendations(availableProducts, bodyShape);
+      return json({ recommendations: fallbackRecs.slice(0, 12) }, { headers: corsHeaders });
+    }
+
     // Prepare products for AI (limit data size)
     const productsForAI = availableProducts.slice(0, 50).map((p: any, index: number) => ({
       index,
@@ -64,16 +71,23 @@ export async function action({ request }: ActionFunctionArgs) {
     // Build prompt
     const prompt = buildPrompt(bodyShape, measurements, productsForAI);
 
-    // Call Gemini
+    // Call Gemini with timeout
+    console.log(`[Gemini API] Calling Gemini AI...`);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    console.log(`[Gemini API] Received response, parsing...`);
+    console.log(`[Gemini API] Received response (${text.length} chars), parsing...`);
 
     // Parse response
     const recommendations = parseResponse(text, availableProducts);
+
+    if (recommendations.length === 0) {
+      console.log(`[Gemini API] No valid recommendations from AI, using fallback`);
+      const fallbackRecs = fallbackRecommendations(availableProducts, bodyShape);
+      return json({ recommendations: fallbackRecs.slice(0, 12) }, { headers: corsHeaders });
+    }
 
     console.log(`[Gemini API] Returning ${recommendations.length} recommendations`);
 
@@ -81,14 +95,113 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error) {
     console.error("[Gemini API] Error:", error);
     console.error("[Gemini API] Error details:", error instanceof Error ? error.message : "Unknown error");
+
+    // Try to get products list for fallback
+    try {
+      const bodyData = await request.clone().json();
+      const products = bodyData.products || [];
+      const bodyShape = bodyData.bodyShape;
+
+      if (products.length > 0) {
+        console.log("[Gemini API] Using fallback algorithm due to error");
+        const availableProducts = products.filter((p: any) => {
+          if (p.variants && Array.isArray(p.variants)) {
+            return p.variants.some((v: any) => v.available === true || v.availableForSale === true);
+          }
+          return p.available !== false;
+        });
+        const fallbackRecs = fallbackRecommendations(availableProducts, bodyShape);
+        return json({ recommendations: fallbackRecs.slice(0, 12) }, { headers: corsHeaders });
+      }
+    } catch (fallbackError) {
+      console.error("[Gemini API] Fallback also failed:", fallbackError);
+    }
+
     return json(
       {
         error: "Failed to get AI recommendations",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
+        recommendations: []
       },
       { status: 500, headers: corsHeaders }
     );
   }
+}
+
+// Fallback recommendation algorithm
+function fallbackRecommendations(products: any[], bodyShape: string): any[] {
+  const bodyShapeKeywords: { [key: string]: string[] } = {
+    "Pear/Triangle": ["a-line", "fit-and-flare", "empire", "bootcut", "wide-leg", "structured", "top", "blouse"],
+    "Apple/Round": ["empire", "v-neck", "scoop", "high-waist", "flow", "wrap", "tunic", "dress"],
+    "Hourglass": ["fitted", "wrap", "belt", "high-waist", "curve", "bodycon", "dress"],
+    "Inverted Triangle": ["a-line", "wide-leg", "bootcut", "scoop", "v-neck", "skirt", "pant"],
+    "Rectangle/Straight": ["belt", "peplum", "structure", "layer", "crop", "fitted"],
+    "V-Shape/Athletic": ["fitted", "straight-leg", "v-neck", "minimal", "athletic", "casual"]
+  };
+
+  const keywords = bodyShapeKeywords[bodyShape] || [];
+
+  const scored = products.map((product, index) => {
+    const text = `${product.title} ${product.description} ${product.productType} ${(product.tags || []).join(' ')}`.toLowerCase();
+
+    let score = 50;
+    keywords.forEach(kw => {
+      if (text.includes(kw.toLowerCase())) {
+        score += 10;
+      }
+    });
+
+    return {
+      ...product,
+      match: Math.min(100, score),
+      reasoning: `This style complements ${bodyShape} body shape with its flattering cut and design`,
+      sizeAdvice: `Size according to your measurements - this works well for ${bodyShape} shapes`,
+      stylingTip: getRandomStylingTip(product, bodyShape)
+    };
+  });
+
+  return scored
+    .filter(p => p.match >= 50)
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 12);
+}
+
+function getRandomStylingTip(product: any, bodyShape: string): string {
+  const tips: { [key: string]: string[] } = {
+    "Pear/Triangle": [
+      "Pair with a statement necklace to draw attention upward",
+      "Add a structured blazer to balance proportions",
+      "Style with pointed-toe heels to elongate legs"
+    ],
+    "Inverted Triangle": [
+      "Wear with wide-leg pants to balance broader shoulders",
+      "Add a belt to create waist definition",
+      "Pair with A-line bottoms for proportion"
+    ],
+    "Hourglass": [
+      "Belt at the waist to emphasize your curves",
+      "Pair with fitted pieces to showcase your shape",
+      "Add high heels to elongate your silhouette"
+    ],
+    "Rectangle/Straight": [
+      "Layer with a belt to create curves",
+      "Add a peplum top for waist definition",
+      "Wear with structured pieces to add dimension"
+    ],
+    "Apple/Round": [
+      "Style with flowing layers for a flattering drape",
+      "Pair with high-waisted bottoms to define waist",
+      "Add a long necklace to create vertical lines"
+    ],
+    "V-Shape/Athletic": [
+      "Pair with straight-cut pants for balance",
+      "Add minimal accessories for clean lines",
+      "Style with fitted basics to show your shape"
+    ]
+  };
+
+  const shapeTips = tips[bodyShape] || ["Style according to your personal preference"];
+  return shapeTips[Math.floor(Math.random() * shapeTips.length)];
 }
 
 function buildPrompt(bodyShape: string, measurements: any, products: any[]): string {
