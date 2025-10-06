@@ -75,24 +75,52 @@ Customer Details:
 `
     : `Body Shape: ${bodyShape}`;
 
-  return `You are an expert fashion stylist. Recommend the best products for this customer.
+  // Define body shape specific guidance for Gemini
+  const bodyShapeGuidance = {
+    "Pear/Triangle": "Focus on balancing wider hips with structured shoulders, A-line silhouettes, and drawing attention upward. Avoid tight bottoms.",
+    "Apple/Round": "Emphasize defined waist with empire cuts, V-necks, and flowing fabrics. Create vertical lines. Avoid tight waistbands.",
+    "Hourglass": "Highlight curves with fitted styles, wrap designs, and belted pieces. Avoid shapeless or overly loose clothing.",
+    "Inverted Triangle": "Balance broad shoulders with A-line skirts, wide-leg pants, and minimize shoulder details. Avoid shoulder pads.",
+    "Rectangle/Straight": "Create curves with belts, peplum, and structured pieces. Add dimension through layering. Avoid straight cuts.",
+    "V-Shape/Athletic": "Show off athletic build with fitted shirts and straight-leg pants. Minimize shoulder emphasis.",
+    "Oval/Apple": "Use vertical lines, open layers, and darker colors on torso. Avoid tight-fitting around midsection."
+  };
+
+  const guidance = bodyShapeGuidance[bodyShape as keyof typeof bodyShapeGuidance] || "Consider proportions and personal style.";
+
+  return `You are an expert fashion stylist and personal shopper with deep knowledge of body proportions and flattering styles. Your role is to act as an intelligent product recommendation algorithm.
 
 ${measurementInfo}
 
-Products:
+Style Guidance for ${bodyShape}: ${guidance}
+
+Available Products:
 ${JSON.stringify(products, null, 2)}
 
-Recommend the top 12 products that would:
-1. Flatter their ${bodyShape} body shape
-2. Fit their proportions well
-3. Look stylish and modern
+TASK: Analyze each product and intelligently select the top 12 that will:
+1. **Genuinely flatter** the ${bodyShape} body shape (consider cut, silhouette, neckline, fit)
+2. **Balance their proportions** using the measurements provided
+3. **Solve body shape challenges** (create curves, elongate, balance, define)
+4. **Look stylish** with current fashion trends
 
-For each recommendation, provide:
-- index: Product index from the list
-- score: Suitability score (0-100)
-- reasoning: Why it suits them (1-2 sentences)
-- sizeAdvice: Specific size guidance
-- stylingTip: A unique styling suggestion for THIS specific product and body shape (e.g., "Pair with a belt to define waist", "Style with wide-leg jeans", "Add statement earrings to balance proportions")
+Scoring Criteria:
+- 90-100: Perfect match, addresses body shape needs perfectly
+- 70-89: Great choice, flatters well
+- 50-69: Good option, suitable with styling
+- <50: Skip this product
+
+For each recommendation provide:
+- **index**: Product index from list (0-based)
+- **score**: Suitability score (0-100)
+- **reasoning**: WHY this specific product flatters ${bodyShape} (mention specific design elements: neckline, cut, silhouette, fabric flow)
+- **sizeAdvice**: Precise sizing guidance for their body shape
+- **stylingTip**: Unique, actionable styling tip that enhances this product for their shape (be specific: "Pair with X", "Wear with Y", "Add Z")
+
+RULES:
+- Only recommend score ≥ 50
+- Prioritize variety (mix tops, bottoms, dresses, outerwear)
+- Avoid products that emphasize problem areas
+- Be specific and personalized
 
 Respond with ONLY valid JSON (no markdown):
 {
@@ -100,9 +128,9 @@ Respond with ONLY valid JSON (no markdown):
     {
       "index": 0,
       "score": 95,
-      "reasoning": "This flatters your body shape because...",
-      "sizeAdvice": "Size for your hips...",
-      "stylingTip": "Pair this with a statement belt to accentuate your waist"
+      "reasoning": "This A-line dress features a fitted bodice that defines the waist and flared skirt that balances proportions, perfect for creating an hourglass effect. The V-neckline draws eyes upward.",
+      "sizeAdvice": "Size based on your hip measurement, consider sizing up for comfort",
+      "stylingTip": "Pair with pointed-toe heels and a cropped denim jacket to emphasize your waist"
     }
   ]
 }`;
