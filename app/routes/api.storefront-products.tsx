@@ -39,7 +39,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     console.log('Session record found:', !!sessionRecord);
-    console.log('Session record content type:', typeof sessionRecord.content);
 
     if (!sessionRecord) {
       console.error('No session found for shop:', shop);
@@ -49,40 +48,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       );
     }
 
-    // Check if content exists
-    if (!sessionRecord.content) {
-      console.error('Session content is null or undefined');
-      return json(
-        { error: "Invalid session data", products: [], productCount: 0 },
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    let sessionData;
-    try {
-      // Content might already be an object or a JSON string
-      sessionData = typeof sessionRecord.content === 'string'
-        ? JSON.parse(sessionRecord.content)
-        : sessionRecord.content;
-    } catch (e) {
-      console.error('Failed to parse session content:', e);
-      return json(
-        { error: "Failed to parse session data", products: [], productCount: 0 },
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    console.log('Session data keys:', Object.keys(sessionData));
-    console.log('Full session data (truncated):', JSON.stringify(sessionData).substring(0, 300));
-
-    // Try different possible locations for the access token
-    const accessToken = sessionData.accessToken || sessionData.access_token || sessionData.state?.accessToken;
+    // Access token is a direct field in the Session model
+    const accessToken = sessionRecord.accessToken;
 
     console.log('Access token exists:', !!accessToken);
     if (accessToken) {
       console.log('Access token prefix:', accessToken.substring(0, 15));
     } else {
-      console.error('Could not find access token in session data');
+      console.error('No access token in session record');
       return json(
         { error: "No access token found in session", products: [], productCount: 0 },
         { status: 401, headers: corsHeaders }
