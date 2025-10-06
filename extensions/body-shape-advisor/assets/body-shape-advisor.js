@@ -435,13 +435,35 @@ class BodyShapeAdvisor {
 
     console.log(`Scanning ${availableProducts.length} available products for ${bodyShape}`);
 
-    // Use simple keyword matching algorithm for ALL products
-    this.productRecommendations = this.fallbackRecommendations(availableProducts, bodyShape);
+    // Load app settings from API
+    let settings = {
+      numberOfSuggestions: 30,
+      minimumMatchScore: 30,
+      maxProductsToScan: 1000
+    };
+
+    try {
+      const settingsResponse = await fetch('https://aistylistapp-production.up.railway.app/api/settings');
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        settings = settingsData.settings;
+        console.log(`Loaded settings:`, settings);
+      }
+    } catch (error) {
+      console.log('Using default settings');
+    }
+
+    // Use simple keyword matching algorithm
+    this.productRecommendations = this.fallbackRecommendations(
+      availableProducts.slice(0, settings.maxProductsToScan),
+      bodyShape,
+      settings
+    );
 
     this.render();
   }
 
-  fallbackRecommendations(allProducts, bodyShape) {
+  fallbackRecommendations(allProducts, bodyShape, settings) {
     // Calculate suitability for each product
     const scoredProducts = allProducts.map(product => {
       const score = this.calculateProductSuitability(product, bodyShape);
@@ -453,11 +475,14 @@ class BodyShapeAdvisor {
       };
     });
 
-    // Filter and sort by suitability - return top 30
+    // Filter and sort by suitability - use settings
+    const minScore = settings?.minimumMatchScore || 30;
+    const limit = settings?.numberOfSuggestions || 30;
+
     return scoredProducts
-      .filter(p => p.match > 30)
+      .filter(p => p.match >= minScore)
       .sort((a, b) => b.match - a.match)
-      .slice(0, 30);
+      .slice(0, limit);
   }
 
   calculateProductSuitability(product, bodyShape) {

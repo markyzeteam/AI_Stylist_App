@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit } from "@remix-run/react";
+import { useLoaderData, useSubmit, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -16,53 +16,55 @@ import {
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-
-// Default settings
-const DEFAULT_SETTINGS = {
-  numberOfSuggestions: 30,
-  minimumMatchScore: 30,
-  maxProductsToScan: 1000,
-};
+import { loadSettings, saveSettings, type AppSettings } from "../utils/settings";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
 
-  // In a real app, you'd load these from a database
-  // For now, return defaults
-  return json({ settings: DEFAULT_SETTINGS });
+  // Load settings from Shopify metafields
+  const settings = await loadSettings(admin);
+
+  return json({ settings });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
 
   const formData = await request.formData();
-  const settings = {
+  const settings: AppSettings = {
     numberOfSuggestions: parseInt(formData.get("numberOfSuggestions") as string) || 30,
     minimumMatchScore: parseInt(formData.get("minimumMatchScore") as string) || 30,
     maxProductsToScan: parseInt(formData.get("maxProductsToScan") as string) || 1000,
   };
 
-  // In a real app, you'd save these to a database
-  // For now, just return success
-  return json({
-    success: true,
-    settings,
-    message: "Settings saved successfully! Note: These settings are currently stored in-memory only. To persist them, you'll need to implement database storage."
-  });
+  // Save settings to Shopify metafields
+  const success = await saveSettings(admin, settings);
+
+  if (success) {
+    return json({
+      success: true,
+      settings,
+      message: "Settings saved successfully!"
+    });
+  } else {
+    return json({
+      success: false,
+      settings,
+      message: "Failed to save settings. Please try again."
+    }, { status: 500 });
+  }
 };
 
 export default function Settings() {
   const { settings } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   const [formData, setFormData] = useState(settings);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     submit(form, { method: "post" });
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   return (
@@ -71,10 +73,18 @@ export default function Settings() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
-            {showSuccess && (
+            {actionData?.success && (
               <Banner tone="success">
                 <Text as="p" variant="bodyMd">
-                  Settings saved successfully!
+                  {actionData.message}
+                </Text>
+              </Banner>
+            )}
+
+            {actionData?.success === false && (
+              <Banner tone="critical">
+                <Text as="p" variant="bodyMd">
+                  {actionData.message}
                 </Text>
               </Banner>
             )}
@@ -165,7 +175,7 @@ export default function Settings() {
 
             <Banner tone="info">
               <Text as="p" variant="bodyMd">
-                <strong>Note:</strong> These settings currently apply to the admin preview only. To make them work on the storefront, you'll need to implement a settings API endpoint.
+                <strong>Note:</strong> Settings are saved to your Shopify store and will persist across app restarts. The storefront will use these settings for product recommendations.
               </Text>
             </Banner>
           </BlockStack>
