@@ -30,8 +30,18 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: "No products provided" }, { status: 400, headers });
     }
 
+    // Filter out sold out products and prepare for AI
+    const availableProducts = products.filter((p: any) => {
+      // Check if product has at least one available variant
+      if (p.variants && Array.isArray(p.variants)) {
+        return p.variants.some((v: any) => v.available === true || v.availableForSale === true);
+      }
+      // If no variants info, assume available
+      return p.available !== false;
+    });
+
     // Prepare products for AI (limit data size)
-    const productsForAI = products.slice(0, 50).map((p: any, index: number) => ({
+    const productsForAI = availableProducts.slice(0, 50).map((p: any, index: number) => ({
       index,
       title: p.title,
       description: (p.description || "").substring(0, 150),
@@ -50,13 +60,17 @@ export async function action({ request }: ActionFunctionArgs) {
     const text = response.text();
 
     // Parse response
-    const recommendations = parseResponse(text, products);
+    const recommendations = parseResponse(text, availableProducts);
 
     return json({ recommendations: recommendations.slice(0, 12) }, { headers });
   } catch (error) {
     console.error("Error in Gemini API:", error);
+    console.error("Error details:", error instanceof Error ? error.message : "Unknown error");
     return json(
-      { error: "Failed to get AI recommendations" },
+      {
+        error: "Failed to get AI recommendations",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500, headers }
     );
   }
@@ -97,7 +111,7 @@ Style Guidance for ${bodyShape}: ${guidance}
 Available Products:
 ${JSON.stringify(products, null, 2)}
 
-TASK: Analyze each product and intelligently select the top 12 that will:
+TASK: Analyze each product and intelligently select the top 12 DIFFERENT products that will:
 1. **Genuinely flatter** the ${bodyShape} body shape (consider cut, silhouette, neckline, fit)
 2. **Balance their proportions** using the measurements provided
 3. **Solve body shape challenges** (create curves, elongate, balance, define)
@@ -110,17 +124,19 @@ Scoring Criteria:
 - <50: Skip this product
 
 For each recommendation provide:
-- **index**: Product index from list (0-based)
+- **index**: Product index from list (0-based) - MUST be unique, NO DUPLICATES
 - **score**: Suitability score (0-100)
-- **reasoning**: WHY this specific product flatters ${bodyShape} (mention specific design elements: neckline, cut, silhouette, fabric flow)
+- **reasoning**: WHY this specific product flatters ${bodyShape} (mention specific design elements: neckline, cut, silhouette, fabric flow) - MUST be unique for each product
 - **sizeAdvice**: Precise sizing guidance for their body shape
-- **stylingTip**: Unique, actionable styling tip that enhances this product for their shape (be specific: "Pair with X", "Wear with Y", "Add Z")
+- **stylingTip**: Unique, actionable styling tip that enhances THIS SPECIFIC product for their shape (be specific: "Pair with X", "Wear with Y", "Add Z") - MUST be different for each product
 
-RULES:
+CRITICAL RULES:
+- NO DUPLICATE PRODUCTS - each index must appear only once
+- Each product MUST have unique reasoning and styling tips
 - Only recommend score ≥ 50
 - Prioritize variety (mix tops, bottoms, dresses, outerwear)
 - Avoid products that emphasize problem areas
-- Be specific and personalized
+- Be specific and personalized for EACH product
 
 Respond with ONLY valid JSON (no markdown):
 {

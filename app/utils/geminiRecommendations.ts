@@ -25,11 +25,18 @@ export async function getGeminiProductRecommendations(
       return [];
     }
 
+    // Filter out sold out products first
+    const availableProducts = products.filter(product => {
+      return product.variants && product.variants.some(v => v.available === true);
+    });
+
+    console.log(`Filtered ${products.length} products to ${availableProducts.length} available products`);
+
     // Pre-filter products using basic heuristics to reduce API load
     // This helps Gemini focus on more relevant products
-    const relevantProducts = preFilterProducts(products, bodyShape);
+    const relevantProducts = preFilterProducts(availableProducts, bodyShape);
 
-    console.log(`Pre-filtered ${products.length} products down to ${relevantProducts.length} relevant items for ${bodyShape}`);
+    console.log(`Pre-filtered ${availableProducts.length} products down to ${relevantProducts.length} relevant items for ${bodyShape}`);
 
     // Prepare product data for Gemini
     const productsForAI = relevantProducts.map((p, index) => ({
@@ -129,20 +136,22 @@ Style Guidance: ${guidance}
 Products Available:
 ${JSON.stringify(products, null, 2)}
 
-TASK: Act as an intelligent recommendation algorithm. Analyze each product deeply and select the top ${limit} products that will:
+TASK: Act as an intelligent recommendation algorithm. Analyze each product deeply and select the top ${limit} DIFFERENT products that will:
 1. **Flatter the ${bodyShape} body shape** based on cut, silhouette, and design details
 2. **Fit their proportions** considering their specific measurements
 3. **Look modern and stylish** with current fashion trends
 4. **Solve their specific body shape challenges** (e.g., balance proportions, create definition, elongate silhouette)
 
 For each recommendation, provide:
-- **index**: Product index from the list (0-based)
+- **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES
 - **score**: Suitability score (0-100) where 100 = perfect match, 70-90 = great, 50-69 = good, <50 = skip
-- **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape (2-3 sentences, be specific about design elements like neckline, cut, fit, fabric)
+- **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape (2-3 sentences, be specific about design elements like neckline, cut, fit, fabric) - MUST be unique for each product
 - **sizeAdvice**: Specific sizing guidance for their body shape and proportions
-- **stylingTip**: A unique, actionable styling suggestion that enhances how this product works with their body shape
+- **stylingTip**: A unique, actionable styling suggestion that enhances how THIS SPECIFIC product works with their body shape - MUST be different for each product
 
 CRITICAL RULES:
+- NO DUPLICATE PRODUCTS - each index must appear only once
+- Each product MUST have unique reasoning and styling tips
 - Only recommend products with score ≥ 50
 - Be very selective - prioritize quality over quantity
 - Consider the entire outfit composition (tops, bottoms, dresses, outerwear)
