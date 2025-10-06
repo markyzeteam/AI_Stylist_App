@@ -10,6 +10,8 @@ class BodyShapeAdvisor {
     this.currentStep = 'welcome';
     this.bodyShapeResult = null;
     this.productRecommendations = [];
+    this.products = []; // Will be loaded from API
+    this.productsLoaded = false;
     this.measurements = {
       gender: '',
       age: '',
@@ -25,9 +27,36 @@ class BodyShapeAdvisor {
     this.init();
   }
 
-  init() {
+  async init() {
     this.render();
     this.attachEventListeners();
+    // Load products in the background
+    await this.loadProducts();
+  }
+
+  async loadProducts() {
+    if (this.productsLoaded) return;
+
+    console.log('Loading products from Storefront API...');
+
+    try {
+      const apiUrl = `${this.config.apiEndpoint}/api/storefront-products?shop=${encodeURIComponent(this.config.shopDomain)}&token=${encodeURIComponent(this.config.storefrontAccessToken)}`;
+
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (data.products) {
+        this.products = data.products;
+        this.productsLoaded = true;
+        console.log(`Loaded ${this.products.length} products from Storefront API`);
+      } else {
+        console.error('No products in API response:', data);
+        this.products = [];
+      }
+    } catch (error) {
+      console.error('Error loading products from Storefront API:', error);
+      this.products = [];
+    }
   }
 
   render() {
@@ -46,7 +75,6 @@ class BodyShapeAdvisor {
   renderWelcome() {
     return `
       <div class="bsa-welcome">
-        <div class="bsa-icon">👗</div>
         <h3>Welcome to Your Personal Style Assistant</h3>
         <p>Discover clothing that perfectly fits your body shape and get personalized size recommendations.</p>
         <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('pathSelection')">
@@ -427,7 +455,10 @@ class BodyShapeAdvisor {
     this.currentStep = 'products';
     this.render();
 
-    const allProducts = this.config.products || [];
+    // Ensure products are loaded
+    await this.loadProducts();
+
+    const allProducts = this.products || [];
     const bodyShape = this.bodyShapeResult.shape;
 
     console.log(`Scanning ${allProducts.length} products for ${bodyShape}`);
