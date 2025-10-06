@@ -33,6 +33,14 @@ export interface ProductRecommendation {
   stylingTip?: string;
 }
 
+export interface UserMeasurements {
+  bust?: number;
+  waist?: number;
+  hips?: number;
+  shoulders?: number;
+  unit?: 'metric' | 'imperial';
+}
+
 // Mapping body shapes to suitable clothing categories and styles
 const BODY_SHAPE_PREFERENCES = {
   "Pear/Triangle": {
@@ -71,6 +79,29 @@ const BODY_SHAPE_PREFERENCES = {
     avoid: ["shoulder-emphasis", "tight-fitting"],
     keywords: ["fitted", "straight-leg", "v-neck", "minimal", "athletic", "casual"]
   }
+};
+
+// Standard size charts (in cm) - Women's sizes
+const STANDARD_SIZE_CHART_WOMEN = {
+  'XXS': { bust: [76, 81], waist: [58, 63], hips: [84, 89] },
+  'XS': { bust: [81, 86], waist: [63, 68], hips: [89, 94] },
+  'S': { bust: [86, 91], waist: [68, 73], hips: [94, 99] },
+  'M': { bust: [91, 97], waist: [73, 79], hips: [99, 104] },
+  'L': { bust: [97, 102], waist: [79, 84], hips: [104, 109] },
+  'XL': { bust: [102, 109], waist: [84, 91], hips: [109, 116] },
+  'XXL': { bust: [109, 117], waist: [91, 99], hips: [116, 124] },
+  '3XL': { bust: [117, 124], waist: [99, 106], hips: [124, 132] }
+};
+
+// Standard size charts (in cm) - Men's sizes
+const STANDARD_SIZE_CHART_MEN = {
+  'XS': { chest: [86, 91], waist: [71, 76], hips: [86, 91] },
+  'S': { chest: [91, 97], waist: [76, 81], hips: [91, 97] },
+  'M': { chest: [97, 102], waist: [81, 86], hips: [97, 102] },
+  'L': { chest: [102, 107], waist: [86, 91], hips: [102, 107] },
+  'XL': { chest: [107, 112], waist: [91, 97], hips: [107, 112] },
+  'XXL': { chest: [112, 119], waist: [97, 104], hips: [112, 119] },
+  '3XL': { chest: [119, 127], waist: [104, 112], hips: [119, 127] }
 };
 
 // Size recommendation logic based on body shape
@@ -210,8 +241,94 @@ export function calculateProductSuitability(product: Product, bodyShape: string)
   return Math.max(0, Math.min(1, score));
 }
 
-export function getSizeRecommendation(product: Product, bodyShape: string): string {
+// Extract size recommendations from product description based on user measurements
+function extractSizeFromDescription(
+  product: Product,
+  measurements: UserMeasurements | undefined,
+  bodyShape: string
+): string | null {
+  if (!measurements || !measurements.bust || !measurements.waist || !measurements.hips) {
+    return null;
+  }
+
+  const description = product.description.toLowerCase();
   const category = determineProductCategory(product);
+
+  // Convert measurements to cm if needed
+  let bust = measurements.bust;
+  let waist = measurements.waist;
+  let hips = measurements.hips;
+
+  if (measurements.unit === 'imperial') {
+    bust = bust * 2.54;
+    waist = waist * 2.54;
+    hips = hips * 2.54;
+  }
+
+  // Determine which measurement to use based on category and body shape
+  let primaryMeasurement = bust;
+  let measurementName = 'bust';
+
+  if (category === 'bottoms') {
+    primaryMeasurement = hips;
+    measurementName = 'hips';
+  } else if (category === 'dresses') {
+    // For dresses, use largest measurement based on body shape
+    if (bodyShape === 'Pear/Triangle') {
+      primaryMeasurement = hips;
+      measurementName = 'hips';
+    } else if (bodyShape === 'Apple/Round' || bodyShape === 'Inverted Triangle') {
+      primaryMeasurement = bust;
+      measurementName = 'bust';
+    } else {
+      primaryMeasurement = Math.max(bust, hips);
+      measurementName = primaryMeasurement === bust ? 'bust' : 'hips';
+    }
+  }
+
+  // Look for size chart patterns in description
+  // Common patterns: "S: bust 86-91cm", "Medium (bust: 91-97cm, waist: 73-79cm)"
+  const sizePatterns = [
+    /(\w+)[\s:]+(?:bust|chest|hips|waist)?\s*:?\s*(\d+)[-–]\s*(\d+)\s*cm/gi,
+    /size\s+(\w+)[\s:]+(\d+)[-–]\s*(\d+)/gi,
+    /(\w+)\s*\(.*?(\d+)[-–]\s*(\d+)\s*cm/gi
+  ];
+
+  for (const pattern of sizePatterns) {
+    const matches = [...description.matchAll(pattern)];
+    for (const match of matches) {
+      const sizeName = match[1].toUpperCase();
+      const min = parseInt(match[2]);
+      const max = parseInt(match[3]);
+
+      // Check if user's measurement falls in this range
+      if (primaryMeasurement >= min && primaryMeasurement <= max) {
+        return sizeName;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function getSizeRecommendation(
+  product: Product,
+  bodyShape: string,
+  measurements?: UserMeasurements
+): string {
+  const category = determineProductCategory(product);
+
+  // Try to extract size from product description using measurements
+  const extractedSize = extractSizeFromDescription(product, measurements, bodyShape);
+
+  if (extractedSize) {
+    const bodyShapeAdvice = SIZE_RECOMMENDATIONS[bodyShape as keyof typeof SIZE_RECOMMENDATIONS];
+    const categoryAdvice = bodyShapeAdvice?.[category as keyof typeof bodyShapeAdvice] || "";
+
+    return `Recommended size: ${extractedSize} (based on your ${category === 'bottoms' ? 'hip' : category === 'tops' ? 'bust' : 'body'} measurements). ${categoryAdvice}`;
+  }
+
+  // Fall back to generic body shape advice
   const recommendations = SIZE_RECOMMENDATIONS[bodyShape as keyof typeof SIZE_RECOMMENDATIONS];
 
   if (!recommendations) {
@@ -241,7 +358,8 @@ function determineProductCategory(product: Product): string {
 export async function getProductRecommendations(
   admin: AdminApiContext,
   bodyShape: string,
-  limit: number = 12
+  limit: number = 12,
+  measurements?: UserMeasurements
 ): Promise<ProductRecommendation[]> {
   try {
     const products = await fetchProducts(admin);
@@ -259,7 +377,7 @@ export async function getProductRecommendations(
       .map(product => {
         const suitabilityScore = calculateProductSuitability(product, bodyShape);
         const category = determineProductCategory(product);
-        const sizeRecommendation = getSizeRecommendation(product, bodyShape);
+        const sizeRecommendation = getSizeRecommendation(product, bodyShape, measurements);
 
         return {
           product,
