@@ -15,16 +15,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  try {
-    // Try to authenticate and load settings
-    const { admin } = await authenticate.admin(request);
-    const settings = await loadSettings(admin);
-
-    return json({ settings }, { headers: corsHeaders });
-  } catch (error) {
-    // If authentication fails, return default settings
-    // This allows the storefront to work even without admin access
-    console.log("Using default settings for unauthenticated request");
-    return json({ settings: DEFAULT_SETTINGS }, { headers: corsHeaders });
-  }
+  // Storefront can't authenticate as admin, so always return default settings
+  // The settings are baked into the theme extension deployment
+  console.log("API settings endpoint called - returning default settings");
+  return json({ settings: DEFAULT_SETTINGS }, { headers: corsHeaders });
 }

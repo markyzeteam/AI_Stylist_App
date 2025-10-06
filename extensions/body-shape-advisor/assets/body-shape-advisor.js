@@ -435,23 +435,14 @@ class BodyShapeAdvisor {
 
     console.log(`Scanning ${availableProducts.length} available products for ${bodyShape}`);
 
-    // Load app settings from API
-    let settings = {
+    // Load settings from config (baked in from Liquid template)
+    const settings = this.config.settings || {
       numberOfSuggestions: 30,
       minimumMatchScore: 30,
       maxProductsToScan: 1000
     };
 
-    try {
-      const settingsResponse = await fetch('https://aistylistapp-production.up.railway.app/api/settings');
-      if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
-        settings = settingsData.settings;
-        console.log(`Loaded settings:`, settings);
-      }
-    } catch (error) {
-      console.log('Using default settings');
-    }
+    console.log(`Using settings:`, settings);
 
     // Use simple keyword matching algorithm
     this.productRecommendations = this.fallbackRecommendations(

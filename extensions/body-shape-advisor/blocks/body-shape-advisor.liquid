@@ -42,7 +42,12 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       primaryColor: '{{ block.settings.primary_color }}',
       backgroundColor: '{{ block.settings.background_color }}',
       apiEndpoint: 'https://aistylistapp-production.up.railway.app/api/recommendations',
-      products: JSON.parse(document.getElementById('products-data').textContent).products
+      products: JSON.parse(document.getElementById('products-data').textContent).products,
+      settings: {
+        numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
+        minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
+        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }}
+      }
     };
   </script>
 
@@ -79,6 +84,33 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       "id": "background_color",
       "label": "Background Color",
       "default": "#f8f9fa"
+    },
+    {
+      "type": "range",
+      "id": "number_of_suggestions",
+      "label": "Number of Suggestions",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "minimum_match_score",
+      "label": "Minimum Match Score (%)",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "max_products_to_scan",
+      "label": "Max Products to Scan",
+      "min": 100,
+      "max": 1000,
+      "step": 100,
+      "default": 1000
     }
   ]
 }
