@@ -686,8 +686,21 @@ export default function Index() {
 
   return (
     <Page>
-      <TitleBar title="YZE Shopping AI - Body Shape Advisor" />
+      <TitleBar title="YZE Shopping AI - Body Shape Advisor">
+        <button variant="primary" onClick={() => window.location.href = '/app/settings'}>
+          Settings
+        </button>
+      </TitleBar>
       <BlockStack gap="500">
+        <Banner tone="info">
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="p" variant="bodyMd">
+              Configure recommendation settings (number of suggestions, match threshold, etc.)
+            </Text>
+            <Button url="/app/settings">Go to Settings</Button>
+          </InlineStack>
+        </Banner>
+
         <Layout>
           <Layout.Section>
             {currentPath === 'select' && renderPathSelection()}
