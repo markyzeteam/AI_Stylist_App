@@ -19,20 +19,22 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   <script id="products-data" type="application/json">
     {
       "products": [
-        {% for product in collections['all'].products limit: 1000 %}
-        {
-          "title": {{ product.title | json }},
-          "handle": {{ product.handle | json }},
-          "image": {% if product.featured_image %}{{ product.featured_image | image_url: width: 600 | json }}{% else %}null{% endif %},
-          "price": {% if product.price %}{{ product.price | money_without_currency | json }}{% else %}null{% endif %},
-          "tags": {{ product.tags | json }},
-          "productType": {{ product.type | json }},
-          "description": {{ product.description | strip_html | truncate: 200 | json }},
-          "available": {{ product.available | json }}
-        }{% unless forloop.last %},{% endunless %}
-        {% endfor %}
+        {% paginate collections.all.products by 250 %}
+          {% for product in paginate.collection.products %}
+          {
+            "title": {{ product.title | json }},
+            "handle": {{ product.handle | json }},
+            "image": {% if product.featured_image %}{{ product.featured_image | image_url: width: 600 | json }}{% else %}null{% endif %},
+            "price": {% if product.price %}{{ product.price | money_without_currency | json }}{% else %}null{% endif %},
+            "tags": {{ product.tags | json }},
+            "productType": {{ product.type | json }},
+            "description": {{ product.description | strip_html | truncate: 200 | json }},
+            "available": {{ product.available | json }}
+          }{% unless forloop.last %},{% endunless %}
+          {% endfor %}
+        {% endpaginate %}
       ],
-      "productCount": {{ collections['all'].products.size }}
+      "productCount": {{ collections.all.all_products_count }}
     }
   </script>
 
@@ -56,7 +58,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   </script>
 
   <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=3" defer></script>
+  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=4" defer></script>
 </div>
 
 {% schema %}
