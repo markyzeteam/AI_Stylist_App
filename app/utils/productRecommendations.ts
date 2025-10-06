@@ -246,7 +246,16 @@ export async function getProductRecommendations(
   try {
     const products = await fetchProducts(admin);
 
-    const recommendations = products
+    console.log(`Scanning ${products.length} total products for ${bodyShape}`);
+
+    // Filter to only in-stock products
+    const inStockProducts = products.filter(product => {
+      return product.variants && product.variants.some(v => v.available === true);
+    });
+
+    console.log(`Found ${inStockProducts.length} in-stock products`);
+
+    const recommendations = inStockProducts
       .map(product => {
         const suitabilityScore = calculateProductSuitability(product, bodyShape);
         const category = determineProductCategory(product);
@@ -263,6 +272,8 @@ export async function getProductRecommendations(
       .filter(rec => rec.suitabilityScore > 0.3) // Only show reasonably suitable items
       .sort((a, b) => b.suitabilityScore - a.suitabilityScore) // Sort by suitability
       .slice(0, limit);
+
+    console.log(`Returning top ${recommendations.length} recommendations`);
 
     return recommendations;
   } catch (error) {

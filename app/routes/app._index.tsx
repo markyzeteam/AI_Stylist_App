@@ -23,7 +23,6 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { calculateBodyShape, type BodyShapeResult } from "../utils/bodyShape";
 import { getProductRecommendations, type ProductRecommendation } from "../utils/productRecommendations";
-import { getGeminiProductRecommendations } from "../utils/geminiRecommendations";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -53,14 +52,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    // Use Gemini AI for smarter recommendations
-    const recommendations = await getGeminiProductRecommendations(
+    // Scan ALL in-stock products and recommend based on body shape
+    const recommendations = await getProductRecommendations(
       admin,
       bodyShape,
-      measurements.bust > 0 ? measurements : undefined,
-      12
+      30  // Return top 30 recommendations
     );
-    return { recommendations, usedAI: true };
+    return { recommendations };
   } catch (error) {
     console.error("Error fetching recommendations:", error);
     return { error: "Failed to fetch product recommendations" };
@@ -140,7 +138,7 @@ export default function Index() {
           >
             📏 Calculate My Body Shape
           </Button>
-          <Text variant="bodySm" color="subdued" alignment="center">
+          <Text variant="bodySm" as="span" tone="subdued" alignment="center">
             Take measurements to determine your body shape
           </Text>
 
@@ -152,7 +150,7 @@ export default function Index() {
           >
             ✨ I Know My Body Shape
           </Button>
-          <Text variant="bodySm" color="subdued" alignment="center">
+          <Text variant="bodySm" as="span" tone="subdued" alignment="center">
             Skip to product recommendations
           </Text>
         </BlockStack>
@@ -199,8 +197,8 @@ export default function Index() {
             </Button>
           </InlineStack>
 
-          <Banner status="info">
-            <Text variant="bodyMd">
+          <Banner tone="info">
+            <Text variant="bodyMd" as="p">
               Please provide your measurements for accurate body shape calculation and personalized recommendations.
             </Text>
           </Banner>
@@ -438,8 +436,8 @@ export default function Index() {
             </Button>
           </InlineStack>
 
-          <Banner status="info">
-            <Text variant="bodyMd">
+          <Banner tone="info">
+            <Text variant="bodyMd" as="p">
               Choose the body shape that best describes you to get personalized recommendations.
             </Text>
           </Banner>
@@ -450,15 +448,15 @@ export default function Index() {
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="200">
                     <InlineStack gap="200" blockAlign="center">
-                      <Text variant="headingMd">{shape.icon}</Text>
+                      <Text variant="headingMd" as="p">{shape.icon}</Text>
                       <Text as="h3" variant="headingMd">
                         {shape.name}
                       </Text>
                     </InlineStack>
-                    <Text variant="bodyMd" color="subdued">
+                    <Text variant="bodyMd" as="span" tone="subdued">
                       {shape.description}
                     </Text>
-                    <Text variant="bodySm" color="subdued">
+                    <Text variant="bodySm" as="span" tone="subdued">
                       {shape.characteristics}
                     </Text>
                   </BlockStack>
@@ -478,7 +476,7 @@ export default function Index() {
               <Text as="h3" variant="headingMd">
                 💡 Not Sure?
               </Text>
-              <Text variant="bodyMd">
+              <Text variant="bodyMd" as="p">
                 If you're unsure about your body shape, use our calculator to get measurements-based results.
               </Text>
               <Button variant="secondary" onClick={() => setCurrentPath('calculator')}>
@@ -525,8 +523,8 @@ export default function Index() {
             </Button>
           </InlineStack>
 
-          <Banner status="success">
-            <Text variant="bodyMd">
+          <Banner tone="success">
+            <Text variant="bodyMd" as="p">
               Based on your measurements, here are your personalized results!
             </Text>
           </Banner>
@@ -543,7 +541,7 @@ export default function Index() {
                 </Badge>
               </InlineStack>
 
-              <Text variant="bodyMd" color="subdued">
+              <Text variant="bodyMd" as="span" tone="subdued">
                 {bodyShapeResult.description}
               </Text>
             </BlockStack>
@@ -596,8 +594,8 @@ export default function Index() {
               </InlineStack>
 
               {productFetcher.data?.error && (
-                <Banner status="warning">
-                  <Text variant="bodyMd">
+                <Banner tone="warning">
+                  <Text variant="bodyMd" as="p">
                     {productFetcher.data.error}
                   </Text>
                 </Banner>
@@ -605,18 +603,15 @@ export default function Index() {
 
               {isLoadingProducts && (
                 <Box>
-                  <Text variant="bodyMd">Finding the perfect products for your {bodyShapeResult.shape} body shape...</Text>
+                  <Text variant="bodyMd" as="p">Finding the perfect products for your {bodyShapeResult.shape} body shape...</Text>
                 </Box>
               )}
 
               {recommendations.length > 0 && (
                 <BlockStack gap="300">
-                  <InlineStack align="space-between">
-                    <Text variant="bodyMd" color="subdued">
-                      Found {recommendations.length} products perfect for your {bodyShapeResult.shape} body shape:
-                    </Text>
-                    <Badge>✨ AI Powered</Badge>
-                  </InlineStack>
+                  <Text variant="bodyMd" as="span" tone="subdued">
+                    Found {recommendations.length} products perfect for your {bodyShapeResult.shape} body shape:
+                  </Text>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                     {recommendations.map((rec, index) => (
@@ -640,24 +635,24 @@ export default function Index() {
                             </Badge>
 
                             {rec.product.variants.length > 0 && (
-                              <Text variant="bodyMd">
+                              <Text variant="bodyMd" as="p">
                                 From ${rec.product.variants[0].price}
                               </Text>
                             )}
 
-                            <Text variant="bodySm" color="subdued">
+                            <Text variant="bodySm" as="span" tone="subdued">
                               {rec.reasoning}
                             </Text>
 
                             {(rec as any).stylingTip && (
                               <Box background="bg-surface-secondary" padding="200" borderRadius="100">
-                                <Text variant="bodySm">
+                                <Text variant="bodySm" as="p">
                                   💡 <strong>Styling tip:</strong> {(rec as any).stylingTip}
                                 </Text>
                               </Box>
                             )}
 
-                            <Text variant="bodySm">
+                            <Text variant="bodySm" as="p">
                               <strong>Size advice:</strong> {rec.recommendedSize}
                             </Text>
                           </BlockStack>
@@ -675,7 +670,7 @@ export default function Index() {
               {recommendations.length === 0 && !isLoadingProducts && !productFetcher.data?.error && (
                 <Box background="bg-surface-secondary" padding="400" borderRadius="200">
                   <BlockStack gap="200">
-                    <Text variant="bodyMd">
+                    <Text variant="bodyMd" as="p">
                       Click "Find Products For Me" to see personalized clothing recommendations
                       from your store based on your {bodyShapeResult.shape} body shape!
                     </Text>
