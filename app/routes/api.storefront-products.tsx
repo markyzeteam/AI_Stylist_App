@@ -76,15 +76,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
             }
             edges {
               node {
+                id
                 title
                 handle
                 description
                 productType
                 tags
-                availableForSale
-                priceRange {
-                  minVariantPrice {
-                    amount
+                status
+                variants(first: 1) {
+                  edges {
+                    node {
+                      price
+                    }
                   }
                 }
                 featuredImage {
@@ -124,11 +127,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         title: edge.node.title,
         handle: edge.node.handle,
         image: edge.node.featuredImage?.url || null,
-        price: edge.node.priceRange?.minVariantPrice?.amount || null,
+        price: edge.node.variants?.edges?.[0]?.node?.price || null,
         tags: edge.node.tags || [],
         productType: edge.node.productType || "",
         description: edge.node.description || "",
-        available: edge.node.availableForSale,
+        available: edge.node.status === 'ACTIVE',
       }));
 
       allProducts.push(...transformedProducts);
