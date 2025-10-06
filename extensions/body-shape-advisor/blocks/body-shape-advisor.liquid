@@ -19,7 +19,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   <script id="products-data" type="application/json">
     {
       "products": [
-        {% for product in collections.all.products limit: 50 %}
+        {% for product in collections.all.products limit: 1000 %}
         {
           "title": {{ product.title | json }},
           "handle": {{ product.handle | json }},
@@ -27,7 +27,8 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
           "price": {% if product.price %}{{ product.price | money_without_currency | json }}{% else %}null{% endif %},
           "tags": {{ product.tags | json }},
           "productType": {{ product.type | json }},
-          "description": {{ product.description | strip_html | truncate: 200 | json }}
+          "description": {{ product.description | strip_html | truncate: 200 | json }},
+          "available": {{ product.available | json }}
         }{% unless forloop.last %},{% endunless %}
         {% endfor %}
       ]

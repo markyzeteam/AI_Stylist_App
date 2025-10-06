@@ -423,47 +423,26 @@ class BodyShapeAdvisor {
   }
 
   async browseProducts() {
-    // Use Gemini AI to get smart product recommendations
+    // Scan ALL in-stock products and recommend based on body shape
     this.currentStep = 'products';
     this.render();
 
     const allProducts = this.config.products || [];
     const bodyShape = this.bodyShapeResult.shape;
 
-    try {
-      // Call Gemini API for AI-powered recommendations
-      const response = await fetch('https://aistylistapp-production.up.railway.app/api/gemini/recommendations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bodyShape: bodyShape,
-          products: allProducts,
-          measurements: this.measurements
-        })
-      });
+    // Filter to only available products
+    const availableProducts = allProducts.filter(p => p.available === true || p.available === 'true');
 
-      const data = await response.json();
+    console.log(`Scanning ${availableProducts.length} available products for ${bodyShape}`);
 
-      if (data.recommendations && data.recommendations.length > 0) {
-        // Use AI recommendations
-        this.productRecommendations = data.recommendations;
-      } else {
-        // Fallback to algorithmic approach
-        this.productRecommendations = this.fallbackRecommendations(allProducts, bodyShape);
-      }
-    } catch (error) {
-      console.error('Error fetching AI recommendations:', error);
-      // Fallback to algorithmic approach
-      this.productRecommendations = this.fallbackRecommendations(allProducts, bodyShape);
-    }
+    // Use simple keyword matching algorithm for ALL products
+    this.productRecommendations = this.fallbackRecommendations(availableProducts, bodyShape);
 
     this.render();
   }
 
   fallbackRecommendations(allProducts, bodyShape) {
-    // Calculate suitability for each product (old algorithm as backup)
+    // Calculate suitability for each product
     const scoredProducts = allProducts.map(product => {
       const score = this.calculateProductSuitability(product, bodyShape);
       return {
@@ -474,11 +453,11 @@ class BodyShapeAdvisor {
       };
     });
 
-    // Filter and sort by suitability
+    // Filter and sort by suitability - return top 30
     return scoredProducts
       .filter(p => p.match > 30)
       .sort((a, b) => b.match - a.match)
-      .slice(0, 12);
+      .slice(0, 30);
   }
 
   calculateProductSuitability(product, bodyShape) {
@@ -563,7 +542,6 @@ class BodyShapeAdvisor {
       <div class="bsa-products">
         <div class="bsa-header">
           <h3>🛍️ Recommended Products for ${this.bodyShapeResult.shape}</h3>
-          <span class="bsa-ai-badge">✨ AI Powered</span>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
             ← Back to Results
           </button>
@@ -571,7 +549,7 @@ class BodyShapeAdvisor {
 
         ${products.length === 0 ? `
           <div class="bsa-loading">
-            <p>✨ AI is analyzing products for your ${this.bodyShapeResult.shape} body shape...</p>
+            <p>Finding products for your ${this.bodyShapeResult.shape} body shape...</p>
           </div>
         ` : `
           <div class="bsa-product-grid">
