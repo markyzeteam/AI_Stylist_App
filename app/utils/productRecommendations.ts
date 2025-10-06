@@ -143,7 +143,7 @@ export async function fetchProducts(admin: AdminApiContext): Promise<Product[]> 
       }`,
     {
       variables: {
-        first: 50 // Fetch up to 50 products
+        first: 1000 // Fetch up to 50 products
       }
     }
   );
