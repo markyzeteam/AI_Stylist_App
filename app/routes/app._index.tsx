@@ -54,7 +54,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Scan ALL in-stock products and recommend based on body shape
     const recommendations = await getProductRecommendations(
-      admin,
+      admin as any,
       bodyShape,
       30  // Return top 30 recommendations
     );
@@ -313,7 +313,7 @@ export default function Index() {
 
             <InlineStack align="end">
               <Button
-                primary
+                variant="primary"
                 onClick={handleCalculateBodyShape}
                 disabled={!isFormValid}
               >
@@ -536,8 +536,8 @@ export default function Index() {
                 <Text as="h3" variant="headingLg">
                   {bodyShapeResult.shape}
                 </Text>
-                <Badge status="success">
-                  {Math.round(bodyShapeResult.confidence * 100)}% confidence
+                <Badge progress="complete">
+                  {`${Math.round(bodyShapeResult.confidence * 100)}% confidence`}
                 </Badge>
               </InlineStack>
 
@@ -584,7 +584,7 @@ export default function Index() {
                 </Text>
                 {!recommendations.length && (
                   <Button
-                    primary
+                    variant="primary"
                     onClick={loadProducts}
                     loading={isLoadingProducts}
                   >
@@ -630,8 +630,8 @@ export default function Index() {
                               {rec.product.title}
                             </Text>
 
-                            <Badge status={rec.suitabilityScore > 0.7 ? 'success' : 'attention'}>
-                              {Math.round(rec.suitabilityScore * 100)}% match
+                            <Badge progress={rec.suitabilityScore > 0.7 ? 'complete' : 'partiallyComplete'}>
+                              {`${Math.round(rec.suitabilityScore * 100)}% match`}
                             </Badge>
 
                             {rec.product.variants.length > 0 && (
