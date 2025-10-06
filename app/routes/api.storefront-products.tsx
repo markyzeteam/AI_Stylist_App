@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,16 +15,52 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    // Authenticate - this endpoint is called from the storefront but we'll use session-less auth
-    const { admin } = await authenticate.public.appProxy(request);
+    // Get shop from query params
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+
+    if (!shop) {
+      return json(
+        { error: "Shop parameter is required", products: [], productCount: 0 },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Get access token from database
+    console.log('Fetching session for shop:', shop);
+
+    const sessionRecord = await prisma.session.findFirst({
+      where: {
+        shop,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+
+    console.log('Session record found:', !!sessionRecord);
+
+    if (!sessionRecord) {
+      console.error('No session found for shop:', shop);
+      return json(
+        { error: "No active session found for this shop", products: [], productCount: 0 },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    const sessionData = JSON.parse(sessionRecord.content);
+    console.log('Session data keys:', Object.keys(sessionData));
+
+    const accessToken = sessionData.accessToken;
+
+    console.log('Access token exists:', !!accessToken);
+    console.log('Access token prefix:', accessToken?.substring(0, 15));
 
     const allProducts: any[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
-    let fetchCount = 0;
-    const maxFetches = 20; // 20 * 250 = 5000 products max
 
-    while (hasNextPage && fetchCount < maxFetches) {
+    while (hasNextPage) {
       const query = `
         query GetProducts($cursor: String) {
           products(first: 250, after: $cursor) {
@@ -54,12 +90,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
       `;
 
-      const response = await admin.graphql(query, {
-        variables: { cursor },
+      const response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: { cursor },
+        }),
       });
 
+      console.log('Response status:', response.status, response.statusText);
+
       const data = await response.json();
-      const products = data.data?.products?.edges || [];
+      console.log('Response data:', JSON.stringify(data).substring(0, 500));
+
+      if (data.errors) {
+        console.error('GraphQL errors:', JSON.stringify(data.errors));
+      }
+
+      const products = data?.data?.products?.edges || [];
 
       // Transform products to match the format expected by the frontend
       const transformedProducts = products.map((edge: any) => ({
@@ -75,9 +127,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
       allProducts.push(...transformedProducts);
 
-      hasNextPage = data.data?.products?.pageInfo?.hasNextPage || false;
-      cursor = data.data?.products?.pageInfo?.endCursor || null;
-      fetchCount++;
+      hasNextPage = data?.data?.products?.pageInfo?.hasNextPage || false;
+      cursor = data?.data?.products?.pageInfo?.endCursor || null;
 
       console.log(
         `Fetched ${transformedProducts.length} products (total: ${allProducts.length}, hasNextPage: ${hasNextPage})`
