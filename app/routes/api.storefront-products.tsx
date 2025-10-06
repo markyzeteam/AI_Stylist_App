@@ -50,11 +50,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const sessionData = JSON.parse(sessionRecord.content);
     console.log('Session data keys:', Object.keys(sessionData));
+    console.log('Full session data (truncated):', JSON.stringify(sessionData).substring(0, 300));
 
-    const accessToken = sessionData.accessToken;
+    // Try different possible locations for the access token
+    const accessToken = sessionData.accessToken || sessionData.access_token || sessionData.state?.accessToken;
 
     console.log('Access token exists:', !!accessToken);
-    console.log('Access token prefix:', accessToken?.substring(0, 15));
+    if (accessToken) {
+      console.log('Access token prefix:', accessToken.substring(0, 15));
+    } else {
+      console.error('Could not find access token in session data');
+    }
 
     const allProducts: any[] = [];
     let hasNextPage = true;
