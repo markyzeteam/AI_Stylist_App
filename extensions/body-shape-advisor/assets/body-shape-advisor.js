@@ -423,17 +423,14 @@ class BodyShapeAdvisor {
   }
 
   async browseProducts() {
-    // Scan ALL in-stock products and recommend based on body shape
+    // Scan ALL products and recommend based on body shape
     this.currentStep = 'products';
     this.render();
 
     const allProducts = this.config.products || [];
     const bodyShape = this.bodyShapeResult.shape;
 
-    // Filter to only available products
-    const availableProducts = allProducts.filter(p => p.available === true || p.available === 'true');
-
-    console.log(`Scanning ${availableProducts.length} available products for ${bodyShape}`);
+    console.log(`Scanning ${allProducts.length} products for ${bodyShape}`);
 
     // Load settings from config (baked in from Liquid template)
     const settings = this.config.settings || {
@@ -444,9 +441,9 @@ class BodyShapeAdvisor {
 
     console.log(`Using settings:`, settings);
 
-    // Use simple keyword matching algorithm
+    // Use simple keyword matching algorithm on ALL products
     this.productRecommendations = this.fallbackRecommendations(
-      availableProducts.slice(0, settings.maxProductsToScan),
+      allProducts.slice(0, settings.maxProductsToScan),
       bodyShape,
       settings
     );

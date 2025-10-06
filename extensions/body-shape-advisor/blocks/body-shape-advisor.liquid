@@ -19,7 +19,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   <script id="products-data" type="application/json">
     {
       "products": [
-        {% for product in collections.all.products limit: 1000 %}
+        {% for product in collections['all'].products limit: 1000 %}
         {
           "title": {{ product.title | json }},
           "handle": {{ product.handle | json }},
@@ -31,28 +31,32 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
           "available": {{ product.available | json }}
         }{% unless forloop.last %},{% endunless %}
         {% endfor %}
-      ]
+      ],
+      "productCount": {{ collections['all'].products.size }}
     }
   </script>
 
   <!-- Configuration for the JavaScript app -->
   <script>
+    const productsData = JSON.parse(document.getElementById('products-data').textContent);
     window.BodyShapeAdvisorConfig = {
       shopDomain: '{{ shop.domain }}',
       primaryColor: '{{ block.settings.primary_color }}',
       backgroundColor: '{{ block.settings.background_color }}',
       apiEndpoint: 'https://aistylistapp-production.up.railway.app/api/recommendations',
-      products: JSON.parse(document.getElementById('products-data').textContent).products,
+      products: productsData.products,
+      productCount: productsData.productCount,
       settings: {
         numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
         minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
         maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }}
       }
     };
+    console.log('Loaded products from Liquid:', productsData.productCount, 'available products');
   </script>
 
   <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=2" defer></script>
+  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=3" defer></script>
 </div>
 
 {% schema %}
