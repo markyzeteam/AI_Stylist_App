@@ -486,22 +486,92 @@ class BodyShapeAdvisor {
     // Calculate suitability for each product
     const scoredProducts = allProducts.map(product => {
       const score = this.calculateProductSuitability(product, bodyShape);
+      const category = this.determineProductCategory(product);
       return {
         ...product,
         match: Math.round(score * 100),
         reasoning: this.generateReasoning(product, bodyShape, score),
-        sizeAdvice: this.getSizeAdvice(product, bodyShape)
+        sizeAdvice: this.getSizeAdvice(product, bodyShape),
+        category: category
       };
     });
 
-    // Filter and sort by suitability - use settings
+    // Filter by minimum score
     const minScore = settings?.minimumMatchScore || 30;
-    const limit = settings?.numberOfSuggestions || 30;
+    const filtered = scoredProducts.filter(p => p.match >= minScore);
 
-    return scoredProducts
-      .filter(p => p.match >= minScore)
+    // If category mix is enabled, ensure diverse recommendations
+    if (settings?.ensureCategoryMix) {
+      return this.ensureCategoryMix(filtered, settings);
+    }
+
+    // Otherwise, just return top matches
+    const limit = settings?.numberOfSuggestions || 30;
+    return filtered
       .sort((a, b) => b.match - a.match)
       .slice(0, limit);
+  }
+
+  ensureCategoryMix(products, settings) {
+    const minTops = settings?.minTops || 5;
+    const minBottoms = settings?.minBottoms || 5;
+    const minDresses = settings?.minDresses || 3;
+    const minAccessories = settings?.minAccessories || 2;
+    const totalLimit = settings?.numberOfSuggestions || 30;
+
+    // Group products by category
+    const byCategory = {
+      tops: products.filter(p => p.category === 'tops').sort((a, b) => b.match - a.match),
+      bottoms: products.filter(p => p.category === 'bottoms').sort((a, b) => b.match - a.match),
+      dresses: products.filter(p => p.category === 'dresses').sort((a, b) => b.match - a.match),
+      accessories: products.filter(p => p.category === 'accessories').sort((a, b) => b.match - a.match),
+      other: products.filter(p => p.category === 'other').sort((a, b) => b.match - a.match)
+    };
+
+    // Start with minimum required from each category
+    let results = [
+      ...byCategory.tops.slice(0, minTops),
+      ...byCategory.bottoms.slice(0, minBottoms),
+      ...byCategory.dresses.slice(0, minDresses),
+      ...byCategory.accessories.slice(0, minAccessories)
+    ];
+
+    // Fill remaining slots with best matches from any category
+    if (results.length < totalLimit) {
+      const remaining = products
+        .filter(p => !results.some(r => r.handle === p.handle))
+        .sort((a, b) => b.match - a.match)
+        .slice(0, totalLimit - results.length);
+
+      results = [...results, ...remaining];
+    }
+
+    // Sort final results by match score
+    return results.sort((a, b) => b.match - a.match).slice(0, totalLimit);
+  }
+
+  determineProductCategory(product) {
+    const productText = `${product.title} ${product.description} ${product.productType}`.toLowerCase();
+
+    if (productText.includes('dress') || productText.includes('gown')) {
+      return 'dresses';
+    }
+    if (productText.includes('top') || productText.includes('shirt') || productText.includes('blouse') ||
+        productText.includes('sweater') || productText.includes('tee') || productText.includes('jacket') ||
+        productText.includes('blazer') || productText.includes('cardigan')) {
+      return 'tops';
+    }
+    if (productText.includes('pant') || productText.includes('jean') || productText.includes('trouser') ||
+        productText.includes('short') || productText.includes('skirt') || productText.includes('legging')) {
+      return 'bottoms';
+    }
+    if (productText.includes('bag') || productText.includes('jewelry') || productText.includes('necklace') ||
+        productText.includes('earring') || productText.includes('bracelet') || productText.includes('scarf') ||
+        productText.includes('belt') || productText.includes('hat') || productText.includes('accessory')) {
+      return 'accessories';
+    }
+
+    return 'other';
   }
 
   calculateProductSuitability(product, bodyShape) {
@@ -608,12 +678,10 @@ class BodyShapeAdvisor {
                   ${product.match ? `
                     <span class="bsa-product-match">${product.match}% match</span>
                   ` : ''}
-                  <p class="bsa-product-reason">${product.reasoning}</p>
                   ${product.stylingTip ? `
                     <p class="bsa-product-styling-tip">💡 <strong>Styling tip:</strong> ${product.stylingTip}</p>
                   ` : ''}
-                  <p class="bsa-product-size"><strong>Size advice:</strong> ${product.sizeAdvice}</p>
-                  <a href="/products/${product.handle}" class="bsa-btn bsa-btn-primary">View Product</a>
+                  <a href="https://${this.config.shopDomain}/products/${product.handle}" class="bsa-btn bsa-btn-primary" target="_blank">View Product</a>
                 </div>
               </div>
             `).join('')}

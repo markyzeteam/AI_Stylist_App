@@ -25,7 +25,12 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       settings: {
         numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
         minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
-        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }}
+        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
+        ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
+        minTops: {{ block.settings.min_tops | default: 5 }},
+        minBottoms: {{ block.settings.min_bottoms | default: 5 }},
+        minDresses: {{ block.settings.min_dresses | default: 3 }},
+        minAccessories: {{ block.settings.min_accessories | default: 2 }}
       }
     };
   </script>
@@ -90,6 +95,49 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       "max": 1000,
       "step": 100,
       "default": 1000
+    },
+    {
+      "type": "checkbox",
+      "id": "ensure_category_mix",
+      "label": "Ensure Category Mix",
+      "info": "Guarantee a balanced mix of tops, bottoms, dresses, and accessories",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "min_tops",
+      "label": "Minimum Tops",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "min_bottoms",
+      "label": "Minimum Bottoms",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "min_dresses",
+      "label": "Minimum Dresses",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "min_accessories",
+      "label": "Minimum Accessories",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 2
     }
   ]
 }
