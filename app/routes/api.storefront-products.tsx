@@ -122,17 +122,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
       const products = data?.data?.products?.edges || [];
 
-      // Transform products to match the format expected by the frontend
-      const transformedProducts = products.map((edge: any) => ({
-        title: edge.node.title,
-        handle: edge.node.handle,
-        image: edge.node.featuredImage?.url || null,
-        price: edge.node.variants?.edges?.[0]?.node?.price || null,
-        tags: edge.node.tags || [],
-        productType: edge.node.productType || "",
-        description: edge.node.description || "",
-        available: edge.node.status === 'ACTIVE',
-      }));
+      // Transform and filter products - only include ACTIVE products
+      const transformedProducts = products
+        .filter((edge: any) => edge.node.status === 'ACTIVE')
+        .map((edge: any) => ({
+          title: edge.node.title,
+          handle: edge.node.handle,
+          image: edge.node.featuredImage?.url || null,
+          price: edge.node.variants?.edges?.[0]?.node?.price || null,
+          tags: edge.node.tags || [],
+          productType: edge.node.productType || "",
+          description: edge.node.description || "",
+          available: true,
+        }));
 
       allProducts.push(...transformedProducts);
 
