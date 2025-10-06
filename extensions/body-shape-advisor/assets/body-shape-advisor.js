@@ -37,10 +37,10 @@ class BodyShapeAdvisor {
   async loadProducts() {
     if (this.productsLoaded) return;
 
-    console.log('Loading products from Storefront API...');
+    console.log('Loading products from API...');
 
     try {
-      const apiUrl = `${this.config.apiEndpoint}/api/storefront-products?shop=${encodeURIComponent(this.config.shopDomain)}&token=${encodeURIComponent(this.config.storefrontAccessToken)}`;
+      const apiUrl = `${this.config.apiEndpoint}/api/storefront-products?shop=${encodeURIComponent(this.config.shopDomain)}`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();
@@ -48,13 +48,13 @@ class BodyShapeAdvisor {
       if (data.products) {
         this.products = data.products;
         this.productsLoaded = true;
-        console.log(`Loaded ${this.products.length} products from Storefront API`);
+        console.log(`Loaded ${this.products.length} products from API`);
       } else {
         console.error('No products in API response:', data);
         this.products = [];
       }
     } catch (error) {
-      console.error('Error loading products from Storefront API:', error);
+      console.error('Error loading products from API:', error);
       this.products = [];
     }
   }

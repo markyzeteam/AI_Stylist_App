@@ -1,7 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-
-const STOREFRONT_API_VERSION = "2024-01";
+import { authenticate } from "../shopify.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,23 +14,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const url = new URL(request.url);
-  const shopDomain = url.searchParams.get("shop");
-  const storefrontToken = url.searchParams.get("token");
-
-  if (!shopDomain || !storefrontToken) {
-    return json(
-      { error: "Missing shop domain or storefront access token" },
-      { status: 400, headers: corsHeaders }
-    );
-  }
-
   try {
+    // Authenticate - this endpoint is called from the storefront but we'll use session-less auth
+    const { admin } = await authenticate.public.appProxy(request);
+
     const allProducts: any[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
     let fetchCount = 0;
-    const maxFetches = 20; // Limit to prevent infinite loops (20 * 250 = 5000 products max)
+    const maxFetches = 20; // 20 * 250 = 5000 products max
 
     while (hasNextPage && fetchCount < maxFetches) {
       const query = `
@@ -63,24 +54,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
       `;
 
-      const response = await fetch(
-        `https://${shopDomain}/api/${STOREFRONT_API_VERSION}/graphql.json`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Shopify-Storefront-Access-Token": storefrontToken,
-          },
-          body: JSON.stringify({
-            query,
-            variables: { cursor },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Storefront API error: ${response.statusText}`);
-      }
+      const response = await admin.graphql(query, {
+        variables: { cursor },
+      });
 
       const data = await response.json();
       const products = data.data?.products?.edges || [];
@@ -118,7 +94,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    console.error("Error fetching storefront products:", error);
+    console.error("Error fetching products:", error);
     return json(
       { error: "Failed to fetch products", products: [], productCount: 0 },
       { status: 500, headers: corsHeaders }

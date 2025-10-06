@@ -19,7 +19,6 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   <script>
     window.BodyShapeAdvisorConfig = {
       shopDomain: '{{ shop.permanent_domain }}',
-      storefrontAccessToken: '{{ block.settings.storefront_access_token }}',
       primaryColor: '{{ block.settings.primary_color }}',
       backgroundColor: '{{ block.settings.background_color }}',
       apiEndpoint: 'https://aistylistapp-production.up.railway.app',
@@ -32,7 +31,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   </script>
 
   <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=5" defer></script>
+  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=6" defer></script>
 </div>
 
 {% schema %}
@@ -64,12 +63,6 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       "id": "background_color",
       "label": "Background Color",
       "default": "#f8f9fa"
-    },
-    {
-      "type": "text",
-      "id": "storefront_access_token",
-      "label": "Storefront API Access Token",
-      "info": "Create a custom app in Shopify admin with Storefront API access to get this token"
     },
     {
       "type": "range",
