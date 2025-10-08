@@ -1,11 +1,26 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "../db.server";
 import { loadSettings } from "./settings";
-import { fetchAllProducts, type MCPProduct } from "./shopifyMCP";
-import { preFilterProducts as mcpPreFilterProducts, calculateProductSuitability as mcpCalculateProductSuitability, getSizeRecommendation as mcpGetSizeRecommendation, generateRecommendationReasoning as mcpGenerateRecommendationReasoning } from "./mcpProductRecommendations";
+import prisma from "../db.server";
+
+// Product interface matching both MCP and Admin API
+export interface Product {
+  id?: string;
+  title: string;
+  name?: string;
+  handle?: string;
+  description?: string;
+  productType?: string;
+  tags?: string[];
+  price?: string;
+  image?: string;
+  imageUrl?: string;
+  available?: boolean;
+  variants?: Array<{ price: string; available?: boolean }>;
+}
 
 export interface ProductRecommendation {
-  product: MCPProduct;
+  product: Product;
   suitabilityScore: number;
   recommendedSize?: string;
   reasoning: string;
@@ -125,7 +140,125 @@ export async function saveClaudeSettings(
 }
 
 /**
- * Get product recommendations using Claude AI with Shopify MCP
+ * Fetch all products using Shopify Admin API
+ */
+async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
+  try {
+    console.log(`🔄 Fetching products via Admin API for ${shop}...`);
+
+    // Get access token from database
+    const sessionRecord = await prisma.session.findFirst({
+      where: { shop },
+      orderBy: { id: 'desc' },
+    });
+
+    if (!sessionRecord || !sessionRecord.accessToken) {
+      console.error('❌ No session/access token found for shop:', shop);
+      return [];
+    }
+
+    const accessToken = sessionRecord.accessToken;
+    const allProducts: Product[] = [];
+    let hasNextPage = true;
+    let cursor: string | null = null;
+
+    while (hasNextPage) {
+      const query = `
+        query GetProducts($cursor: String) {
+          products(first: 250, after: $cursor, query: "status:active") {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              node {
+                id
+                title
+                handle
+                description
+                productType
+                tags
+                status
+                variants(first: 1) {
+                  edges {
+                    node {
+                      price
+                      inventoryQuantity
+                    }
+                  }
+                }
+                featuredImage {
+                  url
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: { cursor },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Admin API error: ${response.status} ${response.statusText}`);
+        break;
+      }
+
+      const data = await response.json();
+
+      if (data.errors) {
+        console.error('❌ GraphQL errors:', data.errors);
+        break;
+      }
+
+      const products = data?.data?.products?.edges || [];
+
+      // Transform products to unified format
+      const transformedProducts = products.map((edge: any) => ({
+        id: edge.node.id,
+        title: edge.node.title,
+        name: edge.node.title, // Alias for compatibility
+        handle: edge.node.handle,
+        description: edge.node.description || '',
+        productType: edge.node.productType || '',
+        tags: edge.node.tags || [],
+        price: edge.node.variants?.edges?.[0]?.node?.price || '',
+        image: edge.node.featuredImage?.url || '',
+        imageUrl: edge.node.featuredImage?.url || '', // Alias
+        available: (edge.node.variants?.edges?.[0]?.node?.inventoryQuantity || 0) > 0,
+        variants: edge.node.variants?.edges?.map((v: any) => ({
+          price: v.node.price,
+          available: (v.node.inventoryQuantity || 0) > 0
+        })) || []
+      }));
+
+      allProducts.push(...transformedProducts);
+
+      hasNextPage = data?.data?.products?.pageInfo?.hasNextPage || false;
+      cursor = data?.data?.products?.pageInfo?.endCursor || null;
+
+      console.log(`✓ Fetched ${transformedProducts.length} products (total: ${allProducts.length}, hasNextPage: ${hasNextPage})`);
+    }
+
+    console.log(`✅ Total products fetched via Admin API: ${allProducts.length}`);
+    return allProducts;
+  } catch (error) {
+    console.error('❌ Error fetching products from Admin API:', error);
+    return [];
+  }
+}
+
+/**
+ * Get product recommendations using Claude AI with Shopify Admin API
  */
 export async function getClaudeProductRecommendations(
   storeDomain: string,
@@ -148,9 +281,9 @@ export async function getClaudeProductRecommendations(
     // Load Claude settings for this shop
     const claudeSettings = await loadClaudeSettings(shop);
 
-    // Fetch ALL products from MCP Storefront
-    console.log(`🔄 Fetching products from MCP for ${storeDomain}...`);
-    let products = await fetchAllProducts(storeDomain, bodyShape);
+    // Fetch ALL products from Shopify Admin API
+    console.log(`🔄 Fetching products via Admin API for ${shop}...`);
+    let products = await fetchAllProductsAdminAPI(shop);
 
     if (products.length === 0) {
       console.log("No products found in store");
@@ -175,7 +308,7 @@ export async function getClaudeProductRecommendations(
     console.log(`✓ Stock filter: ${products.length} → ${stockFilteredProducts.length} ${onlyInStock ? 'in-stock' : 'all'} products`);
 
     // STEP 2: Pre-filter - Remove products with "avoid" keywords for this body shape
-    const preFilteredProducts = preFilterProductsMCP(stockFilteredProducts, bodyShape);
+    const preFilteredProducts = preFilterProducts(stockFilteredProducts, bodyShape);
 
     console.log(`✓ Pre-filter (avoid keywords): ${stockFilteredProducts.length} → ${preFilteredProducts.length} relevant products for ${bodyShape}`);
 
@@ -188,7 +321,7 @@ export async function getClaudeProductRecommendations(
     // If Claude is disabled, fall back to algorithmic recommendations
     if (!claudeSettings.enabled) {
       console.log("⚠ Claude AI is disabled, using fallback algorithm on pre-filtered products");
-      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
+      return applyBasicAlgorithm(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
     }
 
     // STEP 3: Prepare product data for Claude AI
@@ -220,7 +353,7 @@ export async function getClaudeProductRecommendations(
       console.error("⚠ No Anthropic API key configured, falling back to basic algorithm");
       console.error(`   - claudeSettings.apiKey: ${claudeSettings.apiKey ? 'SET' : 'NOT SET'}`);
       console.error(`   - process.env.ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET' : 'NOT SET'}`);
-      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
+      return applyBasicAlgorithm(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
     }
 
     console.log(`✓ API key found: ${apiKey.substring(0, 10)}...`);
@@ -270,12 +403,12 @@ export async function getClaudeProductRecommendations(
     try {
       console.log("⚠ Attempting fallback to basic algorithm...");
       // Try to get pre-filtered products if available
-      const products = await fetchAllProducts(storeDomain, bodyShape);
+      const products = await fetchAllProductsAdminAPI(shop);
       const stockFiltered = onlyInStock
         ? products.filter(p => p.available !== false)
         : products;
-      const preFiltered = preFilterProductsMCP(stockFiltered, bodyShape);
-      const fallbackRecs = applyBasicAlgorithmMCP(preFiltered, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
+      const preFiltered = preFilterProducts(stockFiltered, bodyShape);
+      const fallbackRecs = applyBasicAlgorithm(preFiltered, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
       console.log(`✓ Fallback algorithm returned ${fallbackRecs.length} recommendations`);
       return fallbackRecs;
     } catch (fallbackError) {
@@ -286,11 +419,11 @@ export async function getClaudeProductRecommendations(
 }
 
 /**
- * Apply basic algorithmic scoring to MCP products
+ * Apply basic algorithmic scoring to products
  * Used as fallback when Claude is disabled or fails
  */
-function applyBasicAlgorithmMCP(
-  products: MCPProduct[],
+function applyBasicAlgorithm(
+  products: Product[],
   bodyShape: string,
   limit: number,
   minimumMatchScore: number,
@@ -308,15 +441,15 @@ function applyBasicAlgorithmMCP(
 
   const recommendations = products
     .map(product => {
-      const suitabilityScore = mcpCalculateProductSuitability(product, bodyShape);
+      const suitabilityScore = calculateProductSuitability(product, bodyShape);
       const category = determineCategory(product);
-      const sizeRecommendation = mcpGetSizeRecommendation(product, bodyShape);
+      const sizeRecommendation = getSizeRecommendation(product, bodyShape);
 
       return {
         product,
         suitabilityScore,
         recommendedSize: sizeRecommendation,
-        reasoning: mcpGenerateRecommendationReasoning(product, bodyShape, suitabilityScore),
+        reasoning: generateRecommendationReasoning(product, bodyShape, suitabilityScore),
         category,
         stylingTip: ""
       };
@@ -330,8 +463,37 @@ function applyBasicAlgorithmMCP(
   return recommendations;
 }
 
-// Pre-filter MCP products to focus Claude on most relevant items
-function preFilterProductsMCP(products: MCPProduct[], bodyShape: string): MCPProduct[] {
+// Basic product scoring functions
+function calculateProductSuitability(product: Product, bodyShape: string): number {
+  const productName = product.title || product.name || '';
+  const text = `${productName} ${product.description} ${product.productType}`.toLowerCase();
+
+  // Simple keyword-based scoring
+  const favorableKeywords: { [key: string]: string[] } = {
+    "Pear/Triangle": ["a-line", "empire", "bootcut", "wide-leg", "v-neck"],
+    "Apple/Round": ["empire", "wrap", "v-neck", "flow"],
+    "Hourglass": ["fitted", "wrap", "belt", "curve"],
+    "Inverted Triangle": ["a-line", "wide-leg", "bootcut"],
+    "Rectangle/Straight": ["belt", "peplum", "layer"],
+  };
+
+  const keywords = favorableKeywords[bodyShape] || [];
+  const matches = keywords.filter(kw => text.includes(kw)).length;
+
+  return Math.min(matches / keywords.length, 1.0);
+}
+
+function getSizeRecommendation(product: Product, bodyShape: string): string {
+  return "Check size chart for best fit";
+}
+
+function generateRecommendationReasoning(product: Product, bodyShape: string, score: number): string {
+  const productName = product.title || product.name || 'this item';
+  return `${productName} is recommended for ${bodyShape} body shape with a ${Math.round(score * 100)}% match score.`;
+}
+
+// Pre-filter products to focus Claude on most relevant items
+function preFilterProducts(products: Product[], bodyShape: string): Product[] {
   const avoidKeywords: { [key: string]: string[] } = {
     "Pear/Triangle": ["tight-fit-bottom", "skinny-jean", "pencil-skirt"],
     "Apple/Round": ["tight-waist", "crop-top", "bodycon"],
@@ -344,7 +506,8 @@ function preFilterProductsMCP(products: MCPProduct[], bodyShape: string): MCPPro
   const avoid = avoidKeywords[bodyShape] || [];
 
   return products.filter(product => {
-    const productText = `${product.name} ${product.description} ${product.productType} ${(product.tags || []).join(' ')}`.toLowerCase();
+    const productName = product.title || product.name || '';
+    const productText = `${productName} ${product.description} ${product.productType} ${(product.tags || []).join(' ')}`.toLowerCase();
 
     // Remove products with avoid keywords
     const hasAvoidKeyword = avoid.some(keyword => productText.includes(keyword.toLowerCase()));
@@ -428,7 +591,7 @@ Format your response as valid JSON (no markdown):
 Return ONLY the JSON, no other text.`;
 }
 
-function parseClaudeResponse(text: string, products: MCPProduct[], minimumMatchScore: number = 30): ProductRecommendation[] {
+function parseClaudeResponse(text: string, products: Product[], minimumMatchScore: number = 30): ProductRecommendation[] {
   try {
     // Remove markdown code blocks if present
     let jsonText = text.trim();
@@ -506,8 +669,9 @@ function parseClaudeResponse(text: string, products: MCPProduct[], minimumMatchS
   }
 }
 
-function determineCategory(product: MCPProduct): string {
-  const text = `${product.name} ${product.description} ${product.productType}`.toLowerCase();
+function determineCategory(product: Product): string {
+  const productName = product.title || product.name || '';
+  const text = `${productName} ${product.description} ${product.productType}`.toLowerCase();
 
   if (text.includes("dress")) return "dresses";
   if (text.includes("top") || text.includes("shirt") || text.includes("blouse")) return "tops";
