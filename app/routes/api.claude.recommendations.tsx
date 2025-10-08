@@ -30,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const shoulders = formData.get("shoulders") as string;
     const gender = formData.get("gender") as string;
     const age = formData.get("age") as string;
-    const onlyInStock = formData.get("onlyInStock") !== "false"; // Default to true
+    const onlyInStock = formData.get("onlyInStock") === "true"; // Default to false for now
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers });
