@@ -40,8 +40,8 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: "Store domain is required" }, { status: 400, headers });
     }
 
-    // Extract shop name from store domain (remove .myshopify.com)
-    const shop = storeDomain.replace('.myshopify.com', '');
+    // Use the full storeDomain as shop identifier (matches what's saved in admin)
+    const shop = storeDomain;
 
     // Prepare measurements if provided
     let measurements;
