@@ -86,7 +86,7 @@ export async function loadClaudeSettings(shop: string): Promise<ClaudePromptSett
       recommendationPrompt: DEFAULT_RECOMMENDATION_PROMPT,
       enabled: true,
       temperature: 0.7,
-      maxTokens: 16384, // Increased for longer responses
+      maxTokens: 32000, // Increased to avoid truncation with large catalogs
     };
   } catch (error) {
     console.error("Error loading Claude settings:", error);
@@ -332,14 +332,44 @@ export async function getClaudeProductRecommendations(
     }
 
     // IMPORTANT: Limit products sent to Claude to avoid token limits
-    // Claude max tokens: 200k, ~1400 products = 213k tokens
-    // Safe limit: ~800 products per request
-    const MAX_PRODUCTS_FOR_CLAUDE = 800;
+    // Strategy: Smart sampling to get diverse product mix
+    // - For small catalogs (<500): send all products
+    // - For large catalogs: sample strategically across categories
+    const MAX_PRODUCTS_FOR_CLAUDE = 500;
     let productsForClaude = preFilteredProducts;
 
     if (productsForClaude.length > MAX_PRODUCTS_FOR_CLAUDE) {
-      console.log(`⚠ Limiting products for Claude: ${productsForClaude.length} → ${MAX_PRODUCTS_FOR_CLAUDE} to avoid token limit`);
+      console.log(`⚠ Large catalog detected: ${productsForClaude.length} products`);
+      console.log(`   Sampling ${MAX_PRODUCTS_FOR_CLAUDE} products strategically...`);
+
+      // Group by product type for diverse sampling
+      const byType = new Map<string, Product[]>();
+      preFilteredProducts.forEach(p => {
+        const type = p.productType || 'Other';
+        if (!byType.has(type)) byType.set(type, []);
+        byType.get(type)!.push(p);
+      });
+
+      // Calculate how many products per category
+      const perCategory = Math.ceil(MAX_PRODUCTS_FOR_CLAUDE / byType.size);
+      productsForClaude = [];
+
+      byType.forEach((products, type) => {
+        const sample = products.slice(0, perCategory);
+        productsForClaude.push(...sample);
+        console.log(`   - ${type}: ${sample.length}/${products.length}`);
+      });
+
+      // If we didn't reach the limit, fill with remaining products
+      if (productsForClaude.length < MAX_PRODUCTS_FOR_CLAUDE) {
+        const remaining = preFilteredProducts
+          .filter(p => !productsForClaude.includes(p))
+          .slice(0, MAX_PRODUCTS_FOR_CLAUDE - productsForClaude.length);
+        productsForClaude.push(...remaining);
+      }
+
       productsForClaude = productsForClaude.slice(0, MAX_PRODUCTS_FOR_CLAUDE);
+      console.log(`✓ Sampled ${productsForClaude.length} products across categories`);
     }
 
     // STEP 3: Prepare product data for Claude AI
@@ -384,6 +414,11 @@ export async function getClaudeProductRecommendations(
 
     console.log(`🤖 Calling Claude AI (model: claude-sonnet-4, temp: ${claudeSettings.temperature}, max_tokens: ${claudeSettings.maxTokens})...`);
     console.log(`   Sending ${productsForAI.length} products to Claude for analysis`);
+
+    if (claudeSettings.maxTokens < 16384) {
+      console.warn(`⚠ WARNING: maxTokens is low (${claudeSettings.maxTokens}). Recommended: 32000 for best results.`);
+      console.warn(`   Low maxTokens may cause response truncation. Update in Admin Settings > Claude AI.`);
+    }
 
     // Call Claude API
     const message = await anthropic.messages.create({
