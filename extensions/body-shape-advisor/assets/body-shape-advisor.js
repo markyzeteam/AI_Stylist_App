@@ -451,35 +451,98 @@ class BodyShapeAdvisor {
   }
 
   async browseProducts() {
-    // Scan ALL products and recommend based on body shape
+    // Get AI-powered recommendations from Claude
     this.currentStep = 'products';
     this.render();
 
-    // Ensure products are loaded
-    await this.loadProducts();
-
-    const allProducts = this.products || [];
     const bodyShape = this.bodyShapeResult.shape;
 
-    console.log(`Scanning ${allProducts.length} products for ${bodyShape}`);
+    console.log(`Getting Claude AI recommendations for ${bodyShape}`);
 
-    // Load settings from config (baked in from Liquid template)
-    const settings = this.config.settings || {
-      numberOfSuggestions: 30,
-      minimumMatchScore: 30,
-      maxProductsToScan: 1000
-    };
+    try {
+      // Call Claude AI API for recommendations
+      const recommendations = await this.getClaudeRecommendations(bodyShape);
 
-    console.log(`Using settings:`, settings);
-
-    // Use simple keyword matching algorithm on ALL products
-    this.productRecommendations = this.fallbackRecommendations(
-      allProducts.slice(0, settings.maxProductsToScan),
-      bodyShape,
-      settings
-    );
+      if (recommendations && recommendations.length > 0) {
+        console.log(`✓ Got ${recommendations.length} Claude AI recommendations`);
+        this.productRecommendations = recommendations;
+      } else {
+        // Fallback to basic algorithm
+        console.log('⚠ No Claude recommendations, using fallback');
+        await this.loadProducts();
+        const settings = this.config.settings || {
+          numberOfSuggestions: 30,
+          minimumMatchScore: 30,
+          maxProductsToScan: 1000
+        };
+        this.productRecommendations = this.fallbackRecommendations(
+          this.products.slice(0, settings.maxProductsToScan),
+          bodyShape,
+          settings
+        );
+      }
+    } catch (error) {
+      console.error('Error getting Claude recommendations:', error);
+      // Fallback to basic algorithm
+      await this.loadProducts();
+      const settings = this.config.settings || {
+        numberOfSuggestions: 30,
+        minimumMatchScore: 30,
+        maxProductsToScan: 1000
+      };
+      this.productRecommendations = this.fallbackRecommendations(
+        this.products.slice(0, settings.maxProductsToScan),
+        bodyShape,
+        settings
+      );
+    }
 
     this.render();
+  }
+
+  async getClaudeRecommendations(bodyShape) {
+    const formData = new FormData();
+    formData.append('storeDomain', this.config.shopDomain);
+    formData.append('bodyShape', bodyShape);
+
+    // Add measurements if available
+    if (this.measurements.bust) formData.append('bust', this.measurements.bust);
+    if (this.measurements.waist) formData.append('waist', this.measurements.waist);
+    if (this.measurements.hips) formData.append('hips', this.measurements.hips);
+    if (this.measurements.shoulders) formData.append('shoulders', this.measurements.shoulders);
+    if (this.measurements.gender) formData.append('gender', this.measurements.gender);
+    if (this.measurements.age) formData.append('age', this.measurements.age);
+
+    const apiUrl = `${this.config.apiEndpoint}/api/claude/recommendations`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.recommendations) {
+      // Transform Claude API response to match expected format
+      return data.recommendations.map(rec => ({
+        title: rec.product.name,
+        handle: rec.product.handle,
+        image: rec.product.imageUrl,
+        price: rec.product.price,
+        match: Math.round(rec.suitabilityScore * 100),
+        reasoning: rec.reasoning,
+        sizeAdvice: rec.recommendedSize,
+        stylingTip: rec.stylingTip,
+        category: rec.category,
+        url: rec.product.url
+      }));
+    }
+
+    return [];
   }
 
   fallbackRecommendations(allProducts, bodyShape, settings) {
@@ -677,6 +740,12 @@ class BodyShapeAdvisor {
                   ${product.price ? `<p class="bsa-product-price">$${product.price}</p>` : ''}
                   ${product.match ? `
                     <span class="bsa-product-match">${product.match}% match</span>
+                  ` : ''}
+                  ${product.reasoning ? `
+                    <p class="bsa-product-reasoning">✨ ${product.reasoning}</p>
+                  ` : ''}
+                  ${product.sizeAdvice ? `
+                    <p class="bsa-product-size-advice">📏 <strong>Size advice:</strong> ${product.sizeAdvice}</p>
                   ` : ''}
                   ${product.stylingTip ? `
                     <p class="bsa-product-styling-tip">💡 <strong>Styling tip:</strong> ${product.stylingTip}</p>
