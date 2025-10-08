@@ -294,6 +294,24 @@ class BodyShapeAdvisor {
 
   goToStep(step) {
     this.currentStep = step;
+
+    // Clear cached data when starting over
+    if (step === 'welcome') {
+      this.bodyShapeResult = null;
+      this.productRecommendations = [];
+      this.measurements = {
+        gender: '',
+        age: '',
+        height: '',
+        weight: '',
+        bust: '',
+        waist: '',
+        hips: '',
+        shoulders: '',
+        unit: 'metric'
+      };
+    }
+
     this.render();
   }
 
@@ -756,7 +774,16 @@ class BodyShapeAdvisor {
 
         ${products.length === 0 ? `
           <div class="bsa-loading">
-            <p>Finding products for your ${this.bodyShapeResult.shape} body shape...</p>
+            <div class="bsa-loading-spinner"></div>
+            <h4>🤖 AI Fashion Stylist at Work...</h4>
+            <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape</p>
+            <p class="bsa-loading-submessage">Our AI is reviewing products to find your perfect match. This may take 10-30 seconds.</p>
+            <div class="bsa-loading-steps">
+              <div class="bsa-loading-step bsa-step-active">✓ Fetching products from catalog</div>
+              <div class="bsa-loading-step bsa-step-active">✓ Filtering by body shape preferences</div>
+              <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing matches...</div>
+              <div class="bsa-loading-step">○ Preparing recommendations</div>
+            </div>
           </div>
         ` : `
           <div class="bsa-product-grid">

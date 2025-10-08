@@ -71,7 +71,7 @@ export async function loadClaudeSettings(shop: string): Promise<ClaudePromptSett
       recommendationPrompt: DEFAULT_RECOMMENDATION_PROMPT,
       enabled: true,
       temperature: 0.7,
-      maxTokens: 4096,
+      maxTokens: 16384, // Increased for longer responses
     };
   } catch (error) {
     console.error("Error loading Claude settings:", error);
@@ -81,7 +81,7 @@ export async function loadClaudeSettings(shop: string): Promise<ClaudePromptSett
       recommendationPrompt: DEFAULT_RECOMMENDATION_PROMPT,
       enabled: true,
       temperature: 0.7,
-      maxTokens: 4096,
+      maxTokens: 16384, // Increased for longer responses
     };
   }
 }
@@ -240,7 +240,15 @@ export async function getClaudeProductRecommendations(
 
     // STEP 5: Parse Claude's response
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log(`📝 Claude response length: ${responseText.length} chars`);
+    console.log(`📝 Claude stop_reason: ${message.stop_reason}`);
     console.log(`📝 Claude response (first 500 chars): ${responseText.substring(0, 500)}`);
+    console.log(`📝 Claude response (last 500 chars): ${responseText.slice(-500)}`);
+
+    if (message.stop_reason === 'max_tokens') {
+      console.warn(`⚠ WARNING: Claude hit max_tokens limit! Response may be truncated.`);
+      console.warn(`   Consider increasing maxTokens or reducing number of products sent to Claude.`);
+    }
 
     const recommendations = parseClaudeResponse(responseText, preFilteredProducts);
 
@@ -404,7 +412,7 @@ Format your response as valid JSON (no markdown):
 Return ONLY the JSON, no other text.`;
 }
 
-function parseClaudeResponse(text: string, products: Product[]): ProductRecommendation[] {
+function parseClaudeResponse(text: string, products: MCPProduct[]): ProductRecommendation[] {
   try {
     // Remove markdown code blocks if present
     let jsonText = text.trim();
@@ -414,7 +422,39 @@ function parseClaudeResponse(text: string, products: Product[]): ProductRecommen
       jsonText = jsonText.replace(/```\n?/g, "");
     }
 
-    const parsed = JSON.parse(jsonText);
+    // Attempt to parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (parseError) {
+      // If JSON is truncated, try to salvage partial data
+      console.warn("⚠ JSON parse failed, attempting to recover partial data...");
+      console.warn("Response length:", jsonText.length);
+      console.warn("Last 200 chars:", jsonText.slice(-200));
+
+      // Try to find the last complete recommendation object
+      const lastCompleteIndex = jsonText.lastIndexOf('}');
+      if (lastCompleteIndex > 0) {
+        // Find the recommendations array start
+        const arrayStartIndex = jsonText.indexOf('"recommendations"');
+        if (arrayStartIndex > 0) {
+          // Try to close the JSON properly
+          const truncatedJson = jsonText.substring(0, lastCompleteIndex + 1) + ']}';
+          try {
+            parsed = JSON.parse(truncatedJson);
+            console.log("✓ Successfully recovered partial recommendations");
+          } catch (recoveryError) {
+            console.error("❌ Recovery failed:", recoveryError);
+            throw parseError; // Re-throw original error
+          }
+        } else {
+          throw parseError;
+        }
+      } else {
+        throw parseError;
+      }
+    }
+
     const recommendations: ProductRecommendation[] = [];
 
     for (const rec of parsed.recommendations || []) {
@@ -432,10 +472,13 @@ function parseClaudeResponse(text: string, products: Product[]): ProductRecommen
       }
     }
 
+    console.log(`✓ Successfully parsed ${recommendations.length} recommendations from Claude response`);
     return recommendations;
   } catch (error) {
-    console.error("Error parsing Claude response:", error);
-    console.error("Raw response:", text);
+    console.error("❌ Error parsing Claude response:", error);
+    console.error("Raw response length:", text.length);
+    console.error("Raw response (first 500 chars):", text.substring(0, 500));
+    console.error("Raw response (last 500 chars):", text.slice(-500));
     return [];
   }
 }
