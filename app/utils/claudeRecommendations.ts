@@ -324,8 +324,19 @@ export async function getClaudeProductRecommendations(
       return applyBasicAlgorithm(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
     }
 
+    // IMPORTANT: Limit products sent to Claude to avoid token limits
+    // Claude max tokens: 200k, ~1400 products = 213k tokens
+    // Safe limit: ~800 products per request
+    const MAX_PRODUCTS_FOR_CLAUDE = 800;
+    let productsForClaude = preFilteredProducts;
+
+    if (productsForClaude.length > MAX_PRODUCTS_FOR_CLAUDE) {
+      console.log(`⚠ Limiting products for Claude: ${productsForClaude.length} → ${MAX_PRODUCTS_FOR_CLAUDE} to avoid token limit`);
+      productsForClaude = productsForClaude.slice(0, MAX_PRODUCTS_FOR_CLAUDE);
+    }
+
     // STEP 3: Prepare product data for Claude AI
-    const productsForAI = preFilteredProducts.map((p, index) => ({
+    const productsForAI = productsForClaude.map((p, index) => ({
       index,
       title: p.title || p.name || 'Untitled Product',
       description: (p.description || '').substring(0, 300),
@@ -392,7 +403,7 @@ export async function getClaudeProductRecommendations(
       console.warn(`   Consider increasing maxTokens or reducing number of products sent to Claude.`);
     }
 
-    const recommendations = parseClaudeResponse(responseText, preFilteredProducts, minimumMatchScore);
+    const recommendations = parseClaudeResponse(responseText, productsForClaude, minimumMatchScore);
 
     console.log(`✓ Claude AI returned ${recommendations.length} recommendations after parsing`);
 
