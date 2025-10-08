@@ -344,15 +344,18 @@ export default function ClaudeSettings() {
                 Get Your API Key
               </Text>
               <Text as="p" variant="bodyMd">
-                To use Claude AI, you need an Anthropic API key:
+                To use Claude AI, you need an Anthropic API key. Visit this URL in a new browser tab:
               </Text>
-              <Button
-                url="https://console.anthropic.com/"
-                external
-                variant="primary"
-              >
-                Get API Key from Anthropic
-              </Button>
+              <TextField
+                label="Anthropic Console URL"
+                value="https://console.anthropic.com/"
+                readOnly
+                autoComplete="off"
+                helpText="Copy this URL and open it in a new browser tab to get your API key"
+              />
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Note: Due to Shopify's security restrictions, external links cannot open directly from this admin page. Please copy the URL above and paste it into your browser.
+              </Text>
             </BlockStack>
           </Card>
         </Layout.Section>

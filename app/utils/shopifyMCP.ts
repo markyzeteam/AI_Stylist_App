@@ -12,6 +12,7 @@
 
 export interface MCPProduct {
   name: string;
+  title?: string;  // Alias for name
   price: string;
   currency: string;
   variantId: string;
@@ -22,6 +23,10 @@ export interface MCPProduct {
   productType?: string;
   tags?: string[];
   available?: boolean;
+  // For API response compatibility
+  id?: string;
+  images?: Array<{ src: string }>;
+  variants?: Array<{ price: string; available?: boolean }>;
 }
 
 export interface MCPSearchResponse {
@@ -156,18 +161,31 @@ function parseProductsFromMCP(result: any): MCPProduct[] {
       // Parse the product data from the resource
       // MCP returns products in a specific format
       try {
+        const productName = resource.name || resource.title || '';
+        const productPrice = resource.price || '0';
+        const productImage = resource.imageUrl || resource.image_url || resource.image;
+        const productAvailable = resource.available !== false;
+
         const product: MCPProduct = {
-          name: resource.name || resource.title || '',
-          price: resource.price || '0',
+          name: productName,
+          title: productName,  // Set both for compatibility
+          price: productPrice,
           currency: resource.currency || 'USD',
           variantId: resource.variantId || resource.variant_id || '',
           url: resource.url || '',
-          imageUrl: resource.imageUrl || resource.image_url || resource.image,
+          imageUrl: productImage,
           description: resource.description || '',
           handle: extractHandle(resource.url),
           productType: resource.productType || resource.product_type || '',
           tags: resource.tags || [],
-          available: resource.available !== false
+          available: productAvailable,
+          // For API response compatibility
+          id: resource.id || resource.variantId || resource.variant_id,
+          images: productImage ? [{ src: productImage }] : [],
+          variants: [{
+            price: productPrice,
+            available: productAvailable
+          }]
         };
 
         if (product.variantId) {
