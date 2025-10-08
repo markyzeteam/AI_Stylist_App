@@ -501,38 +501,67 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeRecommendations(bodyShape) {
+    console.log(`🤖 Calling Claude API for ${bodyShape} recommendations...`);
+    console.log(`API Endpoint: ${this.config.apiEndpoint}`);
+    console.log(`Shop Domain: ${this.config.shopDomain}`);
+
     const formData = new FormData();
     formData.append('storeDomain', this.config.shopDomain);
     formData.append('bodyShape', bodyShape);
 
     // Add measurements if available
-    if (this.measurements.bust) formData.append('bust', this.measurements.bust);
-    if (this.measurements.waist) formData.append('waist', this.measurements.waist);
-    if (this.measurements.hips) formData.append('hips', this.measurements.hips);
-    if (this.measurements.shoulders) formData.append('shoulders', this.measurements.shoulders);
-    if (this.measurements.gender) formData.append('gender', this.measurements.gender);
-    if (this.measurements.age) formData.append('age', this.measurements.age);
+    if (this.measurements.bust) {
+      formData.append('bust', this.measurements.bust);
+      console.log(`Added measurement: bust=${this.measurements.bust}`);
+    }
+    if (this.measurements.waist) {
+      formData.append('waist', this.measurements.waist);
+      console.log(`Added measurement: waist=${this.measurements.waist}`);
+    }
+    if (this.measurements.hips) {
+      formData.append('hips', this.measurements.hips);
+      console.log(`Added measurement: hips=${this.measurements.hips}`);
+    }
+    if (this.measurements.shoulders) {
+      formData.append('shoulders', this.measurements.shoulders);
+      console.log(`Added measurement: shoulders=${this.measurements.shoulders}`);
+    }
+    if (this.measurements.gender) {
+      formData.append('gender', this.measurements.gender);
+      console.log(`Added measurement: gender=${this.measurements.gender}`);
+    }
+    if (this.measurements.age) {
+      formData.append('age', this.measurements.age);
+      console.log(`Added measurement: age=${this.measurements.age}`);
+    }
 
     const apiUrl = `${this.config.apiEndpoint}/api/claude/recommendations`;
+    console.log(`Fetching from: ${apiUrl}`);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       body: formData
     });
 
+    console.log(`Response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`API error response: ${errorText}`);
+      throw new Error(`API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log(`Claude API response:`, data);
 
     if (data.recommendations) {
+      console.log(`✓ Transforming ${data.recommendations.length} Claude recommendations`);
       // Transform Claude API response to match expected format
       return data.recommendations.map(rec => ({
-        title: rec.product.name,
+        title: rec.product.title,
         handle: rec.product.handle,
-        image: rec.product.imageUrl,
-        price: rec.product.price,
+        image: rec.product.images?.[0]?.src || rec.product.imageUrl,
+        price: rec.product.variants?.[0]?.price || rec.product.price,
         match: Math.round(rec.suitabilityScore * 100),
         reasoning: rec.reasoning,
         sizeAdvice: rec.recommendedSize,
@@ -542,6 +571,7 @@ class BodyShapeAdvisor {
       }));
     }
 
+    console.log('⚠ No recommendations in API response');
     return [];
   }
 
