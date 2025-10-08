@@ -531,9 +531,11 @@ class BodyShapeAdvisor {
     if (this.config.settings) {
       formData.append('numberOfSuggestions', this.config.settings.numberOfSuggestions || 30);
       formData.append('minimumMatchScore', this.config.settings.minimumMatchScore || 30);
-      formData.append('maxProductsToScan', this.config.settings.maxProductsToScan || 0);
+      // If scanAllProducts is true, send 0, otherwise use the limit
+      const maxScan = this.config.settings.scanAllProducts !== false ? 0 : (this.config.settings.maxProductsToScan || 1000);
+      formData.append('maxProductsToScan', maxScan);
       formData.append('onlyInStock', this.config.settings.onlyInStock !== false); // default true
-      console.log(`Settings: suggestions=${this.config.settings.numberOfSuggestions}, minScore=${this.config.settings.minimumMatchScore}, maxScan=${this.config.settings.maxProductsToScan}, inStock=${this.config.settings.onlyInStock}`);
+      console.log(`Settings: suggestions=${this.config.settings.numberOfSuggestions}, minScore=${this.config.settings.minimumMatchScore}, scanAll=${this.config.settings.scanAllProducts}, maxScan=${maxScan}, inStock=${this.config.settings.onlyInStock}`);
     }
 
     // Add measurements if available

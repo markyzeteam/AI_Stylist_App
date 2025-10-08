@@ -25,7 +25,8 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       settings: {
         numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
         minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
-        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 0 }},
+        scanAllProducts: {{ block.settings.scan_all_products | default: true }},
+        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
         onlyInStock: {{ block.settings.only_in_stock | default: false }},
         ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
         minTops: {{ block.settings.min_tops | default: 5 }},
@@ -37,7 +38,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   </script>
 
   <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=11" defer></script>
+  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=12" defer></script>
 </div>
 
 {% schema %}
@@ -89,14 +90,21 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       "default": 30
     },
     {
+      "type": "checkbox",
+      "id": "scan_all_products",
+      "label": "Scan All Products",
+      "info": "When enabled, scans entire catalog. When disabled, uses the limit below.",
+      "default": true
+    },
+    {
       "type": "range",
       "id": "max_products_to_scan",
-      "label": "Max Products to Scan (0 = ALL)",
-      "info": "Set to 0 to scan entire catalog, or limit to reduce processing time",
-      "min": 0,
+      "label": "Max Products to Scan (if not scanning all)",
+      "info": "Only applies when 'Scan All Products' is unchecked",
+      "min": 100,
       "max": 10000,
       "step": 100,
-      "default": 0
+      "default": 1000
     },
     {
       "type": "checkbox",
