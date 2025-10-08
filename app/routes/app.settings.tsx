@@ -13,6 +13,7 @@ import {
   Banner,
   InlineStack,
   Divider,
+  Checkbox,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -35,6 +36,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     numberOfSuggestions: parseInt(formData.get("numberOfSuggestions") as string) || 30,
     minimumMatchScore: parseInt(formData.get("minimumMatchScore") as string) || 30,
     maxProductsToScan: parseInt(formData.get("maxProductsToScan") as string) || 1000,
+    onlyInStockProducts: formData.get("onlyInStockProducts") === "true",
   };
 
   // Save settings to Shopify metafields
@@ -136,13 +138,23 @@ export default function Settings() {
                       name="maxProductsToScan"
                       value={formData.maxProductsToScan.toString()}
                       onChange={(value) =>
-                        setFormData({ ...formData, maxProductsToScan: parseInt(value) || 1000 })
+                        setFormData({ ...formData, maxProductsToScan: parseInt(value) || 0 })
                       }
-                      helpText="How many products to scan from your store (100-1000)"
+                      helpText="Maximum number of products to scan (0 = ALL products, 100-10000 = limit). Set to 0 to scan your entire catalog."
                       autoComplete="off"
-                      min={100}
-                      max={1000}
+                      min={0}
+                      max={50000}
                     />
+
+                    <Checkbox
+                      label="Only show in-stock products"
+                      checked={formData.onlyInStockProducts}
+                      onChange={(value) =>
+                        setFormData({ ...formData, onlyInStockProducts: value })
+                      }
+                      helpText="When enabled, only products with available inventory will be recommended. When disabled, all products (including out of stock) will be shown."
+                    />
+                    <input type="hidden" name="onlyInStockProducts" value={formData.onlyInStockProducts.toString()} />
 
                     <InlineStack align="end">
                       <Button variant="primary" submit>
@@ -167,7 +179,10 @@ export default function Settings() {
                     • <strong>Minimum Match Score:</strong> Products below this score won't be shown (higher = more selective)
                   </Text>
                   <Text as="p" variant="bodyMd">
-                    • <strong>Maximum Products to Scan:</strong> How many products from your catalog to analyze (higher = more thorough but slower)
+                    • <strong>Maximum Products to Scan:</strong> Limit how many products to analyze. Set to 0 to scan ALL products in your catalog (recommended). Higher limits = more thorough but slower.
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    • <strong>Only In-Stock Products:</strong> Filter recommendations to only show products that are currently available for purchase
                   </Text>
                 </BlockStack>
               </BlockStack>
@@ -210,7 +225,15 @@ export default function Settings() {
                     Max Scan:
                   </Text>
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    {formData.maxProductsToScan}
+                    {formData.maxProductsToScan === 0 ? 'ALL Products' : formData.maxProductsToScan}
+                  </Text>
+                </InlineStack>
+                <InlineStack align="space-between">
+                  <Text as="span" variant="bodyMd" tone="subdued">
+                    Stock Filter:
+                  </Text>
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {formData.onlyInStockProducts ? "In-Stock Only" : "All Products"}
                   </Text>
                 </InlineStack>
               </BlockStack>

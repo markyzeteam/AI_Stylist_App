@@ -4,12 +4,14 @@ export interface AppSettings {
   numberOfSuggestions: number;
   minimumMatchScore: number;
   maxProductsToScan: number;
+  onlyInStockProducts: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   numberOfSuggestions: 30,
   minimumMatchScore: 30,
-  maxProductsToScan: 1000,
+  maxProductsToScan: 0, // 0 = ALL products
+  onlyInStockProducts: true,
 };
 
 const METAFIELD_NAMESPACE = "yze_shopping_ai";

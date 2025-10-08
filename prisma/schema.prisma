@@ -66,3 +66,16 @@ model SizeRecommendation {
 
   @@unique([productId, bodyShape])
 }
+
+model ClaudePromptSettings {
+  id              String   @id @default(cuid())
+  shop            String   @unique
+  apiKey          String?  @db.Text // Anthropic API key (encrypted)
+  systemPrompt    String   @db.Text // Main system prompt for Claude
+  recommendationPrompt String @db.Text // Specific prompt for product recommendations
+  enabled         Boolean  @default(true) // Whether to use Claude or fallback
+  temperature     Float    @default(0.7) // Claude temperature setting
+  maxTokens       Int      @default(4096) // Maximum tokens for response
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
