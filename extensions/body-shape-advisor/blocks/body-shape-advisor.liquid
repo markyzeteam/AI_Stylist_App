@@ -26,6 +26,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
         numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
         minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
         maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
+        onlyInStock: {{ block.settings.only_in_stock | default: false }},
         ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
         minTops: {{ block.settings.min_tops | default: 5 }},
         minBottoms: {{ block.settings.min_bottoms | default: 5 }},
@@ -36,7 +37,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   </script>
 
   <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=9" defer></script>
+  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=10" defer></script>
 </div>
 
 {% schema %}
@@ -95,6 +96,13 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       "max": 1000,
       "step": 100,
       "default": 1000
+    },
+    {
+      "type": "checkbox",
+      "id": "only_in_stock",
+      "label": "Only Show In-Stock Products",
+      "info": "When enabled, only products with available inventory will be recommended",
+      "default": false
     },
     {
       "type": "checkbox",

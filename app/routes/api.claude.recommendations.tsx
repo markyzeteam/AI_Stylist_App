@@ -30,7 +30,12 @@ export async function action({ request }: ActionFunctionArgs) {
     const shoulders = formData.get("shoulders") as string;
     const gender = formData.get("gender") as string;
     const age = formData.get("age") as string;
-    const onlyInStock = formData.get("onlyInStock") === "true"; // Default to false for now
+
+    // Get settings from FormData (passed from storefront)
+    const numberOfSuggestions = parseInt(formData.get("numberOfSuggestions") as string) || 30;
+    const minimumMatchScore = parseInt(formData.get("minimumMatchScore") as string) || 30;
+    const maxProductsToScan = parseInt(formData.get("maxProductsToScan") as string) || 0;
+    const onlyInStock = formData.get("onlyInStock") === "true";
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers });
@@ -56,19 +61,18 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     }
 
-    // Load app settings to get number of suggestions
-    const { loadSettings } = await import("../utils/settings");
-    const settings = await loadSettings(shop);
-    const limit = settings.numberOfSuggestions || 30;
+    console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}`);
 
     // Get recommendations from Claude AI using MCP
-    console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain} (limit: ${limit})`);
+    console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain}`);
     const recommendations = await getClaudeProductRecommendations(
       storeDomain,
       shop,
       bodyShape,
       measurements,
-      limit, // Use setting instead of hardcoded value
+      numberOfSuggestions,
+      minimumMatchScore,
+      maxProductsToScan,
       onlyInStock
     );
 

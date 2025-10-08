@@ -139,8 +139,10 @@ export async function getClaudeProductRecommendations(
     hips: number;
     shoulders: number;
   },
-  limit: number = 12,
-  onlyInStock: boolean = true
+  numberOfSuggestions: number = 30,
+  minimumMatchScore: number = 30,
+  maxProductsToScan: number = 0,
+  onlyInStock: boolean = false
 ): Promise<ProductRecommendation[]> {
   try {
     // Load Claude settings for this shop
@@ -148,7 +150,7 @@ export async function getClaudeProductRecommendations(
 
     // Fetch ALL products from MCP Storefront
     console.log(`🔄 Fetching products from MCP for ${storeDomain}...`);
-    const products = await fetchAllProducts(storeDomain, bodyShape);
+    let products = await fetchAllProducts(storeDomain, bodyShape);
 
     if (products.length === 0) {
       console.log("No products found in store");
@@ -156,6 +158,12 @@ export async function getClaudeProductRecommendations(
     }
 
     console.log(`✓ Fetched ${products.length} total products from store`);
+
+    // Apply max products to scan limit (0 = scan all)
+    if (maxProductsToScan > 0 && products.length > maxProductsToScan) {
+      console.log(`✓ Limiting scan to first ${maxProductsToScan} products (from ${products.length})`);
+      products = products.slice(0, maxProductsToScan);
+    }
 
     // STEP 1: Filter by stock availability (if enabled)
     const stockFilteredProducts = onlyInStock
@@ -180,7 +188,7 @@ export async function getClaudeProductRecommendations(
     // If Claude is disabled, fall back to algorithmic recommendations
     if (!claudeSettings.enabled) {
       console.log("⚠ Claude AI is disabled, using fallback algorithm on pre-filtered products");
-      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, limit, measurements);
+      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
     }
 
     // STEP 3: Prepare product data for Claude AI
@@ -200,7 +208,8 @@ export async function getClaudeProductRecommendations(
       bodyShape,
       measurements,
       productsForAI,
-      limit,
+      numberOfSuggestions,
+      minimumMatchScore,
       claudeSettings.recommendationPrompt
     );
 
@@ -211,7 +220,7 @@ export async function getClaudeProductRecommendations(
       console.error("⚠ No Anthropic API key configured, falling back to basic algorithm");
       console.error(`   - claudeSettings.apiKey: ${claudeSettings.apiKey ? 'SET' : 'NOT SET'}`);
       console.error(`   - process.env.ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET' : 'NOT SET'}`);
-      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, limit, measurements);
+      return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
     }
 
     console.log(`✓ API key found: ${apiKey.substring(0, 10)}...`);
@@ -250,11 +259,11 @@ export async function getClaudeProductRecommendations(
       console.warn(`   Consider increasing maxTokens or reducing number of products sent to Claude.`);
     }
 
-    const recommendations = parseClaudeResponse(responseText, preFilteredProducts);
+    const recommendations = parseClaudeResponse(responseText, preFilteredProducts, minimumMatchScore);
 
     console.log(`✓ Claude AI returned ${recommendations.length} recommendations after parsing`);
 
-    return recommendations.slice(0, limit);
+    return recommendations.slice(0, numberOfSuggestions);
   } catch (error) {
     console.error("❌ Error getting Claude recommendations:", error);
     // Fallback to basic algorithm if Claude fails
@@ -266,7 +275,7 @@ export async function getClaudeProductRecommendations(
         ? products.filter(p => p.available !== false)
         : products;
       const preFiltered = preFilterProductsMCP(stockFiltered, bodyShape);
-      const fallbackRecs = applyBasicAlgorithmMCP(preFiltered, bodyShape, limit, measurements);
+      const fallbackRecs = applyBasicAlgorithmMCP(preFiltered, bodyShape, numberOfSuggestions, minimumMatchScore, measurements);
       console.log(`✓ Fallback algorithm returned ${fallbackRecs.length} recommendations`);
       return fallbackRecs;
     } catch (fallbackError) {
@@ -284,6 +293,7 @@ function applyBasicAlgorithmMCP(
   products: MCPProduct[],
   bodyShape: string,
   limit: number,
+  minimumMatchScore: number,
   measurements?: {
     gender: string;
     age: string;
@@ -293,6 +303,9 @@ function applyBasicAlgorithmMCP(
     shoulders: number;
   }
 ): ProductRecommendation[] {
+  // Convert minimumMatchScore from 0-100 to 0-1 scale for comparison
+  const minScoreDecimal = minimumMatchScore / 100;
+
   const recommendations = products
     .map(product => {
       const suitabilityScore = mcpCalculateProductSuitability(product, bodyShape);
@@ -308,9 +321,11 @@ function applyBasicAlgorithmMCP(
         stylingTip: ""
       };
     })
-    .filter(rec => rec.suitabilityScore > 0.3)
+    .filter(rec => rec.suitabilityScore >= minScoreDecimal)
     .sort((a, b) => b.suitabilityScore - a.suitabilityScore)
     .slice(0, limit);
+
+  console.log(`✓ Basic algorithm filtered ${products.length} → ${recommendations.length} products (minScore: ${minimumMatchScore}%)`);
 
   return recommendations;
 }
@@ -344,6 +359,7 @@ function buildClaudePrompt(
   measurements: any,
   products: any[],
   limit: number,
+  minimumMatchScore: number,
   customPrompt: string
 ): string {
   const measurementInfo = measurements
@@ -392,7 +408,7 @@ For each recommendation, provide:
 CRITICAL RULES:
 - NO DUPLICATE PRODUCTS - each index must appear only once
 - Each product MUST have unique reasoning and styling tips
-- Only recommend products with score ≥ 50
+- Only recommend products with score ≥ ${minimumMatchScore}
 - Be very selective and specific
 - Provide personalized advice, not generic tips
 
@@ -412,7 +428,7 @@ Format your response as valid JSON (no markdown):
 Return ONLY the JSON, no other text.`;
 }
 
-function parseClaudeResponse(text: string, products: MCPProduct[]): ProductRecommendation[] {
+function parseClaudeResponse(text: string, products: MCPProduct[], minimumMatchScore: number = 30): ProductRecommendation[] {
   try {
     // Remove markdown code blocks if present
     let jsonText = text.trim();
@@ -459,6 +475,13 @@ function parseClaudeResponse(text: string, products: MCPProduct[]): ProductRecom
 
     for (const rec of parsed.recommendations || []) {
       const productIndex = rec.index;
+
+      // Apply minimum match score filter
+      if (rec.score < minimumMatchScore) {
+        console.log(`⏭ Skipping product ${productIndex} with score ${rec.score} (below minimum ${minimumMatchScore})`);
+        continue;
+      }
+
       if (productIndex >= 0 && productIndex < products.length) {
         const product = products[productIndex];
         recommendations.push({
@@ -472,7 +495,7 @@ function parseClaudeResponse(text: string, products: MCPProduct[]): ProductRecom
       }
     }
 
-    console.log(`✓ Successfully parsed ${recommendations.length} recommendations from Claude response`);
+    console.log(`✓ Successfully parsed ${recommendations.length} recommendations from Claude response (minScore: ${minimumMatchScore})`);
     return recommendations;
   } catch (error) {
     console.error("❌ Error parsing Claude response:", error);
