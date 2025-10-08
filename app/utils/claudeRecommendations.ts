@@ -275,7 +275,8 @@ export async function getClaudeProductRecommendations(
   numberOfSuggestions: number = 30,
   minimumMatchScore: number = 30,
   maxProductsToScan: number = 0,
-  onlyInStock: boolean = false
+  onlyInStock: boolean = false,
+  colorSeason?: string
 ): Promise<ProductRecommendation[]> {
   try {
     // Load Claude settings for this shop
@@ -307,14 +308,20 @@ export async function getClaudeProductRecommendations(
 
     console.log(`✓ Stock filter: ${products.length} → ${stockFilteredProducts.length} ${onlyInStock ? 'in-stock' : 'all'} products`);
 
-    // STEP 2: Pre-filter - Remove products with "avoid" keywords for this body shape
-    const preFilteredProducts = preFilterProducts(stockFilteredProducts, bodyShape);
+    // STEP 2: Optional pre-filter - Remove obvious mismatches (disabled for small catalogs)
+    // For catalogs under 5000 products, skip pre-filtering and let Claude do all the work
+    let preFilteredProducts = stockFilteredProducts;
 
-    console.log(`✓ Pre-filter (avoid keywords): ${stockFilteredProducts.length} → ${preFilteredProducts.length} relevant products for ${bodyShape}`);
+    if (stockFilteredProducts.length > 5000) {
+      preFilteredProducts = preFilterProducts(stockFilteredProducts, bodyShape);
+      console.log(`✓ Pre-filter (avoid keywords): ${stockFilteredProducts.length} → ${preFilteredProducts.length} relevant products for ${bodyShape}`);
+    } else {
+      console.log(`ℹ Skipping pre-filter (catalog size: ${stockFilteredProducts.length} < 5000 threshold)`);
+    }
 
     // Check if we have products to recommend
     if (preFilteredProducts.length === 0) {
-      console.log("No products passed pre-filtering");
+      console.log("No products found after filtering");
       return [];
     }
 
@@ -354,7 +361,8 @@ export async function getClaudeProductRecommendations(
       productsForAI,
       numberOfSuggestions,
       minimumMatchScore,
-      claudeSettings.recommendationPrompt
+      claudeSettings.recommendationPrompt,
+      colorSeason
     );
 
     // STEP 4: Check API key and call Claude
@@ -506,12 +514,12 @@ function generateRecommendationReasoning(product: Product, bodyShape: string, sc
 // Pre-filter products to focus Claude on most relevant items
 function preFilterProducts(products: Product[], bodyShape: string): Product[] {
   const avoidKeywords: { [key: string]: string[] } = {
-    "Pear/Triangle": ["tight-fit-bottom", "skinny-jean", "pencil-skirt"],
-    "Apple/Round": ["tight-waist", "crop-top", "bodycon"],
-    "Hourglass": ["oversized", "baggy", "shapeless"],
-    "Inverted Triangle": ["shoulder-pad", "puff-sleeve", "statement-shoulder"],
-    "Rectangle/Straight": ["straight-cut", "shift-dress"],
-    "V-Shape/Athletic": ["heavily-structured-shoulder"],
+    "Pear/Triangle": ["skinny", "pencil skirt", "tight bottom"],
+    "Apple/Round": ["crop", "bodycon", "tight waist"],
+    "Hourglass": ["oversized", "baggy", "shapeless", "boxy"],
+    "Inverted Triangle": ["shoulder pad", "puff sleeve", "ruffle shoulder", "statement shoulder"],
+    "Rectangle/Straight": ["shift dress", "straight cut"],
+    "V-Shape/Athletic": ["shoulder pad", "structured shoulder", "padded shoulder"],
   };
 
   const avoid = avoidKeywords[bodyShape] || [];
@@ -534,7 +542,8 @@ function buildClaudePrompt(
   products: any[],
   limit: number,
   minimumMatchScore: number,
-  customPrompt: string
+  customPrompt: string,
+  colorSeason?: string
 ): string {
   const measurementInfo = measurements
     ? `
@@ -560,17 +569,28 @@ Customer Measurements:
 
   const guidance = bodyShapeGuidance[bodyShape] || "Consider proportions and personal style.";
 
+  // Color season specific guidance
+  const colorSeasonGuidance: { [key: string]: string } = {
+    "Spring": "Best Colors: Peach, coral, light turquoise, golden beige, warm pastels, camel. Avoid: Black, pure white, navy.",
+    "Summer": "Best Colors: Pastel blue, rose, lavender, cool gray, soft pinks, powder blue. Avoid: Orange, warm browns.",
+    "Autumn": "Best Colors: Olive, mustard, terracotta, camel, rust, warm browns, burnt orange. Avoid: Pastels, icy colors.",
+    "Winter": "Best Colors: Jewel tones (emerald, ruby, sapphire), icy blue, black, pure white, magenta. Avoid: Warm earth tones."
+  };
+
+  const colorGuidance = colorSeason ? colorSeasonGuidance[colorSeason] : "";
+  const colorSeasonInfo = colorSeason ? `\nColor Season: ${colorSeason}\nColor Guidance: ${colorGuidance}` : "";
+
   return `${customPrompt}
 
 ${measurementInfo}
 
 Body Shape: ${bodyShape}
-Style Guidance: ${guidance}
+Style Guidance: ${guidance}${colorSeasonInfo}
 
 Products Available:
 ${JSON.stringify(products, null, 2)}
 
-TASK: Select the top ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape.
+TASK: Select the top ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape${colorSeason ? ` and match the ${colorSeason} color palette` : ''}.
 
 For each recommendation, provide:
 - **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES

@@ -9,6 +9,7 @@ class BodyShapeAdvisor {
     this.config = config;
     this.currentStep = 'welcome';
     this.bodyShapeResult = null;
+    this.colorSeasonResult = null;
     this.productRecommendations = [];
     this.products = []; // Will be loaded from API
     this.productsLoaded = false;
@@ -22,6 +23,11 @@ class BodyShapeAdvisor {
       hips: '',
       shoulders: '',
       unit: 'metric'
+    };
+    this.colorAnalysis = {
+      undertone: '', // warm/cool
+      depth: '', // light/medium/deep
+      intensity: '' // bright/muted
     };
 
     this.init();
@@ -66,6 +72,7 @@ class BodyShapeAdvisor {
       calculator: this.renderCalculator.bind(this),
       knownShape: this.renderKnownShape.bind(this),
       results: this.renderResults.bind(this),
+      colorSeason: this.renderColorSeason.bind(this),
       products: this.renderProducts.bind(this)
     };
 
@@ -298,6 +305,7 @@ class BodyShapeAdvisor {
     // Clear cached data when starting over
     if (step === 'welcome') {
       this.bodyShapeResult = null;
+      this.colorSeasonResult = null;
       this.productRecommendations = [];
       this.measurements = {
         gender: '',
@@ -309,6 +317,11 @@ class BodyShapeAdvisor {
         hips: '',
         shoulders: '',
         unit: 'metric'
+      };
+      this.colorAnalysis = {
+        undertone: '',
+        depth: '',
+        intensity: ''
       };
     }
 
@@ -469,17 +482,24 @@ class BodyShapeAdvisor {
   }
 
   async browseProducts() {
-    // Get AI-powered recommendations from Claude
+    // After body shape, go to color season test
+    this.currentStep = 'colorSeason';
+    this.render();
+  }
+
+  async getProductsAfterColorSeason() {
+    // Get AI-powered recommendations from Claude using both body shape and color season
     this.currentStep = 'products';
     this.render();
 
     const bodyShape = this.bodyShapeResult.shape;
+    const colorSeason = this.colorSeasonResult;
 
-    console.log(`Getting Claude AI recommendations for ${bodyShape}`);
+    console.log(`Getting Claude AI recommendations for ${bodyShape} + ${colorSeason}`);
 
     try {
-      // Call Claude AI API for recommendations
-      const recommendations = await this.getClaudeRecommendations(bodyShape);
+      // Call Claude AI API for recommendations with both body shape and color season
+      const recommendations = await this.getClaudeRecommendations(bodyShape, colorSeason);
 
       if (recommendations && recommendations.length > 0) {
         console.log(`✓ Got ${recommendations.length} Claude AI recommendations`);
@@ -518,14 +538,22 @@ class BodyShapeAdvisor {
     this.render();
   }
 
-  async getClaudeRecommendations(bodyShape) {
+  async getClaudeRecommendations(bodyShape, colorSeason = null) {
     console.log(`🤖 Calling Claude API for ${bodyShape} recommendations...`);
+    if (colorSeason) {
+      console.log(`🎨 Color Season: ${colorSeason}`);
+    }
     console.log(`API Endpoint: ${this.config.apiEndpoint}`);
     console.log(`Shop Domain: ${this.config.shopDomain}`);
 
     const formData = new FormData();
     formData.append('storeDomain', this.config.shopDomain);
     formData.append('bodyShape', bodyShape);
+
+    // Add color season if available
+    if (colorSeason) {
+      formData.append('colorSeason', colorSeason);
+    }
 
     // Add settings from config
     if (this.config.settings) {
@@ -774,20 +802,30 @@ class BodyShapeAdvisor {
 
     const products = this.productRecommendations || [];
 
+    const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Season` : '';
+
     return `
       <div class="bsa-products">
         <div class="bsa-header">
-          <h3>🛍️ Recommended Products for ${this.bodyShapeResult.shape}</h3>
+          <h3>🛍️ Recommended for ${this.bodyShapeResult.shape}${colorSeasonText}</h3>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
             ← Back to Results
           </button>
         </div>
 
+        ${this.colorSeasonResult ? `
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
+            <p style="margin: 0; font-size: 18px;">
+              <strong>Your Profile:</strong> ${this.bodyShapeResult.shape} body shape + ${this.colorSeasonResult} color season
+            </p>
+          </div>
+        ` : ''}
+
         ${products.length === 0 ? `
           <div class="bsa-loading">
             <div class="bsa-loading-spinner"></div>
             <h4>🤖 AI Fashion Stylist at Work...</h4>
-            <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape</p>
+            <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape${colorSeasonText}</p>
             <p class="bsa-loading-submessage">Our AI is reviewing products to find your perfect match. This may take 10-30 seconds.</p>
             <div class="bsa-loading-steps">
               <div class="bsa-loading-step bsa-step-active">✓ Fetching products from catalog</div>
@@ -826,6 +864,132 @@ class BodyShapeAdvisor {
         `}
       </div>
     `;
+  }
+
+  renderColorSeason() {
+    return `
+      <div class="bsa-color-season">
+        <div class="bsa-header">
+          <h3>🎨 Discover Your Color Season</h3>
+          <button class="bsa-btn bsa-btn-link" onclick="window.bodyShapeAdvisor.goToStep('results')">← Back to Results</button>
+        </div>
+
+        <p style="text-align: center; color: #64748b; margin-bottom: 2rem;">
+          Answer these quick questions to find your perfect color palette
+        </p>
+
+        <form id="colorSeasonForm" onsubmit="window.bodyShapeAdvisor.handleColorSeasonSubmit(event)">
+
+          <!-- Question 1: Skin Undertone -->
+          <div class="bsa-form-section">
+            <h4>1️⃣ What's your skin undertone?</h4>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
+              Check your wrist veins or which jewelry flatters you more
+            </p>
+            <div class="bsa-form-row">
+              <label class="bsa-radio-option">
+                <input type="radio" name="undertone" value="warm" required>
+                <span>☀️ Warm (Green veins, gold jewelry looks best)</span>
+              </label>
+              <label class="bsa-radio-option">
+                <input type="radio" name="undertone" value="cool" required>
+                <span>❄️ Cool (Blue veins, silver jewelry looks best)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Question 2: Hair & Eye Depth -->
+          <div class="bsa-form-section">
+            <h4>2️⃣ How would you describe your natural coloring?</h4>
+            <div class="bsa-form-row">
+              <label class="bsa-radio-option">
+                <input type="radio" name="depth" value="light" required>
+                <span>🌤️ Light (Blonde/light brown hair, light eyes)</span>
+              </label>
+              <label class="bsa-radio-option">
+                <input type="radio" name="depth" value="medium" required>
+                <span>🌥️ Medium (Medium brown hair, hazel/green eyes)</span>
+              </label>
+              <label class="bsa-radio-option">
+                <input type="radio" name="depth" value="deep" required>
+                <span>🌑 Deep (Dark hair, dark eyes)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Question 3: Intensity -->
+          <div class="bsa-form-section">
+            <h4>3️⃣ What colors make you look most vibrant?</h4>
+            <div class="bsa-form-row">
+              <label class="bsa-radio-option">
+                <input type="radio" name="intensity" value="bright" required>
+                <span>✨ Bright, saturated colors (jewel tones, vivid shades)</span>
+              </label>
+              <label class="bsa-radio-option">
+                <input type="radio" name="intensity" value="muted" required>
+                <span>🌫️ Soft, muted colors (pastels, dusty shades)</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="bsa-btn bsa-btn-primary" style="width: 100%; margin-top: 2rem;">
+            Get My Color Season & Product Recommendations
+          </button>
+        </form>
+      </div>
+    `;
+  }
+
+  handleColorSeasonSubmit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    const undertone = formData.get('undertone');
+    const depth = formData.get('depth');
+    const intensity = formData.get('intensity');
+
+    this.colorAnalysis = {
+      undertone,
+      depth,
+      intensity
+    };
+
+    // Determine color season
+    this.colorSeasonResult = this.calculateColorSeason(undertone, depth, intensity);
+
+    console.log(`Color Season Result: ${this.colorSeasonResult}`);
+
+    // Now get product recommendations with both body shape and color season
+    this.getProductsAfterColorSeason();
+  }
+
+  calculateColorSeason(undertone, depth, intensity) {
+    // Spring: Warm + Light/Medium + Bright
+    if (undertone === 'warm' && (depth === 'light' || depth === 'medium') && intensity === 'bright') {
+      return 'Spring';
+    }
+
+    // Autumn: Warm + Medium/Deep + Muted
+    if (undertone === 'warm' && (depth === 'medium' || depth === 'deep') && intensity === 'muted') {
+      return 'Autumn';
+    }
+
+    // Summer: Cool + Light/Medium + Muted
+    if (undertone === 'cool' && (depth === 'light' || depth === 'medium') && intensity === 'muted') {
+      return 'Summer';
+    }
+
+    // Winter: Cool + Deep + Bright
+    if (undertone === 'cool' && depth === 'deep' && intensity === 'bright') {
+      return 'Winter';
+    }
+
+    // Fallback logic for edge cases
+    if (undertone === 'warm') {
+      return intensity === 'bright' ? 'Spring' : 'Autumn';
+    } else {
+      return intensity === 'bright' ? 'Winter' : 'Summer';
+    }
   }
 
   attachEventListeners() {

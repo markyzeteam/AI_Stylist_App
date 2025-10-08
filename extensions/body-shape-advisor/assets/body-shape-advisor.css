@@ -571,3 +571,39 @@
   font-weight: 500;
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* Color Season Radio Options */
+.bsa-radio-option {
+  display: block;
+  padding: 1rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.75rem;
+}
+
+.bsa-radio-option:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.bsa-radio-option input[type="radio"] {
+  margin-right: 0.75rem;
+  cursor: pointer;
+}
+
+.bsa-radio-option input[type="radio"]:checked + span {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.bsa-radio-option:has(input[type="radio"]:checked) {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.bsa-color-season {
+  padding: 2rem;
+}

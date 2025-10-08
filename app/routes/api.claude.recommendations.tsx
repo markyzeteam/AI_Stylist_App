@@ -23,6 +23,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const formData = await request.formData();
     const bodyShape = formData.get("bodyShape") as string;
+    const colorSeason = formData.get("colorSeason") as string | null;
     const storeDomain = formData.get("storeDomain") as string;
     const bust = formData.get("bust") as string;
     const waist = formData.get("waist") as string;
@@ -62,6 +63,9 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}`);
+    if (colorSeason) {
+      console.log(`🎨 Color Season: ${colorSeason}`);
+    }
 
     // Get recommendations from Claude AI using MCP
     console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain}`);
@@ -73,7 +77,8 @@ export async function action({ request }: ActionFunctionArgs) {
       numberOfSuggestions,
       minimumMatchScore,
       maxProductsToScan,
-      onlyInStock
+      onlyInStock,
+      colorSeason || undefined
     );
 
     return json(
@@ -85,10 +90,14 @@ export async function action({ request }: ActionFunctionArgs) {
             title: rec.product.title,
             description: rec.product.description,
             handle: rec.product.handle,
-            images: rec.product.images,
+            image: rec.product.image || rec.product.imageUrl,
+            imageUrl: rec.product.imageUrl || rec.product.image,
+            images: rec.product.image ? [{ src: rec.product.image }] : [],
             variants: rec.product.variants,
+            price: rec.product.price,
             productType: rec.product.productType,
             tags: rec.product.tags,
+            url: `https://${storeDomain}/products/${rec.product.handle}`,
           },
           suitabilityScore: rec.suitabilityScore,
           recommendedSize: rec.recommendedSize,
