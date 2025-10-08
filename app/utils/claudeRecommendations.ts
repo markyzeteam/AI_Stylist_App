@@ -186,11 +186,11 @@ export async function getClaudeProductRecommendations(
     // STEP 3: Prepare product data for Claude AI
     const productsForAI = preFilteredProducts.map((p, index) => ({
       index,
-      title: p.title,
-      description: p.description.substring(0, 300),
-      productType: p.productType,
-      tags: p.tags.join(", "),
-      price: p.variants[0]?.price || "N/A"
+      title: p.title || p.name || 'Untitled Product',
+      description: (p.description || '').substring(0, 300),
+      productType: p.productType || '',
+      tags: (p.tags || []).join(", "),
+      price: p.variants?.[0]?.price || p.price || "N/A"
     }));
 
     console.log(`✓ Prepared ${productsForAI.length} products for Claude AI analysis`);
@@ -209,8 +209,12 @@ export async function getClaudeProductRecommendations(
 
     if (!apiKey) {
       console.error("⚠ No Anthropic API key configured, falling back to basic algorithm");
+      console.error(`   - claudeSettings.apiKey: ${claudeSettings.apiKey ? 'SET' : 'NOT SET'}`);
+      console.error(`   - process.env.ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET' : 'NOT SET'}`);
       return applyBasicAlgorithmMCP(preFilteredProducts, bodyShape, limit, measurements);
     }
+
+    console.log(`✓ API key found: ${apiKey.substring(0, 10)}...`);
 
     // Create Anthropic client with the appropriate API key
     const anthropic = new Anthropic({
@@ -218,6 +222,7 @@ export async function getClaudeProductRecommendations(
     });
 
     console.log(`🤖 Calling Claude AI (model: claude-sonnet-4, temp: ${claudeSettings.temperature}, max_tokens: ${claudeSettings.maxTokens})...`);
+    console.log(`   Sending ${productsForAI.length} products to Claude for analysis`);
 
     // Call Claude API
     const message = await anthropic.messages.create({
@@ -235,9 +240,11 @@ export async function getClaudeProductRecommendations(
 
     // STEP 5: Parse Claude's response
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log(`📝 Claude response (first 500 chars): ${responseText.substring(0, 500)}`);
+
     const recommendations = parseClaudeResponse(responseText, preFilteredProducts);
 
-    console.log(`✓ Claude AI returned ${recommendations.length} recommendations`);
+    console.log(`✓ Claude AI returned ${recommendations.length} recommendations after parsing`);
 
     return recommendations.slice(0, limit);
   } catch (error) {
