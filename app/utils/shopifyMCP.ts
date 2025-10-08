@@ -75,7 +75,7 @@ export async function searchShopCatalog(
     }
 
     // Parse the MCP response
-    const products = parseProductsFromMCP(data.result);
+    const products = parseProductsFromMCP(data.result, storeDomain);
 
     console.log(`✓ Found ${products.length} products from MCP`);
 
@@ -146,7 +146,7 @@ export async function fetchAllProducts(
 /**
  * Parse products from MCP response
  */
-function parseProductsFromMCP(result: any): MCPProduct[] {
+function parseProductsFromMCP(result: any, storeDomain: string): MCPProduct[] {
   if (!result || !result.content) {
     console.warn('No content in MCP result');
     return [];
@@ -155,44 +155,57 @@ function parseProductsFromMCP(result: any): MCPProduct[] {
   const products: MCPProduct[] = [];
 
   for (const item of result.content) {
-    if (item.type === 'resource' && item.resource) {
-      const resource = item.resource;
-
-      // Parse the product data from the resource
-      // MCP returns products in a specific format
+    // MCP returns products as JSON text within a text field
+    if (item.type === 'text' && item.text) {
       try {
-        const productName = resource.name || resource.title || '';
-        const productPrice = resource.price || '0';
-        const productImage = resource.imageUrl || resource.image_url || resource.image;
-        const productAvailable = resource.available !== false;
+        const data = JSON.parse(item.text);
 
-        const product: MCPProduct = {
-          name: productName,
-          title: productName,  // Set both for compatibility
-          price: productPrice,
-          currency: resource.currency || 'USD',
-          variantId: resource.variantId || resource.variant_id || '',
-          url: resource.url || '',
-          imageUrl: productImage,
-          description: resource.description || '',
-          handle: extractHandle(resource.url),
-          productType: resource.productType || resource.product_type || '',
-          tags: resource.tags || [],
-          available: productAvailable,
-          // For API response compatibility
-          id: resource.id || resource.variantId || resource.variant_id,
-          images: productImage ? [{ src: productImage }] : [],
-          variants: [{
-            price: productPrice,
-            available: productAvailable
-          }]
-        };
+        if (data.products && Array.isArray(data.products)) {
+          for (const prod of data.products) {
+            // Get the first available variant or first variant
+            const firstVariant = prod.variants?.find((v: any) => v.available) || prod.variants?.[0];
 
-        if (product.variantId) {
-          products.push(product);
+            if (!firstVariant) continue;
+
+            const productName = prod.title || '';
+            const productPrice = firstVariant.price || prod.price_range?.min || '0';
+            const productImage = firstVariant.image_url || prod.image_url || '';
+            const productAvailable = firstVariant.available !== false;
+            const productHandle = extractHandle(prod.product_id || '');
+            const productUrl = `https://${storeDomain}/products/${productHandle}`;
+
+            const product: MCPProduct = {
+              name: productName,
+              title: productName,
+              price: productPrice,
+              currency: firstVariant.currency || prod.price_range?.currency || 'USD',
+              variantId: firstVariant.variant_id || '',
+              url: productUrl,
+              imageUrl: productImage,
+              description: prod.description || '',
+              handle: productHandle,
+              productType: prod.product_type || '',
+              tags: prod.tags || [],
+              available: productAvailable,
+              // For API response compatibility
+              id: prod.product_id || firstVariant.variant_id,
+              images: productImage ? [{ src: productImage }] : [],
+              variants: prod.variants?.map((v: any) => ({
+                price: v.price,
+                available: v.available !== false
+              })) || [{
+                price: productPrice,
+                available: productAvailable
+              }]
+            };
+
+            if (product.variantId) {
+              products.push(product);
+            }
+          }
         }
       } catch (error) {
-        console.warn('Failed to parse product from MCP resource:', error);
+        console.warn('Failed to parse MCP JSON text:', error);
       }
     }
   }
@@ -201,14 +214,22 @@ function parseProductsFromMCP(result: any): MCPProduct[] {
 }
 
 /**
- * Extract product handle from URL
+ * Extract product handle from URL or generate from product ID
  */
-function extractHandle(url: string): string {
-  if (!url) return '';
+function extractHandle(urlOrId: string): string {
+  if (!urlOrId) return '';
 
   try {
-    const match = url.match(/\/products\/([^/?]+)/);
-    return match ? match[1] : '';
+    // If it's a URL, extract the handle
+    const match = urlOrId.match(/\/products\/([^/?]+)/);
+    if (match) return match[1];
+
+    // If it's a Shopify GID, extract the ID and return it as-is
+    // We'll need to construct proper URLs elsewhere
+    const gidMatch = urlOrId.match(/gid:\/\/shopify\/Product\/(\d+)/);
+    if (gidMatch) return gidMatch[1];
+
+    return urlOrId;
   } catch {
     return '';
   }
