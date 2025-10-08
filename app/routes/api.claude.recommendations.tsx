@@ -56,14 +56,19 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     }
 
+    // Load app settings to get number of suggestions
+    const { loadSettings } = await import("../utils/settings");
+    const settings = await loadSettings(shop);
+    const limit = settings.numberOfSuggestions || 20;
+
     // Get recommendations from Claude AI using MCP
-    console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain}`);
+    console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain} (limit: ${limit})`);
     const recommendations = await getClaudeProductRecommendations(
       storeDomain,
       shop,
       bodyShape,
       measurements,
-      12, // Number of recommendations
+      limit, // Use setting instead of hardcoded value
       onlyInStock
     );
 

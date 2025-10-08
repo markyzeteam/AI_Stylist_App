@@ -171,7 +171,8 @@ function parseProductsFromMCP(result: any, storeDomain: string): MCPProduct[] {
             const productPrice = firstVariant.price || prod.price_range?.min || '0';
             const productImage = firstVariant.image_url || prod.image_url || '';
             const productAvailable = firstVariant.available !== false;
-            const productHandle = extractHandle(prod.product_id || '');
+            // Generate handle from title since MCP doesn't provide it
+            const productHandle = generateHandleFromTitle(productName);
             const productUrl = `https://${storeDomain}/products/${productHandle}`;
 
             const product: MCPProduct = {
@@ -214,6 +215,19 @@ function parseProductsFromMCP(result: any, storeDomain: string): MCPProduct[] {
 }
 
 /**
+ * Generate a URL-friendly handle from product title
+ */
+function generateHandleFromTitle(title: string): string {
+  if (!title) return '';
+
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 100); // Limit length
+}
+
+/**
  * Extract product handle from URL or generate from product ID
  */
 function extractHandle(urlOrId: string): string {
@@ -224,8 +238,7 @@ function extractHandle(urlOrId: string): string {
     const match = urlOrId.match(/\/products\/([^/?]+)/);
     if (match) return match[1];
 
-    // If it's a Shopify GID, extract the ID and return it as-is
-    // We'll need to construct proper URLs elsewhere
+    // If it's a Shopify GID, extract the ID
     const gidMatch = urlOrId.match(/gid:\/\/shopify\/Product\/(\d+)/);
     if (gidMatch) return gidMatch[1];
 
