@@ -179,10 +179,12 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 productType
                 tags
                 status
-                variants(first: 1) {
+                totalInventory
+                variants(first: 10) {
                   edges {
                     node {
                       price
+                      availableForSale
                       inventoryQuantity
                     }
                   }
@@ -223,23 +225,40 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
       const products = data?.data?.products?.edges || [];
 
       // Transform products to unified format
-      const transformedProducts = products.map((edge: any) => ({
-        id: edge.node.id,
-        title: edge.node.title,
-        name: edge.node.title, // Alias for compatibility
-        handle: edge.node.handle,
-        description: edge.node.description || '',
-        productType: edge.node.productType || '',
-        tags: edge.node.tags || [],
-        price: edge.node.variants?.edges?.[0]?.node?.price || '',
-        image: edge.node.featuredImage?.url || '',
-        imageUrl: edge.node.featuredImage?.url || '', // Alias
-        available: (edge.node.variants?.edges?.[0]?.node?.inventoryQuantity || 0) > 0,
-        variants: edge.node.variants?.edges?.map((v: any) => ({
-          price: v.node.price,
-          available: (v.node.inventoryQuantity || 0) > 0
-        })) || []
-      }));
+      const transformedProducts = products.map((edge: any) => {
+        const variants = edge.node.variants?.edges || [];
+
+        // Check if ANY variant is available using multiple methods for reliability
+        const hasAvailableVariant = variants.some((v: any) => {
+          const availableForSale = v.node.availableForSale === true;
+          const hasInventory = (v.node.inventoryQuantity || 0) > 0;
+          return availableForSale || hasInventory;
+        });
+
+        // Also check totalInventory at product level as fallback
+        const hasTotalInventory = (edge.node.totalInventory || 0) > 0;
+
+        // Product is available if either condition is true
+        const isAvailable = hasAvailableVariant || hasTotalInventory;
+
+        return {
+          id: edge.node.id,
+          title: edge.node.title,
+          name: edge.node.title, // Alias for compatibility
+          handle: edge.node.handle,
+          description: edge.node.description || '',
+          productType: edge.node.productType || '',
+          tags: edge.node.tags || '',
+          price: variants?.[0]?.node?.price || '',
+          image: edge.node.featuredImage?.url || '',
+          imageUrl: edge.node.featuredImage?.url || '', // Alias
+          available: isAvailable,
+          variants: variants.map((v: any) => ({
+            price: v.node.price,
+            available: v.node.availableForSale === true || (v.node.inventoryQuantity || 0) > 0
+          }))
+        };
+      });
 
       allProducts.push(...transformedProducts);
 
