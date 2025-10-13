@@ -39,8 +39,8 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
             minimumMatchScore: data.settings.minimumMatchScore || 30,
             scanAllProducts: data.settings.maxProductsToScan === 0,
             maxProductsToScan: data.settings.maxProductsToScan || 0,
-            onlyInStock: data.settings.onlyInStockProducts || false,
-            enableImageAnalysis: data.settings.enableImageAnalysis || false,
+            onlyInStock: data.settings.onlyInStockProducts !== undefined ? data.settings.onlyInStockProducts : false,
+            enableImageAnalysis: data.settings.enableImageAnalysis !== undefined ? data.settings.enableImageAnalysis : false,
             // Fallback algorithm settings (not used when Claude is enabled)
             ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
             minTops: {{ block.settings.min_tops | default: 5 }},
