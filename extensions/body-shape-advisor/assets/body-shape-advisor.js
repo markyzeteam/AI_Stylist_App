@@ -73,6 +73,7 @@ class BodyShapeAdvisor {
       knownShape: this.renderKnownShape.bind(this),
       results: this.renderResults.bind(this),
       colorSeason: this.renderColorSeason.bind(this),
+      colorSeasonResults: this.renderColorSeasonResults.bind(this),
       products: this.renderProducts.bind(this)
     };
 
@@ -264,6 +265,8 @@ class BodyShapeAdvisor {
   renderResults() {
     if (!this.bodyShapeResult) return '';
 
+    const claudeAnalysis = this.bodyShapeResult.claudeAnalysis;
+
     return `
       <div class="bsa-results">
         <div class="bsa-header">
@@ -281,19 +284,81 @@ class BodyShapeAdvisor {
           <p>${this.bodyShapeResult.description}</p>
         </div>
 
-        <div class="bsa-recommendations">
-          <h4>Style Recommendations for You</h4>
-          <ul>
-            ${this.bodyShapeResult.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-          </ul>
-        </div>
+        ${claudeAnalysis ? `
+          <div class="bsa-recommendations bsa-claude-analysis">
+            <h4>🤖 AI Fashion Stylist Analysis</h4>
+
+            ${claudeAnalysis.analysis ? `
+              <div class="bsa-analysis-section">
+                <p style="line-height: 1.6; color: #374151; white-space: pre-line;">${claudeAnalysis.analysis}</p>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.styleGoals && claudeAnalysis.styleGoals.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #4f46e5; margin-top: 1.5rem;">Style Goals</h5>
+                <ul style="padding-left: 1.5rem;">
+                  ${claudeAnalysis.styleGoals.map(goal => `<li style="margin: 0.5rem 0;">${goal}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.recommendations && claudeAnalysis.recommendations.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #4f46e5; margin-top: 1.5rem;">Recommended Clothing & Styling</h5>
+                ${claudeAnalysis.recommendations.map(rec => `
+                  <div style="margin: 1.5rem 0; padding: 1rem; background: #f9fafb; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                    <h6 style="color: #1f2937; margin: 0 0 0.5rem 0; font-weight: 600;">${rec.category}</h6>
+                    <ul style="padding-left: 1.5rem; margin: 0.5rem 0;">
+                      ${rec.items.map(item => `<li style="margin: 0.25rem 0;">${item}</li>`).join('')}
+                    </ul>
+                    <p style="margin: 0.75rem 0 0 0; color: #6b7280; font-style: italic;"><strong>Why:</strong> ${rec.reasoning}</p>
+                    ${rec.stylingTips ? `<p style="margin: 0.5rem 0 0 0; color: #059669;"><strong>💡 Styling Tip:</strong> ${rec.stylingTips}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.avoidItems && claudeAnalysis.avoidItems.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #dc2626; margin-top: 1.5rem;">What to Avoid</h5>
+                <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; border-left: 4px solid #dc2626;">
+                  ${claudeAnalysis.avoidItems.map(avoid => `
+                    <p style="margin: 0.5rem 0;"><strong>${avoid.item}:</strong> ${avoid.reason}</p>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.proTips && claudeAnalysis.proTips.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #059669; margin-top: 1.5rem;">Pro Tips</h5>
+                <ul style="padding-left: 1.5rem;">
+                  ${claudeAnalysis.proTips.map(tip => `<li style="margin: 0.5rem 0; color: #374151;">${tip}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        ` : `
+          <div class="bsa-recommendations">
+            <h4>Style Recommendations for You</h4>
+            <ul>
+              ${this.bodyShapeResult.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+            </ul>
+          </div>
+        `}
 
         <div class="bsa-next-steps">
           <h4>🛍️ Ready to Shop?</h4>
           <p>Browse our collection to find items perfect for your ${this.bodyShapeResult.shape} body shape!</p>
-          <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.browseProducts()">
-            Browse Recommended Products
-          </button>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.browseProducts()" style="flex: 1; min-width: 200px;">
+              Browse Recommended Products
+            </button>
+            <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('colorSeason')" style="flex: 1; min-width: 200px;">
+              Move to Color Analysis
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -341,7 +406,7 @@ class BodyShapeAdvisor {
     });
   }
 
-  calculateBodyShape(event) {
+  async calculateBodyShape(event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
@@ -354,12 +419,19 @@ class BodyShapeAdvisor {
       }
     });
 
+    // Store measurements for later use
+    this.measurements = measurements;
+
     // Simple body shape calculation (simplified version)
     this.bodyShapeResult = this.calculateShape(measurements);
+
+    // Get Claude AI detailed analysis
+    await this.getClaudeStyleAnalysis(this.bodyShapeResult.shape, measurements);
+
     this.goToStep('results');
   }
 
-  selectShape(shapeName) {
+  async selectShape(shapeName) {
     this.bodyShapeResult = {
       shape: shapeName,
       description: this.getShapeDescription(shapeName),
@@ -367,6 +439,10 @@ class BodyShapeAdvisor {
       characteristics: [this.getShapeCharacteristics(shapeName)],
       recommendations: this.getShapeRecommendations(shapeName)
     };
+
+    // Get Claude AI detailed analysis
+    await this.getClaudeStyleAnalysis(shapeName, null);
+
     this.goToStep('results');
   }
 
@@ -479,6 +555,40 @@ class BodyShapeAdvisor {
       ]
     };
     return recommendations[shape] || [];
+  }
+
+  async getClaudeStyleAnalysis(bodyShape, measurements) {
+    console.log(`🤖 Getting Claude AI style analysis for ${bodyShape}...`);
+
+    try {
+      const apiUrl = `${this.config.apiEndpoint}/api/body-shape-analysis`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bodyShape: bodyShape,
+          measurements: measurements
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`API error: ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.analysis) {
+        console.log('✓ Got Claude AI style analysis');
+        this.bodyShapeResult.claudeAnalysis = data.analysis;
+      }
+    } catch (error) {
+      console.error('Error getting Claude AI style analysis:', error);
+      // Continue without Claude analysis if it fails
+    }
   }
 
   async browseProducts() {
@@ -802,7 +912,7 @@ class BodyShapeAdvisor {
 
     const products = this.productRecommendations || [];
 
-    const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Season` : '';
+    const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Skin Color Season` : '';
 
     return `
       <div class="bsa-products">
@@ -816,7 +926,7 @@ class BodyShapeAdvisor {
         ${this.colorSeasonResult ? `
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
             <p style="margin: 0; font-size: 18px;">
-              <strong>Your Profile:</strong> ${this.bodyShapeResult.shape} body shape + ${this.colorSeasonResult} color season
+              <strong>Your Profile:</strong> ${this.bodyShapeResult.shape} body shape + ${this.colorSeasonResult} skin color season
             </p>
           </div>
         ` : ''}
@@ -870,7 +980,7 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-color-season">
         <div class="bsa-header">
-          <h3>🎨 Discover Your Color Season</h3>
+          <h3>🎨 Discover Your Skin Color Season</h3>
           <button class="bsa-btn bsa-btn-link" onclick="window.bodyShapeAdvisor.goToStep('results')">← Back to Results</button>
         </div>
 
@@ -933,14 +1043,14 @@ class BodyShapeAdvisor {
           </div>
 
           <button type="submit" class="bsa-btn bsa-btn-primary" style="width: 100%; margin-top: 2rem;">
-            Get My Color Season & Product Recommendations
+            Get My Skin Color Season & Product Recommendations
           </button>
         </form>
       </div>
     `;
   }
 
-  handleColorSeasonSubmit(event) {
+  async handleColorSeasonSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
 
@@ -959,8 +1069,11 @@ class BodyShapeAdvisor {
 
     console.log(`Color Season Result: ${this.colorSeasonResult}`);
 
-    // Now get product recommendations with both body shape and color season
-    this.getProductsAfterColorSeason();
+    // Get Claude AI color season analysis
+    await this.getClaudeColorSeasonAnalysis(this.colorSeasonResult, this.colorAnalysis);
+
+    // Go to color season results page
+    this.goToStep('colorSeasonResults');
   }
 
   calculateColorSeason(undertone, depth, intensity) {
@@ -990,6 +1103,140 @@ class BodyShapeAdvisor {
     } else {
       return intensity === 'bright' ? 'Winter' : 'Summer';
     }
+  }
+
+  async getClaudeColorSeasonAnalysis(colorSeason, colorAnalysis) {
+    console.log(`🤖 Getting Claude AI color season analysis for ${colorSeason}...`);
+
+    try {
+      const apiUrl = `${this.config.apiEndpoint}/api/color-season-analysis`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          colorSeason: colorSeason,
+          colorAnalysis: colorAnalysis
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`API error: ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.analysis) {
+        console.log('✓ Got Claude AI color season analysis');
+        // Store analysis in a new object structure
+        if (!this.colorSeasonData) {
+          this.colorSeasonData = {};
+        }
+        this.colorSeasonData.claudeAnalysis = data.analysis;
+      }
+    } catch (error) {
+      console.error('Error getting Claude AI color season analysis:', error);
+      // Continue without Claude analysis if it fails
+    }
+  }
+
+  renderColorSeasonResults() {
+    if (!this.colorSeasonResult) return '';
+
+    const claudeAnalysis = this.colorSeasonData?.claudeAnalysis;
+
+    return `
+      <div class="bsa-results">
+        <div class="bsa-header">
+          <h3>Your Skin Color Season Results</h3>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
+            ← Back to Body Shape
+          </button>
+        </div>
+
+        <div class="bsa-result-card">
+          <div class="bsa-result-header">
+            <h4>${this.colorSeasonResult} Season</h4>
+            <span class="bsa-confidence">Perfect match</span>
+          </div>
+          <p>Your unique coloring falls into the ${this.colorSeasonResult} season category</p>
+        </div>
+
+        ${claudeAnalysis ? `
+          <div class="bsa-recommendations bsa-claude-analysis">
+            <h4>🤖 AI Color Specialist Analysis</h4>
+
+            ${claudeAnalysis.analysis ? `
+              <div class="bsa-analysis-section">
+                <p style="line-height: 1.6; color: #374151; white-space: pre-line;">${claudeAnalysis.analysis}</p>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.bestColors && claudeAnalysis.bestColors.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #4f46e5; margin-top: 1.5rem;">Your Best Colors</h5>
+                <ul style="padding-left: 1.5rem;">
+                  ${claudeAnalysis.bestColors.map(color => `<li style="margin: 0.5rem 0;">${color}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.colorPalette && claudeAnalysis.colorPalette.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #4f46e5; margin-top: 1.5rem;">Color Palette by Category</h5>
+                ${claudeAnalysis.colorPalette.map(palette => `
+                  <div style="margin: 1.5rem 0; padding: 1rem; background: #f9fafb; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                    <h6 style="color: #1f2937; margin: 0 0 0.5rem 0; font-weight: 600;">${palette.category}</h6>
+                    <ul style="padding-left: 1.5rem; margin: 0.5rem 0;">
+                      ${palette.colors.map(color => `<li style="margin: 0.25rem 0;">${color}</li>`).join('')}
+                    </ul>
+                    <p style="margin: 0.75rem 0 0 0; color: #6b7280; font-style: italic;"><strong>Why:</strong> ${palette.reasoning}</p>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.avoidColors && claudeAnalysis.avoidColors.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #dc2626; margin-top: 1.5rem;">Colors to Avoid</h5>
+                <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; border-left: 4px solid #dc2626;">
+                  ${claudeAnalysis.avoidColors.map(avoid => `
+                    <p style="margin: 0.5rem 0;"><strong>${avoid.color}:</strong> ${avoid.reason}</p>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${claudeAnalysis.stylingTips && claudeAnalysis.stylingTips.length > 0 ? `
+              <div class="bsa-analysis-section">
+                <h5 style="color: #059669; margin-top: 1.5rem;">Styling Tips</h5>
+                <ul style="padding-left: 1.5rem;">
+                  ${claudeAnalysis.stylingTips.map(tip => `<li style="margin: 0.5rem 0; color: #374151;">${tip}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        ` : `
+          <div class="bsa-recommendations">
+            <h4>Color Recommendations for ${this.colorSeasonResult} Season</h4>
+            <p>Your personalized color palette analysis is being prepared...</p>
+          </div>
+        `}
+
+        <div class="bsa-next-steps">
+          <h4>🛍️ Ready to Shop?</h4>
+          <p>Browse products that match both your ${this.bodyShapeResult.shape} body shape and ${this.colorSeasonResult} skin color season!</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.getProductsAfterColorSeason()" style="flex: 1; min-width: 200px;">
+              Browse Recommended Products
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   attachEventListeners() {
