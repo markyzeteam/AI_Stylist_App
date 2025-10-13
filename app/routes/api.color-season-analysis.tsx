@@ -2,10 +2,6 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -38,6 +34,17 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     console.log(`Getting Claude AI color season analysis for ${colorSeason}`);
+
+    // Check for API key
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error("❌ ANTHROPIC_API_KEY not set in environment");
+      return json({ error: "API key not configured" }, { status: 500, headers: corsHeaders });
+    }
+
+    // Create Anthropic client with API key
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
 
     // Build context about color analysis
     let analysisContext = "";
