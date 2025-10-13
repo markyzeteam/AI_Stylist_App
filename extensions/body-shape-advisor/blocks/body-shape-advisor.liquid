@@ -17,24 +17,72 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
 
   <!-- Configuration for the JavaScript app -->
   <script>
+    // Base configuration
     window.BodyShapeAdvisorConfig = {
       shopDomain: '{{ shop.permanent_domain }}',
       primaryColor: '{{ block.settings.primary_color }}',
       backgroundColor: '{{ block.settings.background_color }}',
       apiEndpoint: 'https://aistylistapp-production.up.railway.app',
-      settings: {
-        numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
-        minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
-        scanAllProducts: {{ block.settings.scan_all_products | default: true }},
-        maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
-        onlyInStock: {{ block.settings.only_in_stock | default: false }},
-        ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
-        minTops: {{ block.settings.min_tops | default: 5 }},
-        minBottoms: {{ block.settings.min_bottoms | default: 5 }},
-        minDresses: {{ block.settings.min_dresses | default: 3 }},
-        minAccessories: {{ block.settings.min_accessories | default: 2 }}
-      }
+      settings: null // Will be loaded from admin API
     };
+
+    // Fetch admin settings on page load
+    (async function loadAdminSettings() {
+      try {
+        const response = await fetch('https://aistylistapp-production.up.railway.app/api/settings');
+        const data = await response.json();
+
+        if (data.settings) {
+          console.log('✓ Loaded admin settings:', data.settings);
+          window.BodyShapeAdvisorConfig.settings = {
+            numberOfSuggestions: data.settings.numberOfSuggestions || 30,
+            minimumMatchScore: data.settings.minimumMatchScore || 30,
+            scanAllProducts: data.settings.maxProductsToScan === 0,
+            maxProductsToScan: data.settings.maxProductsToScan || 0,
+            onlyInStock: data.settings.onlyInStockProducts || false,
+            enableImageAnalysis: data.settings.enableImageAnalysis || false,
+            // Fallback algorithm settings (not used when Claude is enabled)
+            ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
+            minTops: {{ block.settings.min_tops | default: 5 }},
+            minBottoms: {{ block.settings.min_bottoms | default: 5 }},
+            minDresses: {{ block.settings.min_dresses | default: 3 }},
+            minAccessories: {{ block.settings.min_accessories | default: 2 }}
+          };
+        } else {
+          // Use theme block defaults if API fails
+          console.warn('⚠ Could not load admin settings, using theme defaults');
+          window.BodyShapeAdvisorConfig.settings = {
+            numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
+            minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
+            scanAllProducts: {{ block.settings.scan_all_products | default: true }},
+            maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
+            onlyInStock: {{ block.settings.only_in_stock | default: false }},
+            enableImageAnalysis: false,
+            ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
+            minTops: {{ block.settings.min_tops | default: 5 }},
+            minBottoms: {{ block.settings.min_bottoms | default: 5 }},
+            minDresses: {{ block.settings.min_dresses | default: 3 }},
+            minAccessories: {{ block.settings.min_accessories | default: 2 }}
+          };
+        }
+      } catch (error) {
+        console.error('Error loading admin settings:', error);
+        // Use theme block defaults
+        window.BodyShapeAdvisorConfig.settings = {
+          numberOfSuggestions: {{ block.settings.number_of_suggestions | default: 30 }},
+          minimumMatchScore: {{ block.settings.minimum_match_score | default: 30 }},
+          scanAllProducts: {{ block.settings.scan_all_products | default: true }},
+          maxProductsToScan: {{ block.settings.max_products_to_scan | default: 1000 }},
+          onlyInStock: {{ block.settings.only_in_stock | default: false }},
+          enableImageAnalysis: false,
+          ensureCategoryMix: {{ block.settings.ensure_category_mix | default: true }},
+          minTops: {{ block.settings.min_tops | default: 5 }},
+          minBottoms: {{ block.settings.min_bottoms | default: 5 }},
+          minDresses: {{ block.settings.min_dresses | default: 3 }},
+          minAccessories: {{ block.settings.min_accessories | default: 2 }}
+        };
+      }
+    })();
   </script>
 
   <!-- Load JavaScript -->
