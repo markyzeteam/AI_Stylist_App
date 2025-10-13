@@ -29,7 +29,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
     // Fetch admin settings on page load
     (async function loadAdminSettings() {
       try {
-        const response = await fetch('https://aistylistapp-production.up.railway.app/api/settings');
+        const response = await fetch('https://aistylistapp-production.up.railway.app/api/settings?shop=' + encodeURIComponent('{{ shop.permanent_domain }}'));
         const data = await response.json();
 
         if (data.settings) {
