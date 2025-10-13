@@ -1404,10 +1404,17 @@ class BodyShapeAdvisor {
   }
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize immediately (script is loaded dynamically after DOM is ready)
+(function() {
   const container = document.getElementById('body-shape-advisor-app');
   if (container && window.BodyShapeAdvisorConfig) {
+    console.log('🚀 Initializing Body Shape Advisor...');
     window.bodyShapeAdvisor = new BodyShapeAdvisor('body-shape-advisor-app', window.BodyShapeAdvisorConfig);
+    console.log('✅ Body Shape Advisor initialized successfully');
+  } else {
+    console.error('❌ Failed to initialize: container or config missing', {
+      container: !!container,
+      config: !!window.BodyShapeAdvisorConfig
+    });
   }
-});
+})();
