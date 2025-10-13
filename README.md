@@ -1,1 +1,1 @@
-# Trigger Railway redeploy - Force update for settings API and CORS fixes
+# Trigger Railway redeploy - Fix Anthropic API key initialization
