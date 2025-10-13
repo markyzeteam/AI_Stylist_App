@@ -680,21 +680,24 @@ Style Guidance: ${guidance}${colorSeasonInfo}${imageAnalysisInfo}
 Products Available:
 ${JSON.stringify(products, null, 2)}
 
-TASK: Select the top ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape${colorSeason ? ` and match the ${colorSeason} color palette` : ''}.
+TASK: Select EXACTLY ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape${colorSeason ? ` and match the ${colorSeason} color palette` : ''}.
+
+You MUST provide exactly ${limit} recommendations. If some products are better matches than others, that's fine - include them anyway with appropriate scores.
 
 For each recommendation, provide:
 - **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES
-- **score**: Suitability score (0-100) where 100 = perfect match
+- **score**: Suitability score (0-100) where 100 = perfect match (minimum score to include: ${minimumMatchScore})
 - **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape (2-3 sentences with specific design details)
 - **sizeAdvice**: Specific sizing guidance for their body shape and proportions
 - **stylingTip**: A unique, actionable styling suggestion for THIS SPECIFIC product
 
 CRITICAL RULES:
+- MUST return EXACTLY ${limit} products - not less, not more
 - NO DUPLICATE PRODUCTS - each index must appear only once
 - Each product MUST have unique reasoning and styling tips
-- Only recommend products with score ≥ ${minimumMatchScore}
-- Be very selective and specific
+- Only include products with score ≥ ${minimumMatchScore}
 - Provide personalized advice, not generic tips
+- Prioritize variety across different product types (tops, bottoms, dresses, accessories)
 
 Format your response as valid JSON (no markdown):
 {
