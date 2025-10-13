@@ -85,8 +85,34 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
     })();
   </script>
 
-  <!-- Load JavaScript -->
-  <script src="{{ 'body-shape-advisor.js' | asset_url }}?v=13" defer></script>
+  <!-- Load JavaScript after settings are ready -->
+  <script>
+    // Wait for settings to load before initializing the app
+    (function() {
+      const checkSettings = setInterval(() => {
+        if (window.BodyShapeAdvisorConfig && window.BodyShapeAdvisorConfig.settings !== null) {
+          clearInterval(checkSettings);
+
+          // Load the main app script
+          const script = document.createElement('script');
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=14';
+          document.body.appendChild(script);
+        }
+      }, 100); // Check every 100ms
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        clearInterval(checkSettings);
+        if (!window.BodyShapeAdvisorConfig.settings) {
+          console.warn('⚠ Timeout loading settings, initializing with defaults');
+          // Initialize with defaults if loading fails
+          const script = document.createElement('script');
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=14';
+          document.body.appendChild(script);
+        }
+      }, 5000);
+    })();
+  </script>
 </div>
 
 {% schema %}
