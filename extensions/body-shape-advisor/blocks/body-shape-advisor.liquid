@@ -92,11 +92,20 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
       const checkSettings = setInterval(() => {
         if (window.BodyShapeAdvisorConfig && window.BodyShapeAdvisorConfig.settings !== null) {
           clearInterval(checkSettings);
+          console.log('⏳ Settings loaded, now loading main app script...');
 
           // Load the main app script
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=14';
-          document.body.appendChild(script);
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=15';
+          script.onerror = function() {
+            console.error('❌ Failed to load body-shape-advisor.js');
+          };
+          script.onload = function() {
+            console.log('✓ App script loaded successfully');
+          };
+
+          // Append to current script's parent to avoid sandbox issues
+          document.currentScript.parentElement.appendChild(script);
         }
       }, 100); // Check every 100ms
 
@@ -107,8 +116,14 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
           console.warn('⚠ Timeout loading settings, initializing with defaults');
           // Initialize with defaults if loading fails
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=14';
-          document.body.appendChild(script);
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=15';
+          script.onerror = function() {
+            console.error('❌ Failed to load body-shape-advisor.js');
+          };
+          script.onload = function() {
+            console.log('✓ App script loaded successfully');
+          };
+          document.currentScript.parentElement.appendChild(script);
         }
       }, 5000);
     })();
