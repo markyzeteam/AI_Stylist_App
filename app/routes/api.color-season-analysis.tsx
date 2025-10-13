@@ -6,20 +6,27 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function action({ request }: ActionFunctionArgs) {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-    "Access-Control-Max-Age": "86400",
-  };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400",
+};
 
+export async function loader({ request }: ActionFunctionArgs) {
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  return json({ error: "Use POST method" }, { status: 405, headers: corsHeaders });
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405, headers });
+    return json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders });
   }
 
   try {
@@ -27,7 +34,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const { colorSeason, colorAnalysis } = body;
 
     if (!colorSeason) {
-      return json({ error: "Color season required" }, { status: 400, headers });
+      return json({ error: "Color season required" }, { status: 400, headers: corsHeaders });
     }
 
     console.log(`Getting Claude AI color season analysis for ${colorSeason}`);
@@ -104,7 +111,7 @@ Make your recommendations specific, practical, and empowering. Focus on helping 
       success: true,
       colorSeason,
       analysis,
-    }, { headers });
+    }, { headers: corsHeaders });
 
   } catch (error: any) {
     console.error("Error getting Claude AI color season analysis:", error);
@@ -113,7 +120,7 @@ Make your recommendations specific, practical, and empowering. Focus on helping 
         error: "Failed to get color season analysis",
         message: error?.message || "Unknown error",
       },
-      { status: 500, headers }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
