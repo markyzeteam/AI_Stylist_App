@@ -18,6 +18,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { loadSettings, saveSettings, type AppSettings } from "../utils/settings";
+import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -41,9 +42,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   };
 
   // Save settings to Shopify metafields
-  const success = await saveSettings(admin, settings);
+  const metafieldSuccess = await saveSettings(admin, settings);
 
-  if (success) {
+  // Also save to database session for the API endpoint
+  try {
+    const { session } = await authenticate.admin(request);
+    await prisma.session.update({
+      where: { id: session.id },
+      data: {
+        appSettings: JSON.stringify(settings)
+      }
+    });
+    console.log("✓ Settings also saved to database session");
+  } catch (dbError) {
+    console.error("Failed to save settings to database:", dbError);
+  }
+
+  if (metafieldSuccess) {
     return json({
       success: true,
       settings,

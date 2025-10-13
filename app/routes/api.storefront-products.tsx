@@ -99,7 +99,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
       `;
 
-      const response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
+      const response: Response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +113,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
       console.log('Response status:', response.status, response.statusText);
 
-      const data = await response.json();
+      const data: any = await response.json();
       console.log('Response data:', JSON.stringify(data).substring(0, 500));
 
       if (data.errors) {

@@ -196,7 +196,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
         }
       `;
 
-      const response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
+      const response: Response = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +213,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
         break;
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (data.errors) {
         console.error('❌ GraphQL errors:', data.errors);

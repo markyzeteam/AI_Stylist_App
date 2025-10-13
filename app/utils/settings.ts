@@ -1,5 +1,3 @@
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
-
 export interface AppSettings {
   numberOfSuggestions: number;
   minimumMatchScore: number;
@@ -22,7 +20,7 @@ const METAFIELD_KEY = "app_settings";
 /**
  * Load settings from Shopify metafields
  */
-export async function loadSettings(admin: AdminApiContext): Promise<AppSettings> {
+export async function loadSettings(admin: any): Promise<AppSettings> {
   try {
     const response = await admin.graphql(
       `#graphql
@@ -57,7 +55,7 @@ export async function loadSettings(admin: AdminApiContext): Promise<AppSettings>
  * Save settings to Shopify metafields
  */
 export async function saveSettings(
-  admin: AdminApiContext,
+  admin: any,
   settings: AppSettings
 ): Promise<boolean> {
   try {

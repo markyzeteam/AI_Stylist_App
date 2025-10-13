@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { cors } from "@remix-run/node";
 
 // This is a public API endpoint for storefront access
 export async function loader({ request }: ActionFunctionArgs) {

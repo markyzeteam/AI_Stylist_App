@@ -29,6 +29,7 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+  appSettings   String?   @db.Text // JSON string of app settings
 }
 
 model ProductBodyShapeMapping {
