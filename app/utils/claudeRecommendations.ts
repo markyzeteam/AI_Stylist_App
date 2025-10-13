@@ -266,6 +266,22 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
       cursor = data?.data?.products?.pageInfo?.endCursor || null;
 
       console.log(`✓ Fetched ${transformedProducts.length} products (total: ${allProducts.length}, hasNextPage: ${hasNextPage})`);
+
+      // Debug: Log first product's inventory data on first fetch
+      if (allProducts.length === transformedProducts.length && transformedProducts.length > 0) {
+        const firstProduct = transformedProducts[0];
+        const firstEdge = products[0];
+        console.log(`🔍 First product inventory debug:`, {
+          title: firstProduct.title,
+          available: firstProduct.available,
+          totalInventory: firstEdge?.node?.totalInventory,
+          variantsCount: firstProduct.variants?.length,
+          firstVariant: {
+            availableForSale: firstEdge?.node?.variants?.edges?.[0]?.node?.availableForSale,
+            inventoryQuantity: firstEdge?.node?.variants?.edges?.[0]?.node?.inventoryQuantity
+          }
+        });
+      }
     }
 
     console.log(`✅ Total products fetched via Admin API: ${allProducts.length}`);
@@ -327,6 +343,17 @@ export async function getClaudeProductRecommendations(
       : products;
 
     console.log(`✓ Stock filter: ${products.length} → ${stockFilteredProducts.length} ${onlyInStock ? 'in-stock' : 'all'} products`);
+
+    // Debug: Log sample product availability data
+    if (onlyInStock && products.length > 0) {
+      const sampleProduct = products[0];
+      console.log(`📦 Sample product availability check:`, {
+        title: sampleProduct.title,
+        available: sampleProduct.available,
+        variantCount: sampleProduct.variants?.length || 0,
+        firstVariantAvailable: sampleProduct.variants?.[0]?.available
+      });
+    }
 
     // STEP 2: Optional pre-filter - Remove obvious mismatches (disabled for small catalogs)
     // For catalogs under 5000 products, skip pre-filtering and let Claude do all the work
