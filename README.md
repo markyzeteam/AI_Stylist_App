@@ -1,1 +1,1 @@
-# Trigger Railway redeploy - Force update for settings API fix
+# Trigger Railway redeploy - Force update for settings API and CORS fixes
