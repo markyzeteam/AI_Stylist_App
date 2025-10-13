@@ -89,6 +89,9 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
   <script>
     // Wait for settings to load before initializing the app
     (function() {
+      // Store reference to the container element before entering async callbacks
+      const container = document.currentScript.parentElement;
+
       const checkSettings = setInterval(() => {
         if (window.BodyShapeAdvisorConfig && window.BodyShapeAdvisorConfig.settings !== null) {
           clearInterval(checkSettings);
@@ -96,7 +99,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
 
           // Load the main app script
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=15';
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=16';
           script.onerror = function() {
             console.error('❌ Failed to load body-shape-advisor.js');
           };
@@ -104,8 +107,8 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
             console.log('✓ App script loaded successfully');
           };
 
-          // Append to current script's parent to avoid sandbox issues
-          document.currentScript.parentElement.appendChild(script);
+          // Append to container
+          container.appendChild(script);
         }
       }, 100); // Check every 100ms
 
@@ -116,14 +119,14 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
           console.warn('⚠ Timeout loading settings, initializing with defaults');
           // Initialize with defaults if loading fails
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=15';
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=16';
           script.onerror = function() {
             console.error('❌ Failed to load body-shape-advisor.js');
           };
           script.onload = function() {
             console.log('✓ App script loaded successfully');
           };
-          document.currentScript.parentElement.appendChild(script);
+          container.appendChild(script);
         }
       }, 5000);
     })();
