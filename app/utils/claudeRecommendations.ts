@@ -490,8 +490,12 @@ export async function getClaudeProductRecommendations(
     const recommendations = parseClaudeResponse(responseText, productsForClaude, minimumMatchScore);
 
     console.log(`✓ Claude AI returned ${recommendations.length} recommendations after parsing`);
+    console.log(`📊 Slicing to numberOfSuggestions=${numberOfSuggestions} (from ${recommendations.length} total)`);
 
-    return recommendations.slice(0, numberOfSuggestions);
+    const finalRecommendations = recommendations.slice(0, numberOfSuggestions);
+    console.log(`✅ Returning ${finalRecommendations.length} final recommendations`);
+
+    return finalRecommendations;
   } catch (error) {
     console.error("❌ Error getting Claude recommendations:", error);
     // Fallback to basic algorithm if Claude fails
@@ -752,6 +756,8 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
     }
 
     const recommendations: ProductRecommendation[] = [];
+
+    console.log(`📋 Claude returned ${parsed.recommendations?.length || 0} recommendations in JSON`);
 
     for (const rec of parsed.recommendations || []) {
       const productIndex = rec.index;

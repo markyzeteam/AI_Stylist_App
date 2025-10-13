@@ -64,6 +64,13 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}, imageAnalysis=${enableImageAnalysis}`);
+    console.log(`📊 Raw FormData values:`, {
+      numberOfSuggestions: formData.get("numberOfSuggestions"),
+      minimumMatchScore: formData.get("minimumMatchScore"),
+      maxProductsToScan: formData.get("maxProductsToScan"),
+      onlyInStock: formData.get("onlyInStock"),
+      enableImageAnalysis: formData.get("enableImageAnalysis")
+    });
     if (colorSeason) {
       console.log(`🎨 Color Season: ${colorSeason}`);
     }
