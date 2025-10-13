@@ -5,6 +5,7 @@ export interface AppSettings {
   minimumMatchScore: number;
   maxProductsToScan: number;
   onlyInStockProducts: boolean;
+  enableImageAnalysis: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -12,6 +13,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   minimumMatchScore: 30,
   maxProductsToScan: 0, // 0 = ALL products
   onlyInStockProducts: true,
+  enableImageAnalysis: false,
 };
 
 const METAFIELD_NAMESPACE = "yze_shopping_ai";

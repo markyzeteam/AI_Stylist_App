@@ -37,6 +37,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const minimumMatchScore = parseInt(formData.get("minimumMatchScore") as string) || 30;
     const maxProductsToScan = parseInt(formData.get("maxProductsToScan") as string) || 0;
     const onlyInStock = formData.get("onlyInStock") === "true";
+    const enableImageAnalysis = formData.get("enableImageAnalysis") === "true";
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers });
@@ -62,7 +63,7 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     }
 
-    console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}`);
+    console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}, imageAnalysis=${enableImageAnalysis}`);
     if (colorSeason) {
       console.log(`🎨 Color Season: ${colorSeason}`);
     }
@@ -78,7 +79,8 @@ export async function action({ request }: ActionFunctionArgs) {
       minimumMatchScore,
       maxProductsToScan,
       onlyInStock,
-      colorSeason || undefined
+      colorSeason || undefined,
+      enableImageAnalysis
     );
 
     return json(

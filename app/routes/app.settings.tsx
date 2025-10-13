@@ -37,6 +37,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     minimumMatchScore: parseInt(formData.get("minimumMatchScore") as string) || 30,
     maxProductsToScan: parseInt(formData.get("maxProductsToScan") as string) || 1000,
     onlyInStockProducts: formData.get("onlyInStockProducts") === "true",
+    enableImageAnalysis: formData.get("enableImageAnalysis") === "true",
   };
 
   // Save settings to Shopify metafields
@@ -156,6 +157,16 @@ export default function Settings() {
                     />
                     <input type="hidden" name="onlyInStockProducts" value={formData.onlyInStockProducts.toString()} />
 
+                    <Checkbox
+                      label="Enable Claude AI Image Analysis"
+                      checked={formData.enableImageAnalysis}
+                      onChange={(value) =>
+                        setFormData({ ...formData, enableImageAnalysis: value })
+                      }
+                      helpText="When enabled, Claude AI will analyze product images to provide more accurate style recommendations based on visual features (colors, patterns, cuts, etc.). This provides better matching but may increase processing time."
+                    />
+                    <input type="hidden" name="enableImageAnalysis" value={formData.enableImageAnalysis.toString()} />
+
                     <InlineStack align="end">
                       <Button variant="primary" submit>
                         Save Settings
@@ -183,6 +194,9 @@ export default function Settings() {
                   </Text>
                   <Text as="p" variant="bodyMd">
                     • <strong>Only In-Stock Products:</strong> Filter recommendations to only show products that are currently available for purchase
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    • <strong>Claude AI Image Analysis:</strong> Enable visual analysis of product images for more accurate style matching based on colors, patterns, cuts, and design details
                   </Text>
                 </BlockStack>
               </BlockStack>
@@ -234,6 +248,14 @@ export default function Settings() {
                   </Text>
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
                     {formData.onlyInStockProducts ? "In-Stock Only" : "All Products"}
+                  </Text>
+                </InlineStack>
+                <InlineStack align="space-between">
+                  <Text as="span" variant="bodyMd" tone="subdued">
+                    Image Analysis:
+                  </Text>
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {formData.enableImageAnalysis ? "Enabled" : "Disabled"}
                   </Text>
                 </InlineStack>
               </BlockStack>

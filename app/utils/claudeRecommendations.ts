@@ -276,7 +276,8 @@ export async function getClaudeProductRecommendations(
   minimumMatchScore: number = 30,
   maxProductsToScan: number = 0,
   onlyInStock: boolean = false,
-  colorSeason?: string
+  colorSeason?: string,
+  enableImageAnalysis: boolean = false
 ): Promise<ProductRecommendation[]> {
   try {
     // Load Claude settings for this shop
@@ -379,10 +380,14 @@ export async function getClaudeProductRecommendations(
       description: (p.description || '').substring(0, 300),
       productType: p.productType || '',
       tags: (p.tags || []).join(", "),
-      price: p.variants?.[0]?.price || p.price || "N/A"
+      price: p.variants?.[0]?.price || p.price || "N/A",
+      imageUrl: enableImageAnalysis ? (p.imageUrl || p.image) : undefined
     }));
 
     console.log(`✓ Prepared ${productsForAI.length} products for Claude AI analysis`);
+    if (enableImageAnalysis) {
+      console.log(`🖼️  Image analysis enabled - Claude will analyze product images`);
+    }
 
     // Build the prompt for Claude
     const prompt = buildClaudePrompt(
@@ -392,7 +397,8 @@ export async function getClaudeProductRecommendations(
       numberOfSuggestions,
       minimumMatchScore,
       claudeSettings.recommendationPrompt,
-      colorSeason
+      colorSeason,
+      enableImageAnalysis
     );
 
     // STEP 4: Check API key and call Claude
@@ -420,6 +426,41 @@ export async function getClaudeProductRecommendations(
       console.warn(`   Low maxTokens may cause response truncation. Update in Admin Settings > Claude AI.`);
     }
 
+    // Build content array for Claude API
+    // If image analysis is enabled and images are available, use multi-modal content
+    let messageContent: any;
+
+    if (enableImageAnalysis) {
+      // Create content blocks with images
+      const contentBlocks: any[] = [
+        {
+          type: "text",
+          text: prompt
+        }
+      ];
+
+      // Add image blocks for products that have images
+      const productsWithImages = productsForAI.filter(p => p.imageUrl);
+      console.log(`   Including ${productsWithImages.length} product images in analysis`);
+
+      for (const product of productsWithImages) {
+        if (product.imageUrl) {
+          contentBlocks.push({
+            type: "image",
+            source: {
+              type: "url",
+              url: product.imageUrl
+            }
+          });
+        }
+      }
+
+      messageContent = contentBlocks;
+    } else {
+      // Text-only mode (no image analysis)
+      messageContent = prompt;
+    }
+
     // Call Claude API
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -429,7 +470,7 @@ export async function getClaudeProductRecommendations(
       messages: [
         {
           role: "user",
-          content: prompt
+          content: messageContent
         }
       ]
     });
@@ -578,7 +619,8 @@ function buildClaudePrompt(
   limit: number,
   minimumMatchScore: number,
   customPrompt: string,
-  colorSeason?: string
+  colorSeason?: string,
+  enableImageAnalysis?: boolean
 ): string {
   const measurementInfo = measurements
     ? `
@@ -615,12 +657,21 @@ Customer Measurements:
   const colorGuidance = colorSeason ? colorSeasonGuidance[colorSeason] : "";
   const colorSeasonInfo = colorSeason ? `\nColor Season: ${colorSeason}\nColor Guidance: ${colorGuidance}` : "";
 
+  const imageAnalysisInfo = enableImageAnalysis ? `\n\nIMAGE ANALYSIS: Product images (imageUrl) are provided. Analyze visual features including:
+- Colors, patterns, and prints
+- Silhouette, cut, and fit
+- Fabric texture and drape
+- Design details (necklines, sleeves, length)
+- Overall style and aesthetics
+
+Use these visual insights along with text descriptions for more accurate recommendations.` : "";
+
   return `${customPrompt}
 
 ${measurementInfo}
 
 Body Shape: ${bodyShape}
-Style Guidance: ${guidance}${colorSeasonInfo}
+Style Guidance: ${guidance}${colorSeasonInfo}${imageAnalysisInfo}
 
 Products Available:
 ${JSON.stringify(products, null, 2)}
