@@ -718,9 +718,9 @@ class BodyShapeAdvisor {
       // If scanAllProducts is true, send 0, otherwise use the limit
       const maxScan = this.config.settings.scanAllProducts !== false ? 0 : (this.config.settings.maxProductsToScan || 1000);
       formData.append('maxProductsToScan', maxScan);
-      formData.append('onlyInStock', this.config.settings.onlyInStock !== false); // default true
+      formData.append('onlyInStock', this.config.settings.onlyInStockProducts !== false); // default true
       formData.append('enableImageAnalysis', this.config.settings.enableImageAnalysis === true); // default false
-      console.log(`Settings: suggestions=${this.config.settings.numberOfSuggestions}, minScore=${this.config.settings.minimumMatchScore}, scanAll=${this.config.settings.scanAllProducts}, maxScan=${maxScan}, inStock=${this.config.settings.onlyInStock}, imageAnalysis=${this.config.settings.enableImageAnalysis}`);
+      console.log(`Settings: suggestions=${this.config.settings.numberOfSuggestions}, minScore=${this.config.settings.minimumMatchScore}, scanAll=${this.config.settings.scanAllProducts}, maxScan=${maxScan}, inStock=${this.config.settings.onlyInStockProducts}, imageAnalysis=${this.config.settings.enableImageAnalysis}`);
     }
 
     // Add measurements if available
