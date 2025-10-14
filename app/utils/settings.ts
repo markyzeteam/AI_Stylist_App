@@ -6,6 +6,9 @@ export interface AppSettings {
   enableImageAnalysis: boolean;
 }
 
+// NOTE: minimumMatchScore of 30-50 is recommended for best results
+// Scores 65-75 = good match, 75-85 = great match, 85+ = excellent match
+// Setting minimumMatchScore too high (e.g., 70) may result in no recommendations
 export const DEFAULT_SETTINGS: AppSettings = {
   numberOfSuggestions: 30,
   minimumMatchScore: 30,

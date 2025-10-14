@@ -553,6 +553,12 @@ export async function getClaudeProductRecommendations(
       console.error(`❌ CRITICAL: Claude returned 0 recommendations after parsing!`);
       console.error(`   This will trigger fallback to basic algorithm`);
       console.error(`   Check parseClaudeResponse logs above for parsing errors`);
+      console.error(`   Possible causes:`);
+      console.error(`     1. All products scored below minimumMatchScore (${minimumMatchScore})`);
+      console.error(`     2. Claude's response was truncated (check stop_reason above)`);
+      console.error(`     3. JSON parsing failed (check parse errors above)`);
+      console.error(`     4. Products array was empty or invalid`);
+      console.error(`   Number of products sent to Claude: ${productsForClaude.length}`);
     } else {
       console.log(`✅ Claude AI returned ${recommendations.length} recommendations after parsing`);
     }
@@ -760,11 +766,11 @@ ${JSON.stringify(products, null, 2)}
 
 TASK: Select EXACTLY ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape${colorSeason ? ` and match the ${colorSeason} color palette` : ''}.
 
-You MUST provide exactly ${limit} recommendations. If some products are better matches than others, that's fine - include them anyway with appropriate scores.
+You MUST provide exactly ${limit} recommendations. Provide honest scores - if some products aren't perfect matches, that's okay, still include them with lower scores. The backend will filter out products below ${minimumMatchScore} points.
 
 For each recommendation, provide:
 - **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES
-- **score**: Suitability score (0-100) where 100 = perfect match (minimum score to include: ${minimumMatchScore})
+- **score**: Honest suitability score (0-100) where 100 = perfect match. Be realistic but inclusive - aim for scores of 65+ for decent matches.
 - **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape (2-3 sentences with specific design details)
 - **sizeAdvice**: Specific sizing guidance for their body shape and proportions
 - **stylingTip**: A unique, actionable styling suggestion for THIS SPECIFIC product
@@ -773,7 +779,7 @@ CRITICAL RULES:
 - MUST return EXACTLY ${limit} products - not less, not more
 - NO DUPLICATE PRODUCTS - each index must appear only once
 - Each product MUST have unique reasoning and styling tips
-- Only include products with score ≥ ${minimumMatchScore}
+- Don't be too strict with scoring - a score of 65-75 means "good match", 75-85 means "great match", 85+ means "excellent match"
 - Provide personalized advice, not generic tips
 - Prioritize variety across different product types (tops, bottoms, dresses, accessories)
 
@@ -859,6 +865,16 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
 
     console.log(`📋 Found ${parsed.recommendations.length} recommendations in JSON`);
 
+    // DEBUG: Log all scores before filtering
+    const allScores = parsed.recommendations.map((r: any) => r.score);
+    console.log(`📊 Score distribution from Claude:`, {
+      min: Math.min(...allScores),
+      max: Math.max(...allScores),
+      avg: (allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length).toFixed(1),
+      minimumMatchScore,
+      scores: allScores.join(', ')
+    });
+
     const recommendations: ProductRecommendation[] = [];
     let skippedLowScore = 0;
     let skippedInvalidIndex = 0;
@@ -869,7 +885,7 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
       // Apply minimum match score filter
       if (rec.score < minimumMatchScore) {
         skippedLowScore++;
-        console.log(`⏭ Skipping product ${productIndex} with score ${rec.score} (below minimum ${minimumMatchScore})`);
+        console.log(`⏭ Skipping product ${productIndex} (${products[productIndex]?.title}) with score ${rec.score} (below minimum ${minimumMatchScore})`);
         continue;
       }
 

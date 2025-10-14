@@ -71,6 +71,7 @@ class BodyShapeAdvisor {
       pathSelection: this.renderPathSelection.bind(this),
       calculator: this.renderCalculator.bind(this),
       knownShape: this.renderKnownShape.bind(this),
+      analysisLoading: this.renderAnalysisLoading.bind(this),
       results: this.renderResults.bind(this),
       colorSeasonPathSelection: this.renderColorSeasonPathSelection.bind(this),
       colorSeason: this.renderColorSeason.bind(this),
@@ -264,6 +265,25 @@ class BodyShapeAdvisor {
     `;
   }
 
+  renderAnalysisLoading() {
+    return `
+      <div class="bsa-results">
+        <div class="bsa-loading">
+          <div class="bsa-loading-spinner"></div>
+          <h4>🤖 AI Fashion Stylist Analyzing...</h4>
+          <p class="bsa-loading-message">Analyzing your body shape profile</p>
+          <p class="bsa-loading-submessage">Our AI is preparing personalized style recommendations. This may take 10-30 seconds.</p>
+          <div class="bsa-loading-steps">
+            <div class="bsa-loading-step bsa-step-active">✓ Body shape identified</div>
+            <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing style preferences...</div>
+            <div class="bsa-loading-step">○ Generating recommendations</div>
+            <div class="bsa-loading-step">○ Preparing results</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   renderResults() {
     if (!this.bodyShapeResult) return '';
 
@@ -427,6 +447,10 @@ class BodyShapeAdvisor {
     // Simple body shape calculation (simplified version)
     this.bodyShapeResult = this.calculateShape(measurements);
 
+    // Show loading screen while getting Claude AI analysis
+    this.currentStep = 'analysisLoading';
+    this.render();
+
     // Get Claude AI detailed analysis
     await this.getClaudeStyleAnalysis(this.bodyShapeResult.shape, measurements);
 
@@ -441,6 +465,10 @@ class BodyShapeAdvisor {
       characteristics: [this.getShapeCharacteristics(shapeName)],
       recommendations: this.getShapeRecommendations(shapeName)
     };
+
+    // Show loading screen while getting Claude AI analysis
+    this.currentStep = 'analysisLoading';
+    this.render();
 
     // Get Claude AI detailed analysis
     await this.getClaudeStyleAnalysis(shapeName, null);
