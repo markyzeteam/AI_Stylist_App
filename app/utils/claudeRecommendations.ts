@@ -158,12 +158,46 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
     }
 
     const accessToken = sessionRecord.accessToken;
+
+    // First, fetch the Online Store publication ID
+    const publicationsQuery = `
+      query {
+        publications(first: 10) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
+      }
+    `;
+
+    const pubResponse = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify({ query: publicationsQuery }),
+    });
+
+    const pubData: any = await pubResponse.json();
+    const onlineStore = pubData?.data?.publications?.edges?.find((edge: any) =>
+      edge.node.name === 'Online Store'
+    );
+
+    const onlineStoreId = onlineStore?.node?.id;
+    console.log(`✓ Found Online Store publication ID: ${onlineStoreId}`);
+
     const allProducts: Product[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
 
     while (hasNextPage) {
-      const query = `
+      // Build query with or without publication filter
+      const query = onlineStoreId
+        ? `
         query GetProducts($cursor: String) {
           products(first: 250, after: $cursor, query: "status:active") {
             pageInfo {
@@ -180,7 +214,41 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 tags
                 status
                 totalInventory
-                publishedOnPublication: publishedOnPublication(publicationId: "gid://shopify/Publication/1")
+                publishedOnPublication: publishedOnPublication(publicationId: "${onlineStoreId}")
+                variants(first: 10) {
+                  edges {
+                    node {
+                      price
+                      availableForSale
+                      inventoryQuantity
+                    }
+                  }
+                }
+                featuredImage {
+                  url
+                }
+              }
+            }
+          }
+        }
+      `
+      : `
+        query GetProducts($cursor: String) {
+          products(first: 250, after: $cursor, query: "status:active") {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              node {
+                id
+                title
+                handle
+                description
+                productType
+                tags
+                status
+                totalInventory
                 variants(first: 10) {
                   edges {
                     node {
@@ -225,14 +293,20 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
 
       const products = data?.data?.products?.edges || [];
 
-      // Filter by Online Store publication
-      const publishedProducts = products.filter((edge: any) => {
-        // Only include products published to Online Store
-        const isPublishedOnlineStore = edge.node.publishedOnPublication === true;
-        return isPublishedOnlineStore;
-      });
+      // Filter by Online Store publication (only if we have the publication ID)
+      const publishedProducts = onlineStoreId
+        ? products.filter((edge: any) => {
+            // Only include products published to Online Store
+            const isPublishedOnlineStore = edge.node.publishedOnPublication === true;
+            return isPublishedOnlineStore;
+          })
+        : products; // If no publication ID, use all active products
 
-      console.log(`✓ Online Store filter: ${products.length} → ${publishedProducts.length} published products`);
+      if (onlineStoreId) {
+        console.log(`✓ Online Store filter: ${products.length} → ${publishedProducts.length} published products`);
+      } else {
+        console.log(`ℹ No Online Store publication ID found, using all active products: ${products.length}`);
+      }
 
       // Transform products to unified format
       const transformedProducts = publishedProducts.map((edge: any) => {
