@@ -200,10 +200,10 @@ export default function ClaudeSettings() {
                       name="maxTokens"
                       value={formData.maxTokens.toString()}
                       onChange={(value) => setFormData({ ...formData, maxTokens: parseInt(value) || 4096 })}
-                      helpText="Maximum tokens in Claude's response (1000-8000)"
+                      helpText="Maximum tokens in Claude's response (1000-16000, recommended: 8000)"
                       autoComplete="off"
                       min={1000}
-                      max={8000}
+                      max={16000}
                     />
 
                     <Divider />

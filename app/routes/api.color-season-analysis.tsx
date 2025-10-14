@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import Anthropic from "@anthropic-ai/sdk";
+import { loadClaudeSettings } from "../utils/claudeRecommendations";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,23 +28,32 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const body = await request.json();
-    const { colorSeason, colorAnalysis } = body;
+    const { colorSeason, colorAnalysis, shop } = body;
 
     if (!colorSeason) {
       return json({ error: "Color season required" }, { status: 400, headers: corsHeaders });
     }
 
+    if (!shop) {
+      return json({ error: "Shop parameter required" }, { status: 400, headers: corsHeaders });
+    }
+
     console.log(`Getting Claude AI color season analysis for ${colorSeason}`);
 
-    // Check for API key
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error("❌ ANTHROPIC_API_KEY not set in environment");
+    // Load Claude settings from database (includes custom API key if set)
+    const claudeSettings = await loadClaudeSettings(shop);
+
+    // Use custom API key from database, or fall back to environment variable
+    const apiKey = claudeSettings.apiKey || process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      console.error("❌ ANTHROPIC_API_KEY not set in database or environment");
       return json({ error: "API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
     // Create Anthropic client with API key
     const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      apiKey: apiKey,
     });
 
     // Build context about color analysis

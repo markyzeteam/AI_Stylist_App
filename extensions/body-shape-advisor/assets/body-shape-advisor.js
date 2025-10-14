@@ -572,7 +572,8 @@ class BodyShapeAdvisor {
         },
         body: JSON.stringify({
           bodyShape: bodyShape,
-          measurements: measurements
+          measurements: measurements,
+          shop: this.config.shopDomain
         })
       });
 
@@ -1278,7 +1279,8 @@ class BodyShapeAdvisor {
         },
         body: JSON.stringify({
           colorSeason: colorSeason,
-          colorAnalysis: colorAnalysis
+          colorAnalysis: colorAnalysis,
+          shop: this.config.shopDomain
         })
       });
 
