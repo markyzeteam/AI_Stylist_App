@@ -76,6 +76,7 @@ class BodyShapeAdvisor {
       colorSeasonPathSelection: this.renderColorSeasonPathSelection.bind(this),
       colorSeason: this.renderColorSeason.bind(this),
       knownColorSeason: this.renderKnownColorSeason.bind(this),
+      colorSeasonAnalysisLoading: this.renderColorSeasonAnalysisLoading.bind(this),
       colorSeasonResults: this.renderColorSeasonResults.bind(this),
       products: this.renderProducts.bind(this)
     };
@@ -277,6 +278,25 @@ class BodyShapeAdvisor {
             <div class="bsa-loading-step bsa-step-active">✓ Body shape identified</div>
             <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing style preferences...</div>
             <div class="bsa-loading-step">○ Generating recommendations</div>
+            <div class="bsa-loading-step">○ Preparing results</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderColorSeasonAnalysisLoading() {
+    return `
+      <div class="bsa-results">
+        <div class="bsa-loading">
+          <div class="bsa-loading-spinner"></div>
+          <h4>🎨 AI Color Specialist Analyzing...</h4>
+          <p class="bsa-loading-message">Analyzing your color season profile</p>
+          <p class="bsa-loading-submessage">Our AI is preparing personalized color recommendations. This may take 10-30 seconds.</p>
+          <div class="bsa-loading-steps">
+            <div class="bsa-loading-step bsa-step-active">✓ Color season identified</div>
+            <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing color palette...</div>
+            <div class="bsa-loading-step">○ Generating color recommendations</div>
             <div class="bsa-loading-step">○ Preparing results</div>
           </div>
         </div>
@@ -1232,6 +1252,10 @@ class BodyShapeAdvisor {
 
     console.log(`User selected color season: ${seasonName}`);
 
+    // Show loading screen while getting Claude AI analysis
+    this.currentStep = 'colorSeasonAnalysisLoading';
+    this.render();
+
     // Get Claude AI color season analysis for the selected season
     await this.getClaudeColorSeasonAnalysis(seasonName, null);
 
@@ -1257,6 +1281,10 @@ class BodyShapeAdvisor {
     this.colorSeasonResult = this.calculateColorSeason(undertone, depth, intensity);
 
     console.log(`Color Season Result: ${this.colorSeasonResult}`);
+
+    // Show loading screen while getting Claude AI analysis
+    this.currentStep = 'colorSeasonAnalysisLoading';
+    this.render();
 
     // Get Claude AI color season analysis
     await this.getClaudeColorSeasonAnalysis(this.colorSeasonResult, this.colorAnalysis);
