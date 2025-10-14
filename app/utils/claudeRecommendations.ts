@@ -180,9 +180,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 tags
                 status
                 totalInventory
-                publishedOnPublication(publicationId: "gid://shopify/Publication/1") {
-                  isPublished
-                }
+                publishedOnPublication(publicationId: "gid://shopify/Publication/1")
                 variants(first: 10) {
                   edges {
                     node {
@@ -230,7 +228,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
       // Transform products to unified format and filter by online store publication
       const publishedProducts = products.filter((edge: any) => {
         // FILTER 1: Only include products published to Online Store
-        const isPublishedOnlineStore = edge.node.publishedOnPublication?.isPublished === true;
+        const isPublishedOnlineStore = edge.node.publishedOnPublication === true;
         return isPublishedOnlineStore;
       });
 
