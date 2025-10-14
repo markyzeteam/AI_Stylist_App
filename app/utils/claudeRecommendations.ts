@@ -478,33 +478,14 @@ export async function getClaudeProductRecommendations(
     let messageContent: any;
 
     if (enableImageAnalysis) {
-      // Create content blocks with images
-      const contentBlocks: any[] = [
-        {
-          type: "text",
-          text: prompt
-        }
-      ];
-
-      // Add image blocks for products that have images
-      // IMPORTANT: Claude API has a maximum of 100 images per request
-      const MAX_IMAGES = 100;
-      const productsWithImages = productsForAI.filter(p => p.imageUrl).slice(0, MAX_IMAGES);
-      console.log(`   Including ${productsWithImages.length} product images in analysis (max: ${MAX_IMAGES})`);
-
-      for (const product of productsWithImages) {
-        if (product.imageUrl) {
-          contentBlocks.push({
-            type: "image",
-            source: {
-              type: "url",
-              url: product.imageUrl
-            }
-          });
-        }
-      }
-
-      messageContent = contentBlocks;
+      // NOTE: Image analysis is currently disabled due to Claude API limitations
+      // Product images from Shopify CDN often exceed 2000x2000px, which causes:
+      // "At least one of the image dimensions exceed max allowed size for many-image requests: 2000 pixels"
+      //
+      // To re-enable image analysis, images would need to be resized/validated before sending
+      console.log(`   ℹ️ Image analysis disabled - using text-only analysis to avoid dimension errors`);
+      console.log(`   Product images often exceed Claude's 2000x2000px limit for multi-image requests`);
+      messageContent = prompt;
     } else {
       // Text-only mode (no image analysis)
       messageContent = prompt;
