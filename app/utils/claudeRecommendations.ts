@@ -180,6 +180,9 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 tags
                 status
                 totalInventory
+                publishedOnPublication(publicationId: "gid://shopify/Publication/1") {
+                  isPublished
+                }
                 variants(first: 10) {
                   edges {
                     node {
@@ -224,41 +227,49 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
 
       const products = data?.data?.products?.edges || [];
 
-      // Transform products to unified format
-      const transformedProducts = products.map((edge: any) => {
-        const variants = edge.node.variants?.edges || [];
-
-        // Check if ANY variant is available using multiple methods for reliability
-        const hasAvailableVariant = variants.some((v: any) => {
-          const availableForSale = v.node.availableForSale === true;
-          const hasInventory = (v.node.inventoryQuantity || 0) > 0;
-          return availableForSale || hasInventory;
-        });
-
-        // Also check totalInventory at product level as fallback
-        const hasTotalInventory = (edge.node.totalInventory || 0) > 0;
-
-        // Product is available if either condition is true
-        const isAvailable = hasAvailableVariant || hasTotalInventory;
-
-        return {
-          id: edge.node.id,
-          title: edge.node.title,
-          name: edge.node.title, // Alias for compatibility
-          handle: edge.node.handle,
-          description: edge.node.description || '',
-          productType: edge.node.productType || '',
-          tags: edge.node.tags || '',
-          price: variants?.[0]?.node?.price || '',
-          image: edge.node.featuredImage?.url || '',
-          imageUrl: edge.node.featuredImage?.url || '', // Alias
-          available: isAvailable,
-          variants: variants.map((v: any) => ({
-            price: v.node.price,
-            available: v.node.availableForSale === true || (v.node.inventoryQuantity || 0) > 0
-          }))
-        };
+      // Transform products to unified format and filter by online store publication
+      const publishedProducts = products.filter((edge: any) => {
+        // FILTER 1: Only include products published to Online Store
+        const isPublishedOnlineStore = edge.node.publishedOnPublication?.isPublished === true;
+        return isPublishedOnlineStore;
       });
+
+      console.log(`✓ Online Store filter: ${products.length} → ${publishedProducts.length} published products`);
+
+      const transformedProducts = publishedProducts.map((edge: any) => {
+          const variants = edge.node.variants?.edges || [];
+
+          // Check if ANY variant is available using multiple methods for reliability
+          const hasAvailableVariant = variants.some((v: any) => {
+            const availableForSale = v.node.availableForSale === true;
+            const hasInventory = (v.node.inventoryQuantity || 0) > 0;
+            return availableForSale || hasInventory;
+          });
+
+          // Also check totalInventory at product level as fallback
+          const hasTotalInventory = (edge.node.totalInventory || 0) > 0;
+
+          // Product is available if either condition is true
+          const isAvailable = hasAvailableVariant || hasTotalInventory;
+
+          return {
+            id: edge.node.id,
+            title: edge.node.title,
+            name: edge.node.title, // Alias for compatibility
+            handle: edge.node.handle,
+            description: edge.node.description || '',
+            productType: edge.node.productType || '',
+            tags: edge.node.tags || '',
+            price: variants?.[0]?.node?.price || '',
+            image: edge.node.featuredImage?.url || '',
+            imageUrl: edge.node.featuredImage?.url || '', // Alias
+            available: isAvailable,
+            variants: variants.map((v: any) => ({
+              price: v.node.price,
+              available: v.node.availableForSale === true || (v.node.inventoryQuantity || 0) > 0
+            }))
+          };
+        });
 
       allProducts.push(...transformedProducts);
 
@@ -318,16 +329,16 @@ export async function getClaudeProductRecommendations(
     // Load Claude settings for this shop
     const claudeSettings = await loadClaudeSettings(shop);
 
-    // Fetch ALL products from Shopify Admin API
+    // Fetch ALL products from Shopify Admin API (filtered by Online Store publication)
     console.log(`🔄 Fetching products via Admin API for ${shop}...`);
     let products = await fetchAllProductsAdminAPI(shop);
 
     if (products.length === 0) {
-      console.log("No products found in store");
+      console.log("No products found in store published to Online Store");
       return [];
     }
 
-    console.log(`✓ Fetched ${products.length} total products from store`);
+    console.log(`✓ Fetched ${products.length} products published to Online Store`);
 
     // Apply max products to scan limit (0 = scan all)
     if (maxProductsToScan > 0 && products.length > maxProductsToScan) {
