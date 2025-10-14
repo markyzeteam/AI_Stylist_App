@@ -180,7 +180,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 tags
                 status
                 totalInventory
-                publishedOnPublication(publicationId: "gid://shopify/Publication/1")
+                publishedOnPublication: publishedOnPublication(publicationId: "gid://shopify/Publication/1")
                 variants(first: 10) {
                   edges {
                     node {
