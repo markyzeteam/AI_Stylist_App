@@ -511,6 +511,9 @@ export async function getClaudeProductRecommendations(
     }
 
     // Call Claude API
+    console.log(`📤 Sending request to Claude API...`);
+    const startTime = Date.now();
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: claudeSettings.maxTokens,
@@ -524,25 +527,51 @@ export async function getClaudeProductRecommendations(
       ]
     });
 
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Claude API responded in ${elapsedTime}s`);
+
     // STEP 5: Parse Claude's response
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
     console.log(`📝 Claude response length: ${responseText.length} chars`);
     console.log(`📝 Claude stop_reason: ${message.stop_reason}`);
+    console.log(`📝 Claude model used: ${message.model}`);
+    console.log(`📝 Claude usage: input_tokens=${message.usage.input_tokens}, output_tokens=${message.usage.output_tokens}`);
     console.log(`📝 Claude response (first 500 chars): ${responseText.substring(0, 500)}`);
     console.log(`📝 Claude response (last 500 chars): ${responseText.slice(-500)}`);
 
     if (message.stop_reason === 'max_tokens') {
-      console.warn(`⚠ WARNING: Claude hit max_tokens limit! Response may be truncated.`);
-      console.warn(`   Consider increasing maxTokens or reducing number of products sent to Claude.`);
+      console.error(`❌ CRITICAL: Claude hit max_tokens limit! Response is TRUNCATED.`);
+      console.error(`   Current maxTokens: ${claudeSettings.maxTokens}`);
+      console.error(`   Recommendation: Increase to 32000 in Claude AI Settings`);
+      console.error(`   This will cause JSON parsing to fail and fall back to basic algorithm!`);
     }
 
+    console.log(`🔄 Parsing Claude response...`);
     const recommendations = parseClaudeResponse(responseText, productsForClaude, minimumMatchScore);
 
-    console.log(`✓ Claude AI returned ${recommendations.length} recommendations after parsing`);
+    if (recommendations.length === 0) {
+      console.error(`❌ CRITICAL: Claude returned 0 recommendations after parsing!`);
+      console.error(`   This will trigger fallback to basic algorithm`);
+      console.error(`   Check parseClaudeResponse logs above for parsing errors`);
+    } else {
+      console.log(`✅ Claude AI returned ${recommendations.length} recommendations after parsing`);
+    }
+
     console.log(`📊 Slicing to numberOfSuggestions=${numberOfSuggestions} (from ${recommendations.length} total)`);
 
     const finalRecommendations = recommendations.slice(0, numberOfSuggestions);
     console.log(`✅ Returning ${finalRecommendations.length} final recommendations`);
+
+    // Log first recommendation as sample
+    if (finalRecommendations.length > 0) {
+      const sample = finalRecommendations[0];
+      console.log(`📦 Sample recommendation:`, {
+        title: sample.product.title,
+        score: Math.round(sample.suitabilityScore * 100),
+        reasoning: sample.reasoning?.substring(0, 100) + '...',
+        stylingTip: sample.stylingTip ? 'Present' : 'Missing'
+      });
+    }
 
     return finalRecommendations;
   } catch (error) {
@@ -766,22 +795,30 @@ Return ONLY the JSON, no other text.`;
 
 function parseClaudeResponse(text: string, products: Product[], minimumMatchScore: number = 30): ProductRecommendation[] {
   try {
+    console.log(`🔍 Parsing Claude response (${text.length} chars, minScore: ${minimumMatchScore})`);
+
     // Remove markdown code blocks if present
     let jsonText = text.trim();
+    const hadMarkdown = jsonText.startsWith("```");
     if (jsonText.startsWith("```json")) {
       jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+      console.log(`✓ Removed ```json markdown wrapper`);
     } else if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/```\n?/g, "");
+      console.log(`✓ Removed ``` markdown wrapper`);
     }
 
     // Attempt to parse JSON
     let parsed;
     try {
       parsed = JSON.parse(jsonText);
-    } catch (parseError) {
+      console.log(`✅ Successfully parsed JSON response`);
+    } catch (parseError: any) {
       // If JSON is truncated, try to salvage partial data
-      console.warn("⚠ JSON parse failed, attempting to recover partial data...");
+      console.error("❌ JSON parse failed:", parseError.message);
+      console.warn("⚠ Attempting to recover partial data...");
       console.warn("Response length:", jsonText.length);
+      console.warn("First 200 chars:", jsonText.substring(0, 200));
       console.warn("Last 200 chars:", jsonText.slice(-200));
 
       // Try to find the last complete recommendation object
@@ -794,28 +831,44 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
           const truncatedJson = jsonText.substring(0, lastCompleteIndex + 1) + ']}';
           try {
             parsed = JSON.parse(truncatedJson);
-            console.log("✓ Successfully recovered partial recommendations");
-          } catch (recoveryError) {
-            console.error("❌ Recovery failed:", recoveryError);
+            console.log("✅ Successfully recovered partial recommendations from truncated JSON");
+          } catch (recoveryError: any) {
+            console.error("❌ Recovery failed:", recoveryError.message);
             throw parseError; // Re-throw original error
           }
         } else {
+          console.error("❌ Could not find 'recommendations' array in response");
           throw parseError;
         }
       } else {
+        console.error("❌ Could not find closing brace in response");
         throw parseError;
       }
     }
 
-    const recommendations: ProductRecommendation[] = [];
+    // Validate structure
+    if (!parsed || typeof parsed !== 'object') {
+      console.error("❌ Parsed result is not an object:", typeof parsed);
+      return [];
+    }
 
-    console.log(`📋 Claude returned ${parsed.recommendations?.length || 0} recommendations in JSON`);
+    if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
+      console.error("❌ No 'recommendations' array in parsed JSON:", Object.keys(parsed));
+      return [];
+    }
+
+    console.log(`📋 Found ${parsed.recommendations.length} recommendations in JSON`);
+
+    const recommendations: ProductRecommendation[] = [];
+    let skippedLowScore = 0;
+    let skippedInvalidIndex = 0;
 
     for (const rec of parsed.recommendations || []) {
       const productIndex = rec.index;
 
       // Apply minimum match score filter
       if (rec.score < minimumMatchScore) {
+        skippedLowScore++;
         console.log(`⏭ Skipping product ${productIndex} with score ${rec.score} (below minimum ${minimumMatchScore})`);
         continue;
       }
@@ -830,16 +883,27 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
           category: determineCategory(product),
           stylingTip: rec.stylingTip || ""
         });
+      } else {
+        skippedInvalidIndex++;
+        console.warn(`⚠ Invalid product index ${productIndex} (products array length: ${products.length})`);
       }
     }
 
-    console.log(`✓ Successfully parsed ${recommendations.length} recommendations from Claude response (minScore: ${minimumMatchScore})`);
+    console.log(`✅ Successfully parsed ${recommendations.length} recommendations from Claude response`);
+    if (skippedLowScore > 0) {
+      console.log(`⏭ Skipped ${skippedLowScore} products below minimum score ${minimumMatchScore}`);
+    }
+    if (skippedInvalidIndex > 0) {
+      console.warn(`⚠ Skipped ${skippedInvalidIndex} products with invalid indices`);
+    }
+
     return recommendations;
-  } catch (error) {
-    console.error("❌ Error parsing Claude response:", error);
-    console.error("Raw response length:", text.length);
-    console.error("Raw response (first 500 chars):", text.substring(0, 500));
-    console.error("Raw response (last 500 chars):", text.slice(-500));
+  } catch (error: any) {
+    console.error("❌ CRITICAL ERROR parsing Claude response:", error.message);
+    console.error("   Error stack:", error.stack);
+    console.error("   Raw response length:", text.length);
+    console.error("   Raw response (first 500 chars):", text.substring(0, 500));
+    console.error("   Raw response (last 500 chars):", text.slice(-500));
     return [];
   }
 }
