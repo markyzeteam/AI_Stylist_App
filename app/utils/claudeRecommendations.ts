@@ -808,10 +808,10 @@ function parseClaudeResponse(text: string, products: Product[], minimumMatchScor
     const hadMarkdown = jsonText.startsWith("```");
     if (jsonText.startsWith("```json")) {
       jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-      console.log(`✓ Removed ```json markdown wrapper`);
+      console.log('✓ Removed ```json markdown wrapper');
     } else if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/```\n?/g, "");
-      console.log(`✓ Removed ``` markdown wrapper`);
+      console.log('✓ Removed ``` markdown wrapper');
     }
 
     // Attempt to parse JSON
