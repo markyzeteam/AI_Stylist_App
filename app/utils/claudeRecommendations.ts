@@ -180,6 +180,7 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
                 tags
                 status
                 totalInventory
+                publishedOnPublication: publishedOnPublication(publicationId: "gid://shopify/Publication/1")
                 variants(first: 10) {
                   edges {
                     node {
@@ -224,8 +225,17 @@ async function fetchAllProductsAdminAPI(shop: string): Promise<Product[]> {
 
       const products = data?.data?.products?.edges || [];
 
+      // Filter by Online Store publication
+      const publishedProducts = products.filter((edge: any) => {
+        // Only include products published to Online Store
+        const isPublishedOnlineStore = edge.node.publishedOnPublication === true;
+        return isPublishedOnlineStore;
+      });
+
+      console.log(`✓ Online Store filter: ${products.length} → ${publishedProducts.length} published products`);
+
       // Transform products to unified format
-      const transformedProducts = products.map((edge: any) => {
+      const transformedProducts = publishedProducts.map((edge: any) => {
           const variants = edge.node.variants?.edges || [];
 
           // Check if ANY variant is available using multiple methods for reliability
