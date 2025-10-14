@@ -382,7 +382,8 @@ export async function getClaudeProductRecommendations(
     // Strategy: Smart sampling to get diverse product mix
     // - For small catalogs (<500): send all products
     // - For large catalogs: sample strategically across categories
-    const MAX_PRODUCTS_FOR_CLAUDE = 500;
+    // - With image analysis: limit to 100 products (Claude's image limit)
+    const MAX_PRODUCTS_FOR_CLAUDE = enableImageAnalysis ? 100 : 500;
     let productsForClaude = preFilteredProducts;
 
     if (productsForClaude.length > MAX_PRODUCTS_FOR_CLAUDE) {
@@ -486,8 +487,10 @@ export async function getClaudeProductRecommendations(
       ];
 
       // Add image blocks for products that have images
-      const productsWithImages = productsForAI.filter(p => p.imageUrl);
-      console.log(`   Including ${productsWithImages.length} product images in analysis`);
+      // IMPORTANT: Claude API has a maximum of 100 images per request
+      const MAX_IMAGES = 100;
+      const productsWithImages = productsForAI.filter(p => p.imageUrl).slice(0, MAX_IMAGES);
+      console.log(`   Including ${productsWithImages.length} product images in analysis (max: ${MAX_IMAGES})`);
 
       for (const product of productsWithImages) {
         if (product.imageUrl) {
