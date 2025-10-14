@@ -101,8 +101,8 @@ Format your response as a JSON object with this structure:
 Make your recommendations specific, practical, and empowering. Focus on helping the customer feel confident in their color choices.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 2048,
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
       messages: [
         {
           role: "user",
