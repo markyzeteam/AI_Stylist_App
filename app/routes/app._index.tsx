@@ -23,33 +23,167 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
-  // Call the admin refresh endpoint
-  const response = await fetch(
-    `${process.env.SHOPIFY_APP_URL || 'http://localhost'}/api/admin/refresh`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  try {
+    // Import refresh functions
+    const {
+      fetchShopifyProducts,
+      analyzeProductImage,
+      saveAnalyzedProduct,
+      logRefreshActivity,
+    } = await import("../utils/geminiAnalysis");
+    const { db } = await import("../db.server");
+
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`🔄 ADMIN REFRESH STARTED for ${shop}`);
+    console.log(`${"=".repeat(60)}\n`);
+
+    const startTime = Date.now();
+
+    // STEP 1: Check rate limiting (3x per day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const refreshesToday = await db.productRefreshLog.count({
+      where: {
+        shop,
+        startedAt: {
+          gte: today,
+        },
+        status: "completed",
       },
+    });
+
+    console.log(`📊 Refreshes today: ${refreshesToday}/3`);
+
+    if (refreshesToday >= 3) {
+      console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
+      return json({
+        success: false,
+        message: `Rate limit reached: ${refreshesToday}/3 refreshes today. Try again tomorrow.`,
+      }, { status: 429 });
     }
-  );
 
-  const data = await response.json();
+    // STEP 2: Fetch products
+    console.log(`\n📦 Fetching products from Shopify...`);
+    const products = await fetchShopifyProducts(shop);
 
-  if (response.ok) {
+    if (products.length === 0) {
+      console.warn(`⚠ No products found`);
+      await logRefreshActivity(shop, "admin_manual", 0, 0, 0, 0, "completed", "No products found");
+      return json({
+        success: true,
+        message: "No products found in store",
+        productsFetched: 0,
+        productsAnalyzed: 0,
+      });
+    }
+
+    console.log(`✅ Fetched ${products.length} products`);
+
+    // STEP 3: Get existing analyzed products
+    const existingAnalyzed = await db.filteredSelectionWithImgAnalyzed.findMany({
+      where: { shop },
+      select: { shopifyProductId: true, lastUpdated: true },
+    });
+
+    const analyzedMap = new Map(
+      existingAnalyzed.map(p => [p.shopifyProductId, p.lastUpdated])
+    );
+
+    // STEP 4: Filter products needing analysis
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const productsToAnalyze = products.filter(p => {
+      const lastAnalyzed = analyzedMap.get(p.id);
+      if (!lastAnalyzed) return true; // Not analyzed yet
+      if (lastAnalyzed < thirtyDaysAgo) return true; // Old analysis
+      return false;
+    });
+
+    console.log(`📊 Products needing analysis: ${productsToAnalyze.length}`);
+
+    if (productsToAnalyze.length === 0) {
+      console.log(`✅ All products up-to-date`);
+      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All up-to-date");
+      return json({
+        success: true,
+        message: "All products are up-to-date!",
+        productsFetched: products.length,
+        productsAnalyzed: 0,
+      });
+    }
+
+    // STEP 5: Analyze products (limit to 10 for quick testing)
+    const productsToProcess = productsToAnalyze.slice(0, 10);
+    console.log(`\n🖼️  Analyzing ${productsToProcess.length} products...`);
+
+    let analyzed = 0;
+    let failed = 0;
+    let geminiApiCalls = 0;
+
+    for (const product of productsToProcess) {
+      try {
+        if (!product.imageUrl) {
+          console.log(`⏭ Skipping ${product.title} (no image)`);
+          continue;
+        }
+
+        console.log(`🔍 Analyzing: ${product.title}`);
+        const analysis = await analyzeProductImage(product.imageUrl, shop, product.title);
+        geminiApiCalls++;
+
+        if (!analysis) {
+          console.error(`❌ Analysis failed`);
+          failed++;
+          continue;
+        }
+
+        const saved = await saveAnalyzedProduct(shop, product, analysis);
+        if (saved) {
+          analyzed++;
+          console.log(`✅ Saved`);
+        } else {
+          failed++;
+        }
+      } catch (error: any) {
+        console.error(`❌ Error:`, error.message);
+        failed++;
+      }
+    }
+
+    // STEP 6: Calculate costs
+    const tokensPerImage = 258;
+    const tokensPerOutput = 5000;
+    const inputCost = (geminiApiCalls * tokensPerImage * 0.10) / 1000000;
+    const outputCost = (geminiApiCalls * tokensPerOutput * 0.40) / 1000000;
+    const totalCost = inputCost + outputCost;
+
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    console.log(`\n✅ REFRESH COMPLETED in ${elapsedTime}s`);
+    console.log(`   Analyzed: ${analyzed}, Failed: ${failed}, Cost: $${totalCost.toFixed(4)}`);
+
+    // STEP 7: Log activity
+    await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed");
+
     return json({
       success: true,
-      message: `Successfully refreshed! Analyzed ${data.productsAnalyzed} products. Cost: $${data.estimatedCost?.toFixed(4) || '0.0000'}`,
-      data,
+      message: `Successfully analyzed ${analyzed} products! Cost: $${totalCost.toFixed(4)}`,
+      productsFetched: products.length,
+      productsAnalyzed: analyzed,
+      productsFailed: failed,
+      estimatedCost: totalCost,
     });
-  } else {
+  } catch (error: any) {
+    console.error("❌ Error in refresh:", error);
     return json({
       success: false,
-      message: data.message || data.error || 'Failed to refresh products',
-      data,
-    }, { status: response.status });
+      message: `Error: ${error.message}`,
+    }, { status: 500 });
   }
 };
 
