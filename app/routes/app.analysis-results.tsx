@@ -35,10 +35,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
       // geminiAnalysis is already a JSON field in Prisma, no need to parse
       if (product.geminiAnalysis) {
-        analysis = product.geminiAnalysis;
-        console.log(`📊 Analysis for ${product.title}:`, JSON.stringify(analysis, null, 2));
-      } else {
-        console.log(`⚠️ No analysis data for ${product.title}`);
+        const rawAnalysis = product.geminiAnalysis as any;
+
+        // Map database fields to UI fields
+        analysis = {
+          colors: rawAnalysis.detectedColors || [],
+          style: rawAnalysis.styleClassification || [],
+          silhouette: rawAnalysis.silhouetteType ? [rawAnalysis.silhouetteType] : [],
+          description: [
+            rawAnalysis.patternType ? `Pattern: ${rawAnalysis.patternType}` : null,
+            rawAnalysis.fabricTexture ? `Fabric: ${rawAnalysis.fabricTexture}` : null,
+            rawAnalysis.designDetails && rawAnalysis.designDetails.length > 0
+              ? `Details: ${rawAnalysis.designDetails.join(', ')}`
+              : null,
+            rawAnalysis.colorSeasons && rawAnalysis.colorSeasons.length > 0
+              ? `Seasons: ${rawAnalysis.colorSeasons.join(', ')}`
+              : null,
+          ].filter(Boolean).join(' • '),
+        };
       }
     } catch (e) {
       console.error("Failed to parse analysis JSON for", product.title);
