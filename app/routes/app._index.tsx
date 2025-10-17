@@ -325,6 +325,9 @@ export default function Index() {
                     <Button onClick={() => navigate('/app/settings')}>
                       App Settings
                     </Button>
+                    <Button onClick={() => navigate('/app/analysis-results')}>
+                      View Analysis Results
+                    </Button>
                   </InlineStack>
                 </BlockStack>
               </BlockStack>
