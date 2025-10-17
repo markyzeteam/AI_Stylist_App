@@ -17,6 +17,6 @@ RUN npm remove @shopify/cli
 COPY . .
 
 # Force rebuild: 2025-10-17-v4-rate-limit-disabled
-RUN npm run build
+RUN rm -rf build/ && npm run build
 
 CMD ["npm", "run", "docker-start"]
