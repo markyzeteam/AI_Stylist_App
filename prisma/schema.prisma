@@ -199,14 +199,15 @@ model OpenAISettings {
 
 // Gemini settings
 model GeminiSettings {
-  id        String   @id @default(cuid())
-  shop      String   @unique
-  apiKey    String?  @db.Text
-  model     String   @default("gemini-1.5-flash")
-  prompt    String?  @db.Text // Editable image analysis prompt
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  shop         String   @unique
+  apiKey       String?  @db.Text
+  model        String   @default("gemini-1.5-flash")
+  prompt       String?  @db.Text // Editable image analysis prompt (Phase 1)
+  systemPrompt String?  @db.Text // Editable recommendation system prompt (Phase 2)
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Filtering settings
