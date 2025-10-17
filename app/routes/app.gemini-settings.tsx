@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useActionData } from "@remix-run/react";
+import { useLoaderData, useSubmit, useActionData, useSearchParams } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -81,11 +81,18 @@ export default function GeminiSettings() {
   const { settings } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model);
   const [enabled, setEnabled] = useState(settings.enabled);
-  const [showApiKey, setShowApiKey] = useState(false);
+
+  const isKeyVisible = searchParams.get("showKey") === "true";
+
+  // Update the API key display when loader data changes
+  useEffect(() => {
+    setApiKey(settings.apiKey);
+  }, [settings.apiKey]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,12 +101,12 @@ export default function GeminiSettings() {
   };
 
   const handleToggleApiKey = () => {
-    if (!showApiKey && settings.hasApiKey) {
-      // Reload the page with showKey=true to fetch the actual key
-      window.location.href = "/app/gemini-settings?showKey=true";
+    if (!isKeyVisible && settings.hasApiKey) {
+      // Show the key by adding query parameter
+      setSearchParams({ showKey: "true" });
     } else {
-      // Reload without showKey param to hide the key
-      window.location.href = "/app/gemini-settings";
+      // Hide the key by removing query parameter
+      setSearchParams({});
     }
   };
 
@@ -176,7 +183,7 @@ export default function GeminiSettings() {
                       {settings.hasApiKey && (
                         <InlineStack align="start">
                           <Button onClick={handleToggleApiKey} size="slim">
-                            {apiKey.startsWith("••••") ? "👁️ View API Key" : "🔒 Hide API Key"}
+                            {isKeyVisible ? "🔒 Hide API Key" : "👁️ View API Key"}
                           </Button>
                         </InlineStack>
                       )}
