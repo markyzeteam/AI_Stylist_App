@@ -36,6 +36,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       // geminiAnalysis is already a JSON field in Prisma, no need to parse
       if (product.geminiAnalysis) {
         analysis = product.geminiAnalysis;
+        console.log(`📊 Analysis for ${product.title}:`, JSON.stringify(analysis, null, 2));
+      } else {
+        console.log(`⚠️ No analysis data for ${product.title}`);
       }
     } catch (e) {
       console.error("Failed to parse analysis JSON for", product.title);
