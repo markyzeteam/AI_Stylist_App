@@ -8,6 +8,7 @@ import {
   logRefreshActivity,
 } from "../utils/geminiAnalysis";
 import { db } from "../db.server";
+import { loadSettings } from "../utils/settings";
 
 /**
  * ADMIN REFRESH API ENDPOINT
@@ -38,41 +39,20 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log(`\n${"=".repeat(60)}`);
     console.log(`🔄 ADMIN REFRESH STARTED for ${shop}`);
     console.log(`${"=".repeat(60)}`);
-    console.log(`⚙️  [v2] Using FIXED session lookup (by shop, not session.id)`);
+    console.log(`⚙️  [v3] Using loadSettings from metafields`);
 
     const startTime = Date.now();
 
-    // STEP 1: Load settings to get max refreshes per day
+    // STEP 1: Load settings from Shopify metafields (same as settings page)
     console.log(`\n${"=".repeat(60)}`);
-    console.log(`🔍 LOADING SETTINGS FOR SHOP: ${shop}`);
+    console.log(`🔍 LOADING SETTINGS FROM METAFIELDS`);
     console.log(`${"=".repeat(60)}`);
 
-    // IMPORTANT: Query by shop, not by session.id, because settings are saved to the most recent session
-    const sessionRecord = await db.session.findFirst({
-      where: { shop },
-      select: { appSettings: true, id: true },
-      orderBy: { id: 'desc' } // Get most recent session for this shop
-    });
+    const settings = await loadSettings(admin);
+    const maxRefreshesPerDay = settings.maxRefreshesPerDay;
 
-    console.log(`🔍 Session ID: ${sessionRecord?.id || 'NOT FOUND'}`);
-    console.log(`🔍 Session found: ${!!sessionRecord}`);
-    console.log(`🔍 appSettings string: ${sessionRecord?.appSettings || 'NULL'}`);
-
-    let maxRefreshesPerDay = 3; // Default
-    if (sessionRecord?.appSettings) {
-      try {
-        const settings = JSON.parse(sessionRecord.appSettings);
-        console.log(`✅ Parsed settings successfully:`, JSON.stringify(settings, null, 2));
-        maxRefreshesPerDay = settings.maxRefreshesPerDay || 3;
-        console.log(`✅ maxRefreshesPerDay from settings: ${maxRefreshesPerDay}`);
-      } catch (e) {
-        console.error("❌ Failed to parse app settings, using default limit of 3", e);
-      }
-    } else {
-      console.warn(`⚠️ No appSettings found in session record, using default limit of 3`);
-    }
-
-    console.log(`\n📊 FINAL: Max refreshes per day set to: ${maxRefreshesPerDay}`);
+    console.log(`✅ Settings loaded:`, JSON.stringify(settings, null, 2));
+    console.log(`\n📊 FINAL: Max refreshes per day = ${maxRefreshesPerDay}`);
     console.log(`${"=".repeat(60)}\n`);
 
     // STEP 2: Check rate limiting
