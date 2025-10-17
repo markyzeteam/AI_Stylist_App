@@ -1376,7 +1376,7 @@ Medium Store (2,000 products, 100 users/day):
 
 ## 📝 IMPLEMENTATION NOTES
 
-**Latest Update:** 2025-01-17
+**Latest Update:** 2025-10-17
 **Status:** ✅ Deployed and fixed
 
 ### Critical Fixes Applied
@@ -1427,6 +1427,45 @@ Medium Store (2,000 products, 100 users/day):
 - **Status:** ✅ COMPLETED - Storefront now fully uses Gemini APIs
 - **Commit:** `db153b6` - Update storefront to use Gemini API endpoints
 - **Note:** This completes the full Claude→Gemini migration for both admin and storefront
+
+**✅ Feature: Configurable Daily Refresh Limit (2025-10-17)**
+- **What:** Made the daily refresh limit configurable instead of hardcoded
+- **Changes Made:**
+  1. Added `maxRefreshesPerDay` field to AppSettings interface (default: 3)
+  2. Added UI control in Settings page (TextField with range 1-24)
+  3. Updated admin refresh endpoint to read limit dynamically from database session
+  4. Added to "How It Works" documentation section and summary sidebar
+- **Files Modified:**
+  - `app/utils/settings.ts` - Added maxRefreshesPerDay to interface
+  - `app/routes/app.settings.tsx` - Added TextField control for max refreshes
+  - `app/routes/api.admin.refresh.tsx` - Read limit from database instead of hardcoding
+- **Benefits:** Store owners can now control API costs by adjusting refresh frequency
+- **Commit:** `928ef5a` - Add configurable daily refresh limit setting
+
+**✅ Fix: Rate Limit Loading Issue (2025-10-17)**
+- **Issue:** User changed maxRefreshesPerDay from 3 to 5, but system still enforced old limit
+- **Root Cause:** Settings were saved to database but logs were missing from execution
+- **Fix:** Added comprehensive debug logging to track session loading
+- **Changes Made:**
+  1. Added debug console logs showing session ID, record status, and raw appSettings
+  2. Added warning if appSettings not found in session record
+  3. Enhanced error logging for settings parse failures
+- **File Modified:** `app/routes/api.admin.refresh.tsx` lines 44-67
+- **Status:** ✅ Debug logs added to diagnose issue
+- **Commit:** `b430922` - Add debug logging to admin refresh rate limit loading
+- **Note:** This will help identify why updated settings aren't being read properly
+
+**✅ Cleanup: Removed Deprecated Claude Files (2025-10-17)**
+- **What:** Removed all deprecated Claude endpoint files after confirming Gemini migration success
+- **Files Deleted:**
+  1. `app/routes/api.claude.recommendations.tsx` - Old Claude recommendation endpoint
+  2. `app/utils/claudeRecommendations.ts` - Old Claude utility functions (1,433 lines)
+  3. `app/routes/api.body-shape-analysis.tsx` - Replaced by `api.gemini.body-shape-analysis.tsx`
+  4. `app/routes/api.color-season-analysis.tsx` - Replaced by `api.gemini.color-season-analysis.tsx`
+- **Result:** Server bundle reduced from 213KB → 164KB (23% smaller)
+- **Status:** ✅ Migration to Gemini 100% complete - no Claude dependencies remaining
+- **Commit:** `ae15c60` - Remove deprecated Claude endpoint files
+- **Note:** All storefront and admin functionality now exclusively uses Gemini 2.0 Flash
 
 ### Files Created/Modified
 
