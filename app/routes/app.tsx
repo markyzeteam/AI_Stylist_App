@@ -25,7 +25,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/settings">Settings</Link>
-        <Link to="/app/claude-settings">Claude AI</Link>
+        <Link to="/app/gemini-settings">Gemini AI</Link>
         <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />
