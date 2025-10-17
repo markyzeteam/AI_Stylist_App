@@ -1415,6 +1415,19 @@ Medium Store (2,000 products, 100 users/day):
   - `app/utils/geminiAnalysis.ts` - Updated load/save functions to include systemPrompt
 - **Note:** Prompts are stored per shop in the `GeminiSettings` table
 
+**✅ Migration: Storefront Updated to Gemini Endpoints (2025-10-17)**
+- **What:** Completed migration of storefront from Claude to Gemini API endpoints
+- **Changes Made:**
+  1. Updated `/api/claude/recommendations` → `/api/gemini/recommendations` (line 801)
+  2. Updated `/api/body-shape-analysis` → `/api/gemini/body-shape-analysis` (line 614)
+  3. Updated `/api/color-season-analysis` → `/api/gemini/color-season-analysis` (line 1329)
+  4. Updated all console logs from "Claude AI" to "Gemini AI"
+  5. Updated all loading screen messages from "Claude AI" to "Gemini AI"
+- **File Modified:** `extensions/body-shape-advisor/assets/body-shape-advisor.js`
+- **Status:** ✅ COMPLETED - Storefront now fully uses Gemini APIs
+- **Commit:** `db153b6` - Update storefront to use Gemini API endpoints
+- **Note:** This completes the full Claude→Gemini migration for both admin and storefront
+
 ### Files Created/Modified
 
 **✅ Created:**
