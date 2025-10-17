@@ -41,7 +41,25 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const startTime = Date.now();
 
-    // STEP 1: Check rate limiting (3x per day)
+    // STEP 1: Load settings to get max refreshes per day
+    const sessionRecord = await db.session.findUnique({
+      where: { id: session.id },
+      select: { appSettings: true },
+    });
+
+    let maxRefreshesPerDay = 3; // Default
+    if (sessionRecord?.appSettings) {
+      try {
+        const settings = JSON.parse(sessionRecord.appSettings);
+        maxRefreshesPerDay = settings.maxRefreshesPerDay || 3;
+      } catch (e) {
+        console.warn("Failed to parse app settings, using default limit of 3");
+      }
+    }
+
+    console.log(`📊 Max refreshes per day: ${maxRefreshesPerDay}`);
+
+    // STEP 2: Check rate limiting
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -55,15 +73,16 @@ export async function action({ request }: ActionFunctionArgs) {
       },
     });
 
-    console.log(`📊 Refreshes today: ${refreshesToday}/3`);
+    console.log(`📊 Refreshes today: ${refreshesToday}/${maxRefreshesPerDay}`);
 
-    if (refreshesToday >= 3) {
+    if (refreshesToday >= maxRefreshesPerDay) {
       console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
       return json(
         {
           error: "Rate limit reached",
-          message: "Product refresh can only be run 3 times per day",
+          message: `Product refresh can only be run ${maxRefreshesPerDay} times per day`,
           refreshesToday,
+          maxRefreshesPerDay,
           nextRefreshAvailable: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
         },
         { status: 429 }

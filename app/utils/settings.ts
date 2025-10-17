@@ -4,6 +4,7 @@ export interface AppSettings {
   maxProductsToScan: number;
   onlyInStockProducts: boolean;
   enableImageAnalysis: boolean;
+  maxRefreshesPerDay: number;
 }
 
 // NOTE: minimumMatchScore of 30-50 is recommended for best results
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maxProductsToScan: 0, // 0 = ALL products
   onlyInStockProducts: true,
   enableImageAnalysis: false,
+  maxRefreshesPerDay: 3, // Limit admin product refreshes per day
 };
 
 const METAFIELD_NAMESPACE = "yze_shopping_ai";

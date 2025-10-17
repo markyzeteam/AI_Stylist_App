@@ -39,6 +39,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     maxProductsToScan: parseInt(formData.get("maxProductsToScan") as string) || 1000,
     onlyInStockProducts: formData.get("onlyInStockProducts") === "true",
     enableImageAnalysis: formData.get("enableImageAnalysis") === "true",
+    maxRefreshesPerDay: parseInt(formData.get("maxRefreshesPerDay") as string) || 3,
   };
 
   // Save settings to Shopify metafields
@@ -162,6 +163,20 @@ export default function Settings() {
                       max={50000}
                     />
 
+                    <TextField
+                      label="Maximum Refreshes Per Day"
+                      type="number"
+                      name="maxRefreshesPerDay"
+                      value={formData.maxRefreshesPerDay.toString()}
+                      onChange={(value) =>
+                        setFormData({ ...formData, maxRefreshesPerDay: parseInt(value) || 3 })
+                      }
+                      helpText="How many times you can run the admin product refresh per day (recommended: 3-5 to manage API costs)"
+                      autoComplete="off"
+                      min={1}
+                      max={24}
+                    />
+
                     <Checkbox
                       label="Only show in-stock products"
                       checked={formData.onlyInStockProducts}
@@ -206,6 +221,9 @@ export default function Settings() {
                   </Text>
                   <Text as="p" variant="bodyMd">
                     • <strong>Maximum Products to Scan:</strong> Limit how many products to analyze. Set to 0 to scan ALL products in your catalog (recommended). Higher limits = more thorough but slower.
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    • <strong>Maximum Refreshes Per Day:</strong> Control how many times you can run the admin product refresh each day to manage API costs and prevent rate limiting
                   </Text>
                   <Text as="p" variant="bodyMd">
                     • <strong>Only In-Stock Products:</strong> Filter recommendations to only show products that are currently available for purchase
@@ -255,6 +273,14 @@ export default function Settings() {
                   </Text>
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
                     {formData.maxProductsToScan === 0 ? 'ALL Products' : formData.maxProductsToScan}
+                  </Text>
+                </InlineStack>
+                <InlineStack align="space-between">
+                  <Text as="span" variant="bodyMd" tone="subdued">
+                    Max Refreshes/Day:
+                  </Text>
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {formData.maxRefreshesPerDay}x
                   </Text>
                 </InlineStack>
                 <InlineStack align="space-between">
