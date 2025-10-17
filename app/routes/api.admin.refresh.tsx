@@ -47,14 +47,21 @@ export async function action({ request }: ActionFunctionArgs) {
       select: { appSettings: true },
     });
 
+    console.log(`🔍 DEBUG: session.id = ${session.id}`);
+    console.log(`🔍 DEBUG: sessionRecord found = ${!!sessionRecord}`);
+    console.log(`🔍 DEBUG: appSettings = ${sessionRecord?.appSettings}`);
+
     let maxRefreshesPerDay = 3; // Default
     if (sessionRecord?.appSettings) {
       try {
         const settings = JSON.parse(sessionRecord.appSettings);
+        console.log(`🔍 DEBUG: Parsed settings =`, settings);
         maxRefreshesPerDay = settings.maxRefreshesPerDay || 3;
       } catch (e) {
-        console.warn("Failed to parse app settings, using default limit of 3");
+        console.warn("Failed to parse app settings, using default limit of 3", e);
       }
+    } else {
+      console.warn(`⚠️ No appSettings found in session record, using default limit of 3`);
     }
 
     console.log(`📊 Max refreshes per day: ${maxRefreshesPerDay}`);
