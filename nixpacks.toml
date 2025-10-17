@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --omit=dev && npm cache clean --force"]
+
+[phases.build]
+cmds = ["npm remove @shopify/cli", "rm -rf build/", "npm run build"]
+
+[start]
+cmd = "npm run docker-start"
