@@ -42,12 +42,14 @@ export async function action({ request }: ActionFunctionArgs) {
     const startTime = Date.now();
 
     // STEP 1: Load settings to get max refreshes per day
-    const sessionRecord = await db.session.findUnique({
-      where: { id: session.id },
+    // IMPORTANT: Query by shop, not by session.id, because settings are saved to the most recent session
+    const sessionRecord = await db.session.findFirst({
+      where: { shop },
       select: { appSettings: true },
+      orderBy: { id: 'desc' } // Get most recent session for this shop
     });
 
-    console.log(`🔍 DEBUG: session.id = ${session.id}`);
+    console.log(`🔍 DEBUG: shop = ${shop}`);
     console.log(`🔍 DEBUG: sessionRecord found = ${!!sessionRecord}`);
     console.log(`🔍 DEBUG: appSettings = ${sessionRecord?.appSettings}`);
 
