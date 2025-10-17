@@ -55,7 +55,7 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log(`\n📊 FINAL: Max refreshes per day = ${maxRefreshesPerDay}`);
     console.log(`${"=".repeat(60)}\n`);
 
-    // STEP 2: Check rate limiting
+    // STEP 2: Check rate limiting (TEMPORARILY DISABLED)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -69,21 +69,22 @@ export async function action({ request }: ActionFunctionArgs) {
       },
     });
 
-    console.log(`📊 Refreshes today: ${refreshesToday}/${maxRefreshesPerDay}`);
+    console.log(`📊 Refreshes today: ${refreshesToday}/${maxRefreshesPerDay} (RATE LIMIT DISABLED)`);
 
-    if (refreshesToday >= maxRefreshesPerDay) {
-      console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
-      return json(
-        {
-          error: "Rate limit reached",
-          message: `Product refresh can only be run ${maxRefreshesPerDay} times per day`,
-          refreshesToday,
-          maxRefreshesPerDay,
-          nextRefreshAvailable: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-        },
-        { status: 429 }
-      );
-    }
+    // RATE LIMIT TEMPORARILY DISABLED - Allow unlimited refreshes
+    // if (refreshesToday >= maxRefreshesPerDay) {
+    //   console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
+    //   return json(
+    //     {
+    //       error: "Rate limit reached",
+    //       message: `Product refresh can only be run ${maxRefreshesPerDay} times per day`,
+    //       refreshesToday,
+    //       maxRefreshesPerDay,
+    //       nextRefreshAvailable: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    //     },
+    //     { status: 429 }
+    //   );
+    // }
 
     // STEP 2: Fetch all active products from Shopify
     console.log(`\n📦 Fetching products from Shopify...`);
