@@ -80,3 +80,148 @@ model ClaudePromptSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ============================================
+// NEW TABLES FOR CACHED PRODUCT FILTERING
+// ============================================
+
+// Basic filtered products (no AI analysis)
+model FilteredSelection {
+  id                String    @id @default(cuid())
+  shop              String
+
+  // Shopify product data
+  shopifyProductId  String
+  title             String
+  handle            String?
+  description       String?   @db.Text
+  productType       String?
+  tags              String[]
+  price             Decimal   @db.Decimal(10, 2)
+  imageUrl          String?
+  variants          Json?
+
+  // Availability
+  inStock           Boolean   @default(true)
+  availableSizes    String[]
+  categories        String[]
+
+  // Timestamps
+  fetchedAt         DateTime  @default(now())
+  lastUpdated       DateTime  @updatedAt
+
+  @@unique([shop, shopifyProductId])
+  @@index([shop, inStock])
+}
+
+// Products with Gemini image analysis
+model FilteredSelectionWithImgAnalyzed {
+  id                String    @id @default(cuid())
+  shop              String
+
+  // Shopify product data
+  shopifyProductId  String
+  title             String
+  handle            String?
+  description       String?   @db.Text
+  productType       String?
+  tags              String[]
+  price             Decimal   @db.Decimal(10, 2)
+  imageUrl          String?
+  variants          Json?
+  inStock           Boolean   @default(true)
+  availableSizes    String[]
+  categories        String[]
+
+  // Gemini image analysis
+  geminiAnalysis    Json?
+  detectedColors    String[]
+  colorSeasons      String[]
+  silhouetteType    String?
+  styleClassification String[]
+  fabricTexture     String?
+  designDetails     String[]
+  patternType       String?
+
+  // Size information
+  sizeChart         Json?
+  sizeFitNotes      String?
+
+  // Values scoring
+  sustainabilityScore Int?
+  budgetCategory    String?
+  styleScores       Json?
+
+  // Timestamps
+  analyzedAt        DateTime  @default(now())
+  geminiModelVersion String?
+  lastUpdated       DateTime  @updatedAt
+
+  @@unique([shop, shopifyProductId])
+  @@index([shop, inStock])
+  @@index([colorSeasons])
+  @@index([styleClassification])
+}
+
+// Refresh tracking (3x/day limit)
+model ProductRefreshLog {
+  id              String    @id @default(cuid())
+  shop            String
+  refreshType     String
+  triggeredBy     String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  status          String
+  productsFetched Int       @default(0)
+  productsAnalyzed Int      @default(0)
+  geminiApiCalls  Int       @default(0)
+  openaiApiCalls  Int       @default(0)
+  totalCostUsd    Decimal?  @db.Decimal(10, 4)
+  errorMessage    String?   @db.Text
+
+  @@index([shop, startedAt])
+}
+
+// OpenAI settings
+model OpenAISettings {
+  id                    String   @id @default(cuid())
+  shop                  String   @unique
+  apiKey                String?  @db.Text
+  model                 String   @default("gpt-4o-mini")
+  systemPrompt          String   @db.Text
+  recommendationPrompt  String   @db.Text
+  enabled               Boolean  @default(true)
+  temperature           Float    @default(0.7)
+  maxTokens             Int      @default(4096)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Gemini settings
+model GeminiSettings {
+  id        String   @id @default(cuid())
+  shop      String   @unique
+  apiKey    String?  @db.Text
+  model     String   @default("gemini-1.5-flash")
+  prompt    String?  @db.Text // Editable image analysis prompt
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Filtering settings
+model FilteringSettings {
+  id                  String   @id @default(cuid())
+  shop                String   @unique
+  onlyInStock         Boolean  @default(false)
+  includedCategories  String[]
+  excludedCategories  String[]
+  minPrice            Decimal? @db.Decimal(10, 2)
+  maxPrice            Decimal? @db.Decimal(10, 2)
+  maxProductsToScan   Int      @default(0)
+  numberOfSuggestions Int      @default(30)
+  minimumMatchScore   Int      @default(70)
+  excludeKeywords     String[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

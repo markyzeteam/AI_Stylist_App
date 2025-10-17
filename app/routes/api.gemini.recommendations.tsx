@@ -1,23 +1,17 @@
-/**
- * ⚠️ DEPRECATED - DO NOT USE FOR NEW IMPLEMENTATIONS
- *
- * This endpoint uses Claude AI which costs $900/month for a medium store.
- * Please use the new Gemini endpoint instead: /api/gemini/recommendations
- *
- * Cost comparison (medium store: 2,000 products, 100 users/day):
- * - Claude: $900/month (this endpoint)
- * - Gemini: $18.83/month (new endpoint) - 96% cheaper!
- *
- * This file is kept temporarily as a fallback during migration.
- * Will be removed after production validation of Gemini system.
- * Marked deprecated: 2025-01-XX
- */
-
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { getClaudeProductRecommendations } from "../utils/claudeRecommendations";
+import { getGeminiProductRecommendations } from "../utils/geminiRecommendations";
 
-// This is a public API endpoint for storefront access (DEPRECATED)
+/**
+ * GEMINI RECOMMENDATIONS API ENDPOINT (Phase 2)
+ *
+ * This is a public API endpoint for storefront access.
+ * Uses Gemini 2.0 Flash with CACHED product analysis (no images sent).
+ *
+ * This is the NEW Gemini-only implementation.
+ * Old Claude endpoint: api.claude.recommendations.tsx
+ */
+
 export async function loader({ request }: ActionFunctionArgs) {
   return json({ error: "Use POST method" }, { status: 405 });
 }
@@ -52,7 +46,6 @@ export async function action({ request }: ActionFunctionArgs) {
     const minimumMatchScore = parseInt(formData.get("minimumMatchScore") as string) || 30;
     const maxProductsToScan = parseInt(formData.get("maxProductsToScan") as string) || 0;
     const onlyInStock = formData.get("onlyInStock") === "true";
-    const enableImageAnalysis = formData.get("enableImageAnalysis") === "true";
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers });
@@ -78,21 +71,23 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     }
 
-    console.log(`📊 Settings from storefront: suggestions=${numberOfSuggestions}, minScore=${minimumMatchScore}, maxScan=${maxProductsToScan}, inStock=${onlyInStock}, imageAnalysis=${enableImageAnalysis}`);
-    console.log(`📊 Raw FormData values:`, {
-      numberOfSuggestions: formData.get("numberOfSuggestions"),
-      minimumMatchScore: formData.get("minimumMatchScore"),
-      maxProductsToScan: formData.get("maxProductsToScan"),
-      onlyInStock: formData.get("onlyInStock"),
-      enableImageAnalysis: formData.get("enableImageAnalysis")
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`🤖 GEMINI RECOMMENDATIONS REQUEST`);
+    console.log(`${"=".repeat(60)}`);
+    console.log(`📊 Settings:`, {
+      shop,
+      bodyShape,
+      colorSeason: colorSeason || 'none',
+      numberOfSuggestions,
+      minimumMatchScore,
+      maxProductsToScan,
+      onlyInStock,
+      hasMeasurements: !!measurements,
     });
-    if (colorSeason) {
-      console.log(`🎨 Color Season: ${colorSeason}`);
-    }
+    console.log(`${"=".repeat(60)}\n`);
 
-    // Get recommendations from Claude AI using MCP
-    console.log(`📞 API Call: Getting Claude recommendations for ${bodyShape} from ${storeDomain}`);
-    const recommendations = await getClaudeProductRecommendations(
+    // Get recommendations from Gemini AI using cached analysis
+    const recommendations = await getGeminiProductRecommendations(
       storeDomain,
       shop,
       bodyShape,
@@ -101,27 +96,40 @@ export async function action({ request }: ActionFunctionArgs) {
       minimumMatchScore,
       maxProductsToScan,
       onlyInStock,
-      colorSeason || undefined,
-      enableImageAnalysis
+      colorSeason || undefined
     );
+
+    console.log(`\n✅ Returning ${recommendations.length} recommendations to storefront\n`);
 
     return json(
       {
         bodyShape,
+        colorSeason,
         recommendations: recommendations.map(rec => ({
           product: {
             id: rec.product.id,
+            shopifyProductId: rec.product.shopifyProductId,
             title: rec.product.title,
             description: rec.product.description,
             handle: rec.product.handle,
-            image: rec.product.image || rec.product.imageUrl,
-            imageUrl: rec.product.imageUrl || rec.product.image,
-            images: rec.product.image ? [{ src: rec.product.image }] : [],
+            image: rec.product.imageUrl,
+            imageUrl: rec.product.imageUrl,
+            images: rec.product.imageUrl ? [{ src: rec.product.imageUrl }] : [],
             variants: rec.product.variants,
             price: rec.product.price,
             productType: rec.product.productType,
             tags: rec.product.tags,
             url: `https://${storeDomain}/products/${rec.product.handle}`,
+            // Include visual analysis for frontend display
+            visualAnalysis: {
+              colors: rec.product.detectedColors || [],
+              colorSeasons: rec.product.colorSeasons || [],
+              silhouette: rec.product.silhouetteType || 'Unknown',
+              styles: rec.product.styleClassification || [],
+              fabric: rec.product.fabricTexture || 'Unknown',
+              details: rec.product.designDetails || [],
+              pattern: rec.product.patternType || 'Unknown',
+            },
           },
           suitabilityScore: rec.suitabilityScore,
           recommendedSize: rec.recommendedSize,
@@ -133,9 +141,9 @@ export async function action({ request }: ActionFunctionArgs) {
       { headers }
     );
   } catch (error) {
-    console.error("Error in Claude recommendations API:", error);
+    console.error("❌ Error in Gemini recommendations API:", error);
     return json(
-      { error: "Failed to fetch Claude recommendations" },
+      { error: "Failed to fetch Gemini recommendations" },
       { status: 500, headers }
     );
   }

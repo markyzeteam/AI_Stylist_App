@@ -1,0 +1,2 @@
+- always reference the ARCHITECTURE.md and update it if we finished something or changed etc. put note if applicable
+- dont forget to remove all unused or unecessary codes
