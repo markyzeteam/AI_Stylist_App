@@ -38,12 +38,12 @@ These are old recommendation endpoints that don't use the new Gemini architectur
    - **Keep temporarily** as reference/fallback
    - **TODO:** Remove after production validation
 
-### ❌ Admin Pages (Old Settings)
+### ✅ Admin Pages (REMOVED)
 
-1. **`app/routes/app.claude-settings.tsx`**
+1. **`app/routes/app.claude-settings.tsx`** ✅ REMOVED
    - Claude API key settings page
-   - **Replace with:** `app.gemini-settings.tsx` ✅
-   - **TODO:** Remove after migrating stores to Gemini
+   - **Replaced with:** `app.gemini-settings.tsx` ✅
+   - Navigation updated to point to Gemini settings
 
 ### ⚠️ Potentially Unused API Endpoints (Need Review)
 
