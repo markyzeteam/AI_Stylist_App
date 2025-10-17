@@ -27,9 +27,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Load Gemini settings from database
   const settings = await loadGeminiSettings(shop);
 
+  // Check if user wants to view the full key (via query param)
+  const url = new URL(request.url);
+  const showKey = url.searchParams.get("showKey") === "true";
+
   return json({
     settings: {
-      apiKey: settings.apiKey ? "••••••••••••••••" : "", // Mask API key
+      apiKey: showKey && settings.apiKey ? settings.apiKey : (settings.apiKey ? "••••••••••••••••" : ""),
       hasApiKey: !!settings.apiKey,
       model: settings.model,
       enabled: settings.enabled,
@@ -81,11 +85,22 @@ export default function GeminiSettings() {
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model);
   const [enabled, setEnabled] = useState(settings.enabled);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     submit(form, { method: "post" });
+  };
+
+  const handleToggleApiKey = () => {
+    if (!showApiKey && settings.hasApiKey) {
+      // Reload the page with showKey=true to fetch the actual key
+      window.location.href = "/app/gemini-settings?showKey=true";
+    } else {
+      // Reload without showKey param to hide the key
+      window.location.href = "/app/gemini-settings";
+    }
   };
 
   const modelOptions = [
@@ -143,20 +158,29 @@ export default function GeminiSettings() {
 
                 <form onSubmit={handleSubmit}>
                   <BlockStack gap="400">
-                    <TextField
-                      label="Gemini API Key"
-                      type="password"
-                      name="apiKey"
-                      value={apiKey}
-                      onChange={setApiKey}
-                      helpText={
-                        settings.hasApiKey
-                          ? "API key is configured. Leave as-is to keep existing key, or enter a new one to replace it."
-                          : "Get your API key from Google AI Studio: https://ai.google.dev/"
-                      }
-                      autoComplete="off"
-                      placeholder={settings.hasApiKey ? "••••••••••••••••" : "Enter your Gemini API key"}
-                    />
+                    <BlockStack gap="200">
+                      <TextField
+                        label="Gemini API Key"
+                        type={apiKey.startsWith("••••") ? "password" : "text"}
+                        name="apiKey"
+                        value={apiKey}
+                        onChange={setApiKey}
+                        helpText={
+                          settings.hasApiKey
+                            ? "API key is configured. Leave as-is to keep existing key, or enter a new one to replace it."
+                            : "Get your API key from Google AI Studio: https://ai.google.dev/"
+                        }
+                        autoComplete="off"
+                        placeholder={settings.hasApiKey ? "••••••••••••••••" : "Enter your Gemini API key"}
+                      />
+                      {settings.hasApiKey && (
+                        <InlineStack align="start">
+                          <Button onClick={handleToggleApiKey} size="slim">
+                            {apiKey.startsWith("••••") ? "👁️ View API Key" : "🔒 Hide API Key"}
+                          </Button>
+                        </InlineStack>
+                      )}
+                    </BlockStack>
 
                     <Select
                       label="Gemini Model"
