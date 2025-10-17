@@ -37,8 +37,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
     console.log(`\n${"=".repeat(60)}`);
     console.log(`🔄 ADMIN REFRESH STARTED for ${shop}`);
-    console.log(`${"=".repeat(60)}\n`);
-    console.log(`⚙️  Using FIXED session lookup (by shop, not session.id)`);
+    console.log(`${"=".repeat(60)}`);
+    console.log(`⚙️  [v2] Using FIXED session lookup (by shop, not session.id)`);
 
     const startTime = Date.now();
 
