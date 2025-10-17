@@ -193,11 +193,31 @@ export default function Index() {
   const submit = useSubmit();
   const navigation = useNavigation();
   const isRefreshing = navigation.state === "submitting";
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const handleRefresh = () => {
     if (confirm("This will analyze your products with Gemini AI. Continue?")) {
       const formData = new FormData();
       submit(formData, { method: "post" });
+    }
+  };
+
+  const handleResetRateLimit = async () => {
+    if (confirm("Reset today's rate limit counter? (Temporary workaround)")) {
+      try {
+        const response = await fetch("/api/admin/reset-rate-limit", {
+          method: "POST",
+        });
+        const data = await response.json();
+        if (data.success) {
+          setResetMessage(`✅ ${data.message}`);
+          setTimeout(() => setResetMessage(null), 5000);
+        } else {
+          setResetMessage(`❌ ${data.message}`);
+        }
+      } catch (error) {
+        setResetMessage("❌ Failed to reset rate limit");
+      }
     }
   };
 
@@ -266,14 +286,27 @@ export default function Index() {
                   <Text as="p" variant="bodyMd">
                     Run a product refresh to analyze your catalog with Gemini AI (limit: 3x per day)
                   </Text>
-                  <Button
-                    variant="primary"
-                    onClick={handleRefresh}
-                    loading={isRefreshing}
-                    disabled={isRefreshing}
-                  >
-                    {isRefreshing ? "Refreshing..." : "Refresh Products Now"}
-                  </Button>
+                  {resetMessage && (
+                    <Banner tone={resetMessage.includes("✅") ? "success" : "critical"}>
+                      <Text as="p" variant="bodyMd">{resetMessage}</Text>
+                    </Banner>
+                  )}
+                  <InlineStack gap="300">
+                    <Button
+                      variant="primary"
+                      onClick={handleRefresh}
+                      loading={isRefreshing}
+                      disabled={isRefreshing}
+                    >
+                      {isRefreshing ? "Refreshing..." : "Refresh Products Now"}
+                    </Button>
+                    <Button
+                      onClick={handleResetRateLimit}
+                      tone="critical"
+                    >
+                      Reset Rate Limit (Temp Fix)
+                    </Button>
+                  </InlineStack>
                 </BlockStack>
 
                 <Divider />
