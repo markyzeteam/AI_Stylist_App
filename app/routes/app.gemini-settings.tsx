@@ -37,6 +37,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       hasApiKey: !!settings.apiKey,
       model: settings.model,
       enabled: settings.enabled,
+      prompt: settings.prompt,
+      systemPrompt: settings.systemPrompt,
     }
   });
 };
@@ -46,12 +48,36 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = session.shop;
 
   const formData = await request.formData();
-  const apiKey = formData.get("apiKey") as string;
-  const model = formData.get("model") as string;
-  const enabled = formData.get("enabled") === "true";
+  const actionType = formData.get("actionType") as string;
 
   // Load existing settings
   const existingSettings = await loadGeminiSettings(shop);
+
+  // Handle reset to defaults
+  if (actionType === "resetPrompts") {
+    const { DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT } = await import("../utils/geminiAnalysis");
+    const { db } = await import("../db.server");
+
+    await db.geminiSettings.update({
+      where: { shop },
+      data: {
+        prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+        systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+      },
+    });
+
+    return json({
+      success: true,
+      message: "Prompts reset to defaults successfully!"
+    });
+  }
+
+  // Handle normal settings save
+  const apiKey = formData.get("apiKey") as string;
+  const model = formData.get("model") as string;
+  const enabled = formData.get("enabled") === "true";
+  const prompt = formData.get("prompt") as string;
+  const systemPrompt = formData.get("systemPrompt") as string;
 
   // If API key field is masked (••••••••), keep the existing key
   const finalApiKey = apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
@@ -61,7 +87,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     apiKey: finalApiKey,
     model,
     enabled,
-    prompt: existingSettings.prompt, // Keep existing prompt
+    prompt: prompt || existingSettings.prompt,
+    systemPrompt: systemPrompt || existingSettings.systemPrompt,
   });
 
   if (success) {
@@ -86,18 +113,30 @@ export default function GeminiSettings() {
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model);
   const [enabled, setEnabled] = useState(settings.enabled);
+  const [prompt, setPrompt] = useState(settings.prompt || "");
+  const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || "");
 
   const isKeyVisible = searchParams.get("showKey") === "true";
 
-  // Update the API key display when loader data changes
+  // Update state when loader data changes
   useEffect(() => {
     setApiKey(settings.apiKey);
-  }, [settings.apiKey]);
+    setPrompt(settings.prompt || "");
+    setSystemPrompt(settings.systemPrompt || "");
+  }, [settings.apiKey, settings.prompt, settings.systemPrompt]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     submit(form, { method: "post" });
+  };
+
+  const handleResetPrompts = () => {
+    if (confirm("Reset prompts to default values? This will overwrite your current custom prompts.")) {
+      const formData = new FormData();
+      formData.append("actionType", "resetPrompts");
+      submit(formData, { method: "post" });
+    }
   };
 
   const handleToggleApiKey = () => {
@@ -205,10 +244,82 @@ export default function GeminiSettings() {
                       helpText="When disabled, the system will use a basic algorithmic fallback (not recommended)"
                     />
                     <input type="hidden" name="enabled" value={enabled.toString()} />
+                    <input type="hidden" name="actionType" value="save" />
 
                     <InlineStack align="end">
                       <Button variant="primary" submit>
                         Save Settings
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </form>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Advanced: Custom Prompts
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Customize the prompts used by Gemini AI for image analysis and recommendations
+                </Text>
+
+                <Divider />
+
+                <form onSubmit={handleSubmit}>
+                  <BlockStack gap="400">
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingSm" fontWeight="semibold">
+                        Phase 1: Image Analysis Prompt
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        This prompt is used when analyzing product images to extract visual features (colors, style, silhouette, etc.)
+                      </Text>
+                      <TextField
+                        label="Image Analysis Prompt"
+                        name="prompt"
+                        value={prompt}
+                        onChange={setPrompt}
+                        multiline={8}
+                        autoComplete="off"
+                        helpText="Customize how Gemini analyzes product images. Use JSON format instructions."
+                      />
+                    </BlockStack>
+
+                    <Divider />
+
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingSm" fontWeight="semibold">
+                        Phase 2: Recommendation System Prompt
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        This system prompt guides Gemini when generating personalized product recommendations
+                      </Text>
+                      <TextField
+                        label="System Prompt"
+                        name="systemPrompt"
+                        value={systemPrompt}
+                        onChange={setSystemPrompt}
+                        multiline={6}
+                        autoComplete="off"
+                        helpText="Define Gemini's role and expertise for product recommendations."
+                      />
+                    </BlockStack>
+
+                    <input type="hidden" name="apiKey" value={apiKey} />
+                    <input type="hidden" name="model" value={model} />
+                    <input type="hidden" name="enabled" value={enabled.toString()} />
+                    <input type="hidden" name="actionType" value="save" />
+
+                    <Divider />
+
+                    <InlineStack align="space-between">
+                      <Button onClick={handleResetPrompts} tone="critical">
+                        Reset to Defaults
+                      </Button>
+                      <Button variant="primary" submit>
+                        Save Custom Prompts
                       </Button>
                     </InlineStack>
                   </BlockStack>

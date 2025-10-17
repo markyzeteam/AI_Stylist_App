@@ -1338,14 +1338,14 @@ Medium Store (2,000 products, 100 users/day):
 - [ ] Test recommendation endpoint with sample requests
 
 ### ✅ Phase 5: Admin UI
-- [ ] Create refresh button in admin dashboard
-- [ ] Show refresh status (running/completed)
-- [ ] Show daily refresh count (X/3)
+- [x] Create refresh button in admin dashboard ✅ **COMPLETED (2025-10-17)**
+- [x] Show refresh status (running/completed) ✅ **COMPLETED (2025-10-17)**
+- [x] Show daily refresh count (X/3) ✅ **COMPLETED (2025-10-17)**
 - [ ] Show last refresh timestamp
 - [ ] Show refresh stats (products analyzed, cost)
-- [ ] Add Gemini API key settings form
+- [x] Add Gemini API key settings form ✅ **COMPLETED (2025-10-17)**
 - [ ] Add filtering settings UI
-- [ ] Add editable prompts (image + recommendation)
+- [x] Add editable prompts (image + recommendation) ✅ **COMPLETED (2025-10-17)**
 
 ### ✅ Phase 6: Testing
 - [ ] Test with small product catalog (10 products)
@@ -1388,6 +1388,32 @@ Medium Store (2,000 products, 100 users/day):
 - **Fix:** Clean markdown BEFORE parsing, pass cleaned text to all functions
 - **File:** `app/utils/geminiAnalysis.ts` lines 214-243
 - **Commit:** `52f9dc2` - Fix Gemini JSON parsing error
+
+**✅ Fix: Gemini Plain Text Response Error (2025-10-17)**
+- **Issue:** Gemini sometimes returns plain text error messages instead of JSON (e.g., "I cannot analyze clothing from this image...")
+- **Error:** `SyntaxError: Unexpected token I in JSON at position 0`
+- **Root Cause:** Gemini refused to analyze certain images and returned plain text instead of JSON
+- **Fix Applied:**
+  1. Added `responseMimeType: "application/json"` to force JSON output from Gemini
+  2. Added validation to check if response starts with '{' before parsing
+  3. Updated prompt to explicitly instruct Gemini to always return JSON, even for problematic images
+  4. Added fallback JSON structure for images that cannot be analyzed
+- **File:** `app/utils/geminiAnalysis.ts` lines 211-233, 253-293
+- **Note:** This fix ensures the refresh process continues even if some images cannot be analyzed properly
+
+**✅ Feature: Prompt Customization UI (2025-10-17)**
+- **What:** Added comprehensive UI for customizing Gemini prompts
+- **Location:** `/app/gemini-settings` in admin dashboard
+- **Features:**
+  1. Image Analysis Prompt Editor (Phase 1) - Customize how Gemini analyzes product images
+  2. System Prompt Editor (Phase 2) - Customize Gemini's role for recommendations
+  3. Reset to Defaults button - Restore original prompts with confirmation
+  4. Multi-line text fields with helpful hints
+  5. Separated from API key settings for better organization
+- **Files Modified:**
+  - `app/routes/app.gemini-settings.tsx` - Added prompt editing UI and handlers
+  - `app/utils/geminiAnalysis.ts` - Updated load/save functions to include systemPrompt
+- **Note:** Prompts are stored per shop in the `GeminiSettings` table
 
 ### Files Created/Modified
 

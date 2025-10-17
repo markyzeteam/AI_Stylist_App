@@ -64,7 +64,9 @@ Extract the following information:
 6. **designDetails**: Notable design elements (e.g., ["V-neckline", "Puff sleeves", "Side pockets", "Pleated skirt"])
 7. **patternType**: Pattern classification (e.g., "Solid", "Striped", "Floral", "Geometric", "Polka dot")
 
-Return ONLY valid JSON in this exact format (no markdown, no extra text):
+CRITICAL: You MUST always return valid JSON. Even if the image is unclear, contains logos only, or you cannot fully analyze it, still return JSON with empty arrays or "Unknown" values.
+
+Return ONLY valid JSON in this exact format (no markdown, no extra text, no explanations):
 {
   "detectedColors": ["color1", "color2"],
   "colorSeasons": ["Spring", "Summer"],
@@ -73,6 +75,17 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
   "fabricTexture": "Flowing cotton",
   "designDetails": ["V-neckline", "Short sleeves"],
   "patternType": "Floral"
+}
+
+If you cannot analyze the image properly, return:
+{
+  "detectedColors": [],
+  "colorSeasons": [],
+  "silhouetteType": "Unknown",
+  "styleClassification": ["Unknown"],
+  "fabricTexture": "Unknown",
+  "designDetails": [],
+  "patternType": "Unknown"
 }`;
 
 /**
@@ -89,6 +102,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         apiKey: settings.apiKey || undefined,
         model: settings.model || "gemini-2.0-flash-exp",
         prompt: settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT,
+        systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_SYSTEM_PROMPT,
         enabled: settings.enabled,
       };
     }
@@ -98,6 +112,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       apiKey: undefined,
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+      systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
       enabled: true,
     };
   } catch (error) {
@@ -106,6 +121,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       apiKey: undefined,
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+      systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
       enabled: true,
     };
   }
@@ -125,6 +141,7 @@ export async function saveGeminiSettings(
         apiKey: settings.apiKey,
         model: settings.model,
         prompt: settings.prompt,
+        systemPrompt: settings.systemPrompt,
         enabled: settings.enabled,
         updatedAt: new Date(),
       },
@@ -133,6 +150,7 @@ export async function saveGeminiSettings(
         apiKey: settings.apiKey,
         model: settings.model,
         prompt: settings.prompt,
+        systemPrompt: settings.systemPrompt,
         enabled: settings.enabled,
       },
     });
@@ -195,16 +213,29 @@ ${settings.prompt}
 
 Product Title: ${productTitle}`;
 
-    // Call Gemini with image
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType,
-          data: imageBase64,
+    // Call Gemini with image and enforce JSON output
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: imageBase64,
+              },
+            },
+            {
+              text: fullPrompt,
+            },
+          ],
         },
+      ],
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: "application/json",
       },
-      fullPrompt,
-    ]);
+    });
 
     const response = await result.response;
     const text = response.text();
@@ -260,15 +291,29 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
       jsonText = jsonText.replace(/```\n?/g, "");
     }
 
+    jsonText = jsonText.trim();
+
+    // Check if the response is plain text (error message from Gemini)
+    if (!jsonText.startsWith('{') && !jsonText.startsWith('[')) {
+      console.error("❌ Gemini returned plain text instead of JSON:", jsonText.substring(0, 200));
+      return null;
+    }
+
     const parsed = JSON.parse(jsonText);
 
+    // Validate that parsed result has expected structure
+    if (typeof parsed !== 'object' || parsed === null) {
+      console.error("❌ Gemini response is not a valid JSON object");
+      return null;
+    }
+
     return {
-      detectedColors: parsed.detectedColors || [],
-      colorSeasons: parsed.colorSeasons || [],
+      detectedColors: Array.isArray(parsed.detectedColors) ? parsed.detectedColors : [],
+      colorSeasons: Array.isArray(parsed.colorSeasons) ? parsed.colorSeasons : [],
       silhouetteType: parsed.silhouetteType || undefined,
-      styleClassification: parsed.styleClassification || [],
+      styleClassification: Array.isArray(parsed.styleClassification) ? parsed.styleClassification : [],
       fabricTexture: parsed.fabricTexture || undefined,
-      designDetails: parsed.designDetails || [],
+      designDetails: Array.isArray(parsed.designDetails) ? parsed.designDetails : [],
       patternType: parsed.patternType || undefined,
     };
   } catch (error) {
