@@ -11,7 +11,7 @@ import { db } from "../db.server";
 import { loadSettings } from "../utils/settings";
 
 /**
- * ADMIN REFRESH API ENDPOINT
+ * ADMIN REFRESH API ENDPOINT (v3 - Fixed maxRefreshesPerDay loading)
  *
  * This endpoint triggers Phase 1 of the Gemini-only architecture:
  * - Fetches all active products from Shopify
@@ -23,7 +23,7 @@ import { loadSettings } from "../utils/settings";
  * - Automatically via cron job (3x per day recommended)
  * - After new products are added to store
  *
- * Rate limiting: Check ProductRefreshLog to enforce 3x/day limit
+ * Rate limiting: Loads maxRefreshesPerDay from Shopify metafields
  */
 
 export async function loader({ request }: ActionFunctionArgs) {
