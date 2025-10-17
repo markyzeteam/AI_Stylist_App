@@ -361,7 +361,36 @@ function parseGeminiRecommendationResponse(
       console.log('✓ Removed ``` markdown wrapper');
     }
 
-    const parsed = JSON.parse(jsonText);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (parseError: any) {
+      console.warn(`⚠️ Initial JSON parse failed: ${parseError.message}`);
+      console.log(`🔧 Attempting to repair JSON...`);
+
+      // Try to fix common JSON errors
+      // 1. Remove trailing commas before } or ]
+      jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+
+      // 2. Try to find and extract just the recommendations array
+      const recommendationsMatch = jsonText.match(/"recommendations"\s*:\s*\[([\s\S]*)\]/);
+      if (recommendationsMatch) {
+        jsonText = `{"recommendations": [${recommendationsMatch[1]}]}`;
+        console.log(`✓ Extracted recommendations array`);
+      }
+
+      // 3. Try parsing again
+      try {
+        parsed = JSON.parse(jsonText);
+        console.log(`✅ Successfully repaired and parsed JSON`);
+      } catch (secondError: any) {
+        // Last resort: try to salvage what we can
+        console.error(`❌ JSON repair failed: ${secondError.message}`);
+        console.error(`   Position: ${secondError.message.match(/position (\d+)/)?.[1] || 'unknown'}`);
+        console.error(`   JSON excerpt near error:`, jsonText.substring(Math.max(0, (parseInt(secondError.message.match(/position (\d+)/)?.[1] || '0') - 100)), Math.min(jsonText.length, (parseInt(secondError.message.match(/position (\d+)/)?.[1] || '0') + 100))));
+        throw secondError;
+      }
+    }
 
     if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
       console.error("❌ No 'recommendations' array in parsed JSON");
