@@ -276,7 +276,7 @@ class BodyShapeAdvisor {
           <p class="bsa-loading-submessage">Our AI is preparing personalized style recommendations. This may take 10-30 seconds.</p>
           <div class="bsa-loading-steps">
             <div class="bsa-loading-step bsa-step-active">✓ Body shape identified</div>
-            <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing style preferences...</div>
+            <div class="bsa-loading-step bsa-step-processing">⏳ Gemini AI analyzing style preferences...</div>
             <div class="bsa-loading-step">○ Generating recommendations</div>
             <div class="bsa-loading-step">○ Preparing results</div>
           </div>
@@ -295,7 +295,7 @@ class BodyShapeAdvisor {
           <p class="bsa-loading-submessage">Our AI is preparing personalized color recommendations. This may take 10-30 seconds.</p>
           <div class="bsa-loading-steps">
             <div class="bsa-loading-step bsa-step-active">✓ Color season identified</div>
-            <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing color palette...</div>
+            <div class="bsa-loading-step bsa-step-processing">⏳ Gemini AI analyzing color palette...</div>
             <div class="bsa-loading-step">○ Generating color recommendations</div>
             <div class="bsa-loading-step">○ Preparing results</div>
           </div>
@@ -467,11 +467,11 @@ class BodyShapeAdvisor {
     // Simple body shape calculation (simplified version)
     this.bodyShapeResult = this.calculateShape(measurements);
 
-    // Show loading screen while getting Claude AI analysis
+    // Show loading screen while getting Gemini AI analysis
     this.currentStep = 'analysisLoading';
     this.render();
 
-    // Get Claude AI detailed analysis
+    // Get Gemini AI detailed analysis
     await this.getClaudeStyleAnalysis(this.bodyShapeResult.shape, measurements);
 
     this.goToStep('results');
@@ -486,11 +486,11 @@ class BodyShapeAdvisor {
       recommendations: this.getShapeRecommendations(shapeName)
     };
 
-    // Show loading screen while getting Claude AI analysis
+    // Show loading screen while getting Gemini AI analysis
     this.currentStep = 'analysisLoading';
     this.render();
 
-    // Get Claude AI detailed analysis
+    // Get Gemini AI detailed analysis
     await this.getClaudeStyleAnalysis(shapeName, null);
 
     this.goToStep('results');
@@ -608,10 +608,10 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeStyleAnalysis(bodyShape, measurements) {
-    console.log(`🤖 Getting Claude AI style analysis for ${bodyShape}...`);
+    console.log(`🤖 Getting Gemini AI style analysis for ${bodyShape}...`);
 
     try {
-      const apiUrl = `${this.config.apiEndpoint}/api/body-shape-analysis`;
+      const apiUrl = `${this.config.apiEndpoint}/api/gemini/body-shape-analysis`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -633,12 +633,12 @@ class BodyShapeAdvisor {
       const data = await response.json();
 
       if (data.success && data.analysis) {
-        console.log('✓ Got Claude AI style analysis');
+        console.log('✓ Got Gemini AI style analysis');
         this.bodyShapeResult.claudeAnalysis = data.analysis;
       }
     } catch (error) {
-      console.error('Error getting Claude AI style analysis:', error);
-      // Continue without Claude analysis if it fails
+      console.error('Error getting Gemini AI style analysis:', error);
+      // Continue without Gemini analysis if it fails
     }
   }
 
@@ -649,18 +649,18 @@ class BodyShapeAdvisor {
 
     const bodyShape = this.bodyShapeResult.shape;
 
-    console.log(`Getting Claude AI recommendations for ${bodyShape} (body shape only)`);
+    console.log(`Getting Gemini AI recommendations for ${bodyShape} (body shape only)`);
 
     try {
-      // Call Claude AI API for recommendations with body shape only (no color season)
+      // Call Gemini AI API for recommendations with body shape only (no color season)
       const recommendations = await this.getClaudeRecommendations(bodyShape, null);
 
       if (recommendations && recommendations.length > 0) {
-        console.log(`✓ Got ${recommendations.length} Claude AI recommendations`);
+        console.log(`✓ Got ${recommendations.length} Gemini AI recommendations`);
         this.productRecommendations = recommendations;
       } else {
         // Fallback to basic algorithm
-        console.log('⚠ No Claude recommendations, using fallback');
+        console.log('⚠ No Gemini recommendations, using fallback');
         await this.loadProducts();
         const settings = this.config.settings || {
           numberOfSuggestions: 30,
@@ -674,7 +674,7 @@ class BodyShapeAdvisor {
         );
       }
     } catch (error) {
-      console.error('Error getting Claude recommendations:', error);
+      console.error('Error getting Gemini recommendations:', error);
       // Fallback to basic algorithm
       await this.loadProducts();
       const settings = this.config.settings || {
@@ -693,25 +693,25 @@ class BodyShapeAdvisor {
   }
 
   async getProductsAfterColorSeason() {
-    // Get AI-powered recommendations from Claude using both body shape and color season
+    // Get AI-powered recommendations from Gemini using both body shape and color season
     this.currentStep = 'products';
     this.render();
 
     const bodyShape = this.bodyShapeResult.shape;
     const colorSeason = this.colorSeasonResult;
 
-    console.log(`Getting Claude AI recommendations for ${bodyShape} + ${colorSeason}`);
+    console.log(`Getting Gemini AI recommendations for ${bodyShape} + ${colorSeason}`);
 
     try {
-      // Call Claude AI API for recommendations with both body shape and color season
+      // Call Gemini AI API for recommendations with both body shape and color season
       const recommendations = await this.getClaudeRecommendations(bodyShape, colorSeason);
 
       if (recommendations && recommendations.length > 0) {
-        console.log(`✓ Got ${recommendations.length} Claude AI recommendations`);
+        console.log(`✓ Got ${recommendations.length} Gemini AI recommendations`);
         this.productRecommendations = recommendations;
       } else {
         // Fallback to basic algorithm
-        console.log('⚠ No Claude recommendations, using fallback');
+        console.log('⚠ No Gemini recommendations, using fallback');
         await this.loadProducts();
         const settings = this.config.settings || {
           numberOfSuggestions: 30,
@@ -725,7 +725,7 @@ class BodyShapeAdvisor {
         );
       }
     } catch (error) {
-      console.error('Error getting Claude recommendations:', error);
+      console.error('Error getting Gemini recommendations:', error);
       // Fallback to basic algorithm
       await this.loadProducts();
       const settings = this.config.settings || {
@@ -744,7 +744,7 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeRecommendations(bodyShape, colorSeason = null) {
-    console.log(`🤖 Calling Claude API for ${bodyShape} recommendations...`);
+    console.log(`🤖 Calling Gemini API for ${bodyShape} recommendations...`);
     if (colorSeason) {
       console.log(`🎨 Color Season: ${colorSeason}`);
     }
@@ -798,7 +798,7 @@ class BodyShapeAdvisor {
       console.log(`Added measurement: age=${this.measurements.age}`);
     }
 
-    const apiUrl = `${this.config.apiEndpoint}/api/claude/recommendations`;
+    const apiUrl = `${this.config.apiEndpoint}/api/gemini/recommendations`;
     console.log(`Fetching from: ${apiUrl}`);
 
     const response = await fetch(apiUrl, {
@@ -815,11 +815,11 @@ class BodyShapeAdvisor {
     }
 
     const data = await response.json();
-    console.log(`Claude API response:`, data);
+    console.log(`Gemini API response:`, data);
 
     if (data.recommendations) {
-      console.log(`✓ Transforming ${data.recommendations.length} Claude recommendations`);
-      // Transform Claude API response to match expected format
+      console.log(`✓ Transforming ${data.recommendations.length} Gemini recommendations`);
+      // Transform Gemini API response to match expected format
       return data.recommendations.map(rec => ({
         title: rec.product.title,
         handle: rec.product.handle,
@@ -1036,7 +1036,7 @@ class BodyShapeAdvisor {
             <div class="bsa-loading-steps">
               <div class="bsa-loading-step bsa-step-active">✓ Fetching products from catalog</div>
               <div class="bsa-loading-step bsa-step-active">✓ Filtering by body shape preferences</div>
-              <div class="bsa-loading-step bsa-step-processing">⏳ Claude AI analyzing matches...</div>
+              <div class="bsa-loading-step bsa-step-processing">⏳ Gemini AI analyzing matches...</div>
               <div class="bsa-loading-step">○ Preparing recommendations</div>
             </div>
           </div>
@@ -1252,11 +1252,11 @@ class BodyShapeAdvisor {
 
     console.log(`User selected color season: ${seasonName}`);
 
-    // Show loading screen while getting Claude AI analysis
+    // Show loading screen while getting Gemini AI analysis
     this.currentStep = 'colorSeasonAnalysisLoading';
     this.render();
 
-    // Get Claude AI color season analysis for the selected season
+    // Get Gemini AI color season analysis for the selected season
     await this.getClaudeColorSeasonAnalysis(seasonName, null);
 
     // Go to color season results page
@@ -1282,11 +1282,11 @@ class BodyShapeAdvisor {
 
     console.log(`Color Season Result: ${this.colorSeasonResult}`);
 
-    // Show loading screen while getting Claude AI analysis
+    // Show loading screen while getting Gemini AI analysis
     this.currentStep = 'colorSeasonAnalysisLoading';
     this.render();
 
-    // Get Claude AI color season analysis
+    // Get Gemini AI color season analysis
     await this.getClaudeColorSeasonAnalysis(this.colorSeasonResult, this.colorAnalysis);
 
     // Go to color season results page
@@ -1323,10 +1323,10 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeColorSeasonAnalysis(colorSeason, colorAnalysis) {
-    console.log(`🤖 Getting Claude AI color season analysis for ${colorSeason}...`);
+    console.log(`🤖 Getting Gemini AI color season analysis for ${colorSeason}...`);
 
     try {
-      const apiUrl = `${this.config.apiEndpoint}/api/color-season-analysis`;
+      const apiUrl = `${this.config.apiEndpoint}/api/gemini/color-season-analysis`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1348,7 +1348,7 @@ class BodyShapeAdvisor {
       const data = await response.json();
 
       if (data.success && data.analysis) {
-        console.log('✓ Got Claude AI color season analysis');
+        console.log('✓ Got Gemini AI color season analysis');
         // Store analysis in a new object structure
         if (!this.colorSeasonData) {
           this.colorSeasonData = {};
@@ -1356,8 +1356,8 @@ class BodyShapeAdvisor {
         this.colorSeasonData.claudeAnalysis = data.analysis;
       }
     } catch (error) {
-      console.error('Error getting Claude AI color season analysis:', error);
-      // Continue without Claude analysis if it fails
+      console.error('Error getting Gemini AI color season analysis:', error);
+      // Continue without Gemini analysis if it fails
     }
   }
 
