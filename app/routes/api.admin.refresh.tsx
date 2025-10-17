@@ -39,7 +39,7 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log(`\n${"=".repeat(60)}`);
     console.log(`🔄 ADMIN REFRESH STARTED for ${shop}`);
     console.log(`${"=".repeat(60)}`);
-    console.log(`⚙️  [v3] Using loadSettings from metafields`);
+    console.log(`⚙️  [BUILD: 2025-10-17-13:55 UTC] RATE LIMIT DISABLED`);
 
     const startTime = Date.now();
 
