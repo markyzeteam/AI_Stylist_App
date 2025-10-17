@@ -99,7 +99,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
 
           // Load the main app script
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v={{ 'now' | date: '%s' }}';
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=17';
           script.onerror = function() {
             console.error('❌ Failed to load body-shape-advisor.js');
           };
@@ -119,7 +119,7 @@ Body Shape Advisor App Block - Interactive storefront widget with product recomm
           console.warn('⚠ Timeout loading settings, initializing with defaults');
           // Initialize with defaults if loading fails
           const script = document.createElement('script');
-          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v={{ 'now' | date: '%s' }}';
+          script.src = '{{ 'body-shape-advisor.js' | asset_url }}?v=17';
           script.onerror = function() {
             console.error('❌ Failed to load body-shape-advisor.js');
           };
