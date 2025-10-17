@@ -12,6 +12,7 @@ import {
   InlineStack,
   Button,
   Banner,
+  Modal,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -85,6 +86,8 @@ export default function AnalysisResults() {
   const { products } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [isClearing, setIsClearing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [modalActive, setModalActive] = useState(false);
 
   const handleClearAll = async () => {
     if (
@@ -98,6 +101,16 @@ export default function AnalysisResults() {
       document.body.appendChild(form);
       form.submit();
     }
+  };
+
+  const handleProductClick = (product: typeof products[0]) => {
+    setSelectedProduct(product);
+    setModalActive(true);
+  };
+
+  const handleModalClose = () => {
+    setModalActive(false);
+    setSelectedProduct(null);
   };
 
   return (
@@ -148,82 +161,47 @@ export default function AnalysisResults() {
             </Card>
 
             {products.map((product) => (
-              <Card key={product.id}>
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingMd">
-                      {product.title}
-                    </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Type: {product.productType || "N/A"} • Last Updated: {product.lastUpdated ? new Date(product.lastUpdated).toLocaleString() : "N/A"}
-                    </Text>
-                  </BlockStack>
-
-                  {product.analysis ? (
-                    <BlockStack gap="300">
-                      {product.analysis.colors && product.analysis.colors.length > 0 && (
-                        <div>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            🎨 Colors:
-                          </Text>
-                          <div style={{ marginTop: "8px" }}>
-                            <InlineStack gap="200" wrap>
-                              {product.analysis.colors.map((color: string, idx: number) => (
-                                <Badge key={idx}>{color}</Badge>
-                              ))}
-                            </InlineStack>
-                          </div>
-                        </div>
-                      )}
-
-                      {product.analysis.style && product.analysis.style.length > 0 && (
-                        <div>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            👗 Style:
-                          </Text>
-                          <div style={{ marginTop: "8px" }}>
-                            <InlineStack gap="200" wrap>
-                              {product.analysis.style.map((style: string, idx: number) => (
-                                <Badge key={idx} tone="info">{style}</Badge>
-                              ))}
-                            </InlineStack>
-                          </div>
-                        </div>
-                      )}
-
-                      {product.analysis.silhouette && product.analysis.silhouette.length > 0 && (
-                        <div>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            ✨ Silhouette:
-                          </Text>
-                          <div style={{ marginTop: "8px" }}>
-                            <InlineStack gap="200" wrap>
-                              {product.analysis.silhouette.map((silhouette: string, idx: number) => (
-                                <Badge key={idx} tone="success">{silhouette}</Badge>
-                              ))}
-                            </InlineStack>
-                          </div>
-                        </div>
-                      )}
-
-                      {product.analysis.description && (
-                        <div>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            📝 Description:
-                          </Text>
-                          <Text as="p" variant="bodyMd" tone="subdued" breakWord>
-                            {product.analysis.description}
-                          </Text>
-                        </div>
-                      )}
+              <div key={product.id} onClick={() => handleProductClick(product)} style={{ cursor: "pointer" }}>
+                <Card>
+                  <BlockStack gap="400">
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="h3" variant="headingMd">
+                          {product.title}
+                        </Text>
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          Click to view details →
+                        </Text>
+                      </InlineStack>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Type: {product.productType || "N/A"} • Last Updated: {product.lastUpdated ? new Date(product.lastUpdated).toLocaleString() : "N/A"}
+                      </Text>
                     </BlockStack>
-                  ) : (
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      No analysis data available
-                    </Text>
-                  )}
-                </BlockStack>
-              </Card>
+
+                    {product.analysis ? (
+                      <InlineStack gap="200" wrap>
+                        {product.analysis.colors && product.analysis.colors.length > 0 && (
+                          <>
+                            <Text as="span" variant="bodySm">🎨</Text>
+                            {product.analysis.colors.slice(0, 3).map((color: string, idx: number) => (
+                              <Badge key={idx}>{color}</Badge>
+                            ))}
+                            {product.analysis.colors.length > 3 && (
+                              <Text as="span" variant="bodySm" tone="subdued">
+                                +{product.analysis.colors.length - 3} more
+                              </Text>
+                            )}
+                          </>
+                        )}
+                      </InlineStack>
+                    ) : (
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        No analysis data available
+                      </Text>
+                    )}
+                  </BlockStack>
+                </Card>
+              </div>
             ))}
 
             {products.length === 0 && (
@@ -236,6 +214,109 @@ export default function AnalysisResults() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+
+      <Modal
+        open={modalActive}
+        onClose={handleModalClose}
+        title={selectedProduct?.title || "Product Details"}
+        primaryAction={{
+          content: "Close",
+          onAction: handleModalClose,
+        }}
+      >
+        <Modal.Section>
+          {selectedProduct && (
+            <BlockStack gap="400">
+              <BlockStack gap="200">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  <strong>Product Type:</strong> {selectedProduct.productType || "N/A"}
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  <strong>Last Updated:</strong>{" "}
+                  {selectedProduct.lastUpdated
+                    ? new Date(selectedProduct.lastUpdated).toLocaleString()
+                    : "N/A"}
+                </Text>
+              </BlockStack>
+
+              {selectedProduct.analysis ? (
+                <BlockStack gap="400">
+                  {selectedProduct.analysis.colors &&
+                    selectedProduct.analysis.colors.length > 0 && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          🎨 Colors
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <InlineStack gap="200" wrap>
+                            {selectedProduct.analysis.colors.map((color: string, idx: number) => (
+                              <Badge key={idx}>{color}</Badge>
+                            ))}
+                          </InlineStack>
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedProduct.analysis.style &&
+                    selectedProduct.analysis.style.length > 0 && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          👗 Style
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <InlineStack gap="200" wrap>
+                            {selectedProduct.analysis.style.map((style: string, idx: number) => (
+                              <Badge key={idx} tone="info">
+                                {style}
+                              </Badge>
+                            ))}
+                          </InlineStack>
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedProduct.analysis.silhouette &&
+                    selectedProduct.analysis.silhouette.length > 0 && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          ✨ Silhouette
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <InlineStack gap="200" wrap>
+                            {selectedProduct.analysis.silhouette.map(
+                              (silhouette: string, idx: number) => (
+                                <Badge key={idx} tone="success">
+                                  {silhouette}
+                                </Badge>
+                              )
+                            )}
+                          </InlineStack>
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedProduct.analysis.description && (
+                    <div>
+                      <Text as="p" variant="headingSm" fontWeight="semibold">
+                        📝 Description
+                      </Text>
+                      <div style={{ marginTop: "12px" }}>
+                        <Text as="p" variant="bodyMd" breakWord>
+                          {selectedProduct.analysis.description}
+                        </Text>
+                      </div>
+                    </div>
+                  )}
+                </BlockStack>
+              ) : (
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  No analysis data available for this product.
+                </Text>
+              )}
+            </BlockStack>
+          )}
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
