@@ -1346,6 +1346,11 @@ Medium Store (2,000 products, 100 users/day):
 - [x] Add Gemini API key settings form ✅ **COMPLETED (2025-10-17)**
 - [ ] Add filtering settings UI
 - [x] Add editable prompts (image + recommendation) ✅ **COMPLETED (2025-10-17)**
+- [x] Create analysis results viewer page ✅ **COMPLETED (2025-10-17)**
+  - View all products with Gemini analysis
+  - Clickable product cards with modal popup
+  - Display colors, styles, silhouette, description
+  - Clear all analysis functionality
 
 ### ✅ Phase 6: Testing
 - [ ] Test with small product catalog (10 products)
@@ -1466,6 +1471,57 @@ Medium Store (2,000 products, 100 users/day):
 - **Status:** ✅ Migration to Gemini 100% complete - no Claude dependencies remaining
 - **Commit:** `ae15c60` - Remove deprecated Claude endpoint files
 - **Note:** All storefront and admin functionality now exclusively uses Gemini 2.0 Flash
+
+**✅ Feature: Analysis Results Viewer with Modal Popup (2025-10-17)**
+- **What:** Created comprehensive UI for viewing Gemini analysis results
+- **Location:** `/app/analysis-results` in admin dashboard
+- **Features:**
+  1. Product List View - Shows all analyzed products with preview (first 3 colors)
+  2. Clickable Cards - Each product card is clickable to open modal
+  3. Modal Popup - Displays complete analysis details:
+     - All colors (detectedColors)
+     - Style classifications (styleClassification)
+     - Silhouette type (silhouetteType)
+     - Full description (constructed from pattern, fabric, details, seasons)
+  4. Clear All Button - Bulk delete all analysis data with confirmation
+  5. Visual Hint - "Click to view details →" on each card
+- **Files Created:**
+  - `app/routes/app.analysis-results.tsx` - Main analysis results page with modal
+- **Technical Details:**
+  - Maps database field names to UI-friendly names:
+    - `detectedColors` → `colors`
+    - `styleClassification` → `style`
+    - `silhouetteType` → `silhouette`
+  - Constructs description from multiple fields for better readability
+  - Shows up to 50 most recent products (ordered by lastUpdated)
+- **Commits:**
+  - `80c905c` - Add clickable product cards with modal popup
+  - `4b003c0` - Add debug logging to analysis results loader
+  - `290e1b3` - Fix field mapping for Gemini analysis data
+- **Status:** ✅ DEPLOYED as app-63
+- **Note:** This gives admins full visibility into Gemini's image analysis results
+
+**✅ Fix: JSON Repair Logic for Malformed Gemini Responses (2025-10-17)**
+- **Issue:** Gemini occasionally returns malformed JSON with syntax errors (e.g., extra `}`, trailing commas)
+- **Error:** `Unexpected token } in JSON at position 24376`
+- **Impact:** Caused recommendation requests to return 0 results despite Gemini generating response
+- **Root Cause:** Gemini's JSON output sometimes contains structural errors
+- **Fix Applied:**
+  1. Added multi-stage JSON repair process:
+     - First attempt: Parse as-is
+     - Second attempt: Remove trailing commas before `}` or `]`
+     - Third attempt: Extract just the `recommendations` array using regex
+     - Final attempt: Parse repaired JSON
+  2. Enhanced error logging with exact position and excerpt near error
+  3. Maintains fallback to basic algorithm if all repair attempts fail
+- **File Modified:** `app/utils/geminiRecommendations.ts` lines 346-393
+- **Benefits:**
+  - Automatically recovers from common JSON errors
+  - Prevents complete recommendation failures
+  - Provides detailed debugging information
+- **Commit:** `346611f` - Add JSON repair logic for malformed Gemini responses
+- **Status:** ✅ COMMITTED - Will be active on Railway after redeploy
+- **Note:** This improves reliability of Gemini recommendations by handling edge cases
 
 ### Files Created/Modified
 
