@@ -1,6 +1,7 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import { useState } from "react";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -9,6 +10,8 @@ import {
   BlockStack,
   Badge,
   InlineStack,
+  Button,
+  Banner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -49,8 +52,53 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({ products: parsedProducts });
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
+
+  try {
+    // Delete all product analysis for this shop
+    const result = await db.filteredSelectionWithImgAnalyzed.deleteMany({
+      where: { shop },
+    });
+
+    console.log(`🗑️ Cleared ${result.count} product analyses for ${shop}`);
+
+    return json({
+      success: true,
+      message: `Successfully cleared ${result.count} product analyses`,
+      count: result.count,
+    });
+  } catch (error: any) {
+    console.error("❌ Error clearing analysis:", error);
+    return json(
+      {
+        success: false,
+        message: `Error: ${error.message}`,
+      },
+      { status: 500 }
+    );
+  }
+};
+
 export default function AnalysisResults() {
   const { products } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAll = async () => {
+    if (
+      confirm(
+        `Are you sure you want to clear ALL ${products.length} product analyses? This cannot be undone.`
+      )
+    ) {
+      setIsClearing(true);
+      const form = document.createElement("form");
+      form.method = "POST";
+      document.body.appendChild(form);
+      form.submit();
+    }
+  };
 
   return (
     <Page>
@@ -58,14 +106,44 @@ export default function AnalysisResults() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
+            {actionData?.success && (
+              <Banner tone="success" onDismiss={() => window.location.reload()}>
+                <Text as="p" variant="bodyMd">
+                  {actionData.message}
+                </Text>
+              </Banner>
+            )}
+
+            {actionData?.success === false && (
+              <Banner tone="critical">
+                <Text as="p" variant="bodyMd">
+                  {actionData.message}
+                </Text>
+              </Banner>
+            )}
+
             <Card>
               <BlockStack gap="400">
-                <Text as="h2" variant="headingLg">
-                  Product Analysis Results
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Showing {products.length} analyzed products with Gemini AI
-                </Text>
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingLg">
+                      Product Analysis Results
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Showing {products.length} analyzed products with Gemini AI
+                    </Text>
+                  </BlockStack>
+                  {products.length > 0 && (
+                    <Button
+                      tone="critical"
+                      onClick={handleClearAll}
+                      loading={isClearing}
+                      disabled={isClearing}
+                    >
+                      Clear All Analysis
+                    </Button>
+                  )}
+                </InlineStack>
               </BlockStack>
             </Card>
 
