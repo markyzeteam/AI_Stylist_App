@@ -211,17 +211,35 @@ Product Title: ${productTitle}`;
 
     console.log(`✅ Gemini response received (${text.length} chars)`);
 
+    // Clean markdown if present
+    let cleanedText = text.trim();
+    if (cleanedText.startsWith("```json")) {
+      cleanedText = cleanedText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+    } else if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.replace(/```\n?/g, "");
+    }
+
     // Parse JSON response
-    const analysis = parseGeminiAnalysis(text);
+    const analysis = parseGeminiAnalysis(cleanedText);
 
     if (!analysis) {
       console.error("❌ Failed to parse Gemini analysis");
       return null;
     }
 
+    // Parse the cleaned text for rawAnalysis
+    let rawAnalysis;
+    try {
+      rawAnalysis = JSON.parse(cleanedText);
+    } catch (error) {
+      console.error("❌ Failed to parse raw analysis:", error);
+      console.error("   Cleaned text:", cleanedText.substring(0, 500));
+      rawAnalysis = null;
+    }
+
     return {
       ...analysis,
-      rawAnalysis: JSON.parse(text),
+      rawAnalysis,
     };
   } catch (error) {
     console.error(`❌ Error analyzing image for ${productTitle}:`, error);
