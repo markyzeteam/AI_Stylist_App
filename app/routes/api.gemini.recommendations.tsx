@@ -43,9 +43,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Get values preferences from FormData
     const sustainability = formData.get("sustainability") === "true";
-    const budgetRange = formData.get("budgetRange") as string | null;
+    const budgetRangeRaw = formData.get("budgetRange") as string | null;
+    const budgetRange = budgetRangeRaw && budgetRangeRaw !== "null" ? budgetRangeRaw : null;
     const stylePreferences = formData.get("stylePreferences") as string | null;
-    const styles = stylePreferences ? stylePreferences.split(',') : [];
+    const styles = stylePreferences ? stylePreferences.split(',').filter(s => s.trim()) : [];
 
     // Get settings from FormData (passed from storefront)
     const numberOfSuggestions = parseInt(formData.get("numberOfSuggestions") as string) || 30;
@@ -89,9 +90,12 @@ export async function action({ request }: ActionFunctionArgs) {
       maxProductsToScan,
       onlyInStock,
       hasMeasurements: !!measurements,
+    });
+    console.log(`💎 Values Preferences:`, {
       sustainability,
       budgetRange: budgetRange || 'none',
       stylePreferences: styles.length > 0 ? styles.join(', ') : 'none',
+      hasPreferences: sustainability || !!budgetRange || styles.length > 0
     });
     console.log(`${"=".repeat(60)}\n`);
 

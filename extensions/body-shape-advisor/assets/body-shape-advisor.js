@@ -814,14 +814,18 @@ class BodyShapeAdvisor {
       console.log(`Added measurement: age=${this.measurements.age}`);
     }
 
-    // Add values preferences if available
-    if (this.valuesPreferences) {
+    // Add values preferences if questionnaire was completed
+    if (this.valuesPreferences && this.valuesPreferences.completed) {
       formData.append('sustainability', this.valuesPreferences.sustainability);
-      formData.append('budgetRange', this.valuesPreferences.budgetRange);
+      if (this.valuesPreferences.budgetRange) {
+        formData.append('budgetRange', this.valuesPreferences.budgetRange);
+      }
       if (this.valuesPreferences.styles && this.valuesPreferences.styles.length > 0) {
         formData.append('stylePreferences', this.valuesPreferences.styles.join(','));
       }
-      console.log(`Added values: sustainability=${this.valuesPreferences.sustainability}, budget=${this.valuesPreferences.budgetRange}, styles=${this.valuesPreferences.styles.join(',')}`);
+      console.log(`Added values: sustainability=${this.valuesPreferences.sustainability}, budget=${this.valuesPreferences.budgetRange || 'none'}, styles=${this.valuesPreferences.styles.join(',') || 'none'}`);
+    } else {
+      console.log(`Values preferences not completed - skipping`);
     }
 
     const apiUrl = `${this.config.apiEndpoint}/api/gemini/recommendations`;

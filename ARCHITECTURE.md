@@ -15,7 +15,44 @@
 
 ---
 
-## ⚡ LATEST UPDATE: FIX CUSTOM SYSTEM PROMPT FOR RECOMMENDATIONS
+## ⚡ LATEST UPDATE: VALUES PREFERENCES IN RECOMMENDATIONS
+
+**Date:** 2025-01-20
+**Change:** Fixed bug where values preferences (sustainability, budget, style) were not being used in product recommendations
+**Why:** Users could fill out the shopping preferences questionnaire, but their values were being ignored by Gemini AI
+
+**What was fixed:**
+
+### Backend (`app/utils/geminiRecommendations.ts`):
+- Added `valuesPreferences` parameter to `buildGeminiRecommendationPrompt` function
+- Created prompt section that informs Gemini about:
+  - Sustainability preferences (eco-friendly fashion priority)
+  - Budget range (low/medium/high/luxury)
+  - Style preferences (minimalist, classic, trendy, bohemian, edgy, romantic)
+- Added console logging to track when values are received
+- Gemini now considers these values when scoring and recommending products
+
+### API Layer (`app/routes/api.gemini.recommendations.tsx`):
+- Fixed bug where `budgetRange` was being received as string `"null"` instead of actual `null`
+- Added filtering to ignore invalid/null values
+- Enhanced logging to show values preferences separately from settings
+- Better error handling for missing values
+
+### Storefront (`extensions/body-shape-advisor/assets/body-shape-advisor.js`):
+- Fixed bug where values were being sent even when questionnaire wasn't completed
+- Now only sends values preferences if `valuesPreferences.completed === true`
+- Added defensive check to avoid sending `null` budget values
+- Improved console logging to show when values are/aren't being sent
+
+### Impact:
+- ✅ Sustainability-conscious users get eco-friendly product recommendations
+- ✅ Budget-based filtering ensures appropriate price points
+- ✅ Style preferences influence product selection (minimalist, trendy, etc.)
+- ✅ Better user experience with truly personalized recommendations
+
+---
+
+## ⚡ PREVIOUS UPDATE: FIX CUSTOM SYSTEM PROMPT FOR RECOMMENDATIONS
 
 **Date:** 2025-01-20
 **Change:** Fixed bug where custom systemPrompt was not being used in recommendations

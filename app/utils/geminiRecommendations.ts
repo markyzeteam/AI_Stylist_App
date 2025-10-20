@@ -84,6 +84,7 @@ export async function getGeminiProductRecommendations(
 ): Promise<ProductRecommendation[]> {
   try {
     console.log(`🤖 Getting Gemini recommendations for ${bodyShape} (${shop})`);
+    console.log(`📋 Values Preferences:`, valuesPreferences);
 
     // Load Gemini settings
     const geminiSettings = await loadGeminiSettings(shop);
@@ -151,7 +152,8 @@ export async function getGeminiProductRecommendations(
       numberOfSuggestions,
       minimumMatchScore,
       colorSeason,
-      geminiSettings
+      geminiSettings,
+      valuesPreferences
     );
 
     // STEP 5: Call Gemini API (text-only)
@@ -261,7 +263,12 @@ function buildGeminiRecommendationPrompt(
   limit: number,
   minimumMatchScore: number,
   colorSeason?: string,
-  geminiSettings?: any
+  geminiSettings?: any,
+  valuesPreferences?: {
+    sustainability: boolean;
+    budgetRange?: string;
+    styles: string[];
+  }
 ): string {
   const measurementInfo = measurements
     ? `
@@ -295,6 +302,28 @@ Customer Measurements:
   const colorGuidance = colorSeason ? colorSeasonGuidance[colorSeason] : "";
   const colorSeasonInfo = colorSeason ? `\nColor Season: ${colorSeason}\nColor Guidance: ${colorGuidance}` : "";
 
+  // Build values preferences section
+  let valuesInfo = "";
+  if (valuesPreferences) {
+    const parts: string[] = [];
+
+    if (valuesPreferences.sustainability) {
+      parts.push("- Sustainability: Customer values sustainable and eco-friendly fashion. Prioritize products with sustainable materials, ethical production, or eco-conscious brands.");
+    }
+
+    if (valuesPreferences.budgetRange) {
+      parts.push(`- Budget Range: ${valuesPreferences.budgetRange}. Consider price points that fit within this range.`);
+    }
+
+    if (valuesPreferences.styles && valuesPreferences.styles.length > 0) {
+      parts.push(`- Style Preferences: ${valuesPreferences.styles.join(", ")}. Prioritize products that match these style categories.`);
+    }
+
+    if (parts.length > 0) {
+      valuesInfo = `\n\nCustomer Values & Preferences:\n${parts.join("\n")}`;
+    }
+  }
+
   // Use custom systemPrompt from settings, or fall back to default
   const systemPrompt = geminiSettings?.systemPrompt || DEFAULT_GEMINI_RECOMMENDATION_PROMPT;
 
@@ -303,7 +332,7 @@ Customer Measurements:
 ${measurementInfo}
 
 Body Shape: ${bodyShape}
-Style Guidance: ${guidance}${colorSeasonInfo}
+Style Guidance: ${guidance}${colorSeasonInfo}${valuesInfo}
 
 Products Available (with PRE-ANALYZED visual data):
 ${JSON.stringify(products, null, 2)}
