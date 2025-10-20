@@ -175,7 +175,7 @@ export default function GeminiSettings() {
     setBudgetMediumMax(String(settings.budgetMediumMax || 80));
     setBudgetHighMax(String(settings.budgetHighMax || 200));
     setUseImageAnalysis(settings.useImageAnalysis);
-  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis]);
+  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
 
   // Handle API tier selection
   const handleApiTierChange = (value: string) => {
@@ -356,6 +356,7 @@ export default function GeminiSettings() {
 
                 <form onSubmit={handleSubmit}>
                   <BlockStack gap="400">
+                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
                     <TextField
                       label='Budget "Low" Maximum Price'
                       type="number"
@@ -367,8 +368,8 @@ export default function GeminiSettings() {
                       step="1"
                       autoComplete="off"
                     />
-                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
 
+                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
                     <TextField
                       label='Budget "Medium" Maximum Price'
                       type="number"
@@ -380,8 +381,8 @@ export default function GeminiSettings() {
                       step="1"
                       autoComplete="off"
                     />
-                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
 
+                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
                     <TextField
                       label='Budget "High" Maximum Price'
                       type="number"
@@ -393,7 +394,6 @@ export default function GeminiSettings() {
                       step="1"
                       autoComplete="off"
                     />
-                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
 
                     <Banner tone="info">
                       <BlockStack gap="200">
@@ -410,8 +410,11 @@ export default function GeminiSettings() {
                     </Banner>
 
                     <input type="hidden" name="actionType" value="save" />
+                    <input type="hidden" name="apiKey" value={apiKey} />
                     <input type="hidden" name="model" value={model} />
                     <input type="hidden" name="enabled" value={enabled.toString()} />
+                    <input type="hidden" name="prompt" value={prompt} />
+                    <input type="hidden" name="systemPrompt" value={systemPrompt} />
                     <input type="hidden" name="useImageAnalysis" value={useImageAnalysis.toString()} />
                     <input type="hidden" name="enableRateLimiting" value={enableRateLimiting.toString()} />
                     <input type="hidden" name="requestsPerMinute" value={requestsPerMinute} />
