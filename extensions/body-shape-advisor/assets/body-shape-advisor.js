@@ -31,8 +31,9 @@ class BodyShapeAdvisor {
     };
     this.valuesPreferences = {
       sustainability: false,
-      budgetRange: 'medium', // low, medium, high, luxury
-      styles: [] // minimalist, classic, trendy, bohemian, etc.
+      budgetRange: null, // Will be set when user fills questionnaire
+      styles: [], // Will be populated when user fills questionnaire
+      completed: false // Track if questionnaire was completed
     };
 
     this.init();
@@ -1035,8 +1036,8 @@ class BodyShapeAdvisor {
 
     const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Skin Color Season` : '';
 
-    // Build profile summary
-    const hasValues = this.valuesPreferences && (this.valuesPreferences.sustainability || this.valuesPreferences.budgetRange || this.valuesPreferences.styles.length > 0);
+    // Build profile summary - only show values if questionnaire was completed
+    const hasValues = this.valuesPreferences && this.valuesPreferences.completed;
     const valuesText = hasValues ? ` + Your Shopping Values` : '';
 
     return `
@@ -1541,7 +1542,7 @@ class BodyShapeAdvisor {
             <div class="bsa-form-field">
               <select name="budgetRange" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;">
                 <option value="low" ${this.valuesPreferences.budgetRange === 'low' ? 'selected' : ''}>Budget-Friendly (Under $30)</option>
-                <option value="medium" ${this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($30-$80)</option>
+                <option value="medium" ${!this.valuesPreferences.budgetRange || this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($30-$80)</option>
                 <option value="high" ${this.valuesPreferences.budgetRange === 'high' ? 'selected' : ''}>Premium ($80-$200)</option>
                 <option value="luxury" ${this.valuesPreferences.budgetRange === 'luxury' ? 'selected' : ''}>Luxury ($200+)</option>
               </select>
@@ -1637,6 +1638,9 @@ class BodyShapeAdvisor {
 
     // Get style preferences (multiple checkboxes)
     this.valuesPreferences.styles = formData.getAll('styles');
+
+    // Mark questionnaire as completed
+    this.valuesPreferences.completed = true;
 
     console.log('Values preferences:', this.valuesPreferences);
 
