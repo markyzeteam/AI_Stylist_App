@@ -131,6 +131,9 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         batchSize: settings.batchSize,
         enableRateLimiting: settings.enableRateLimiting,
         useImageAnalysis: settings.useImageAnalysis,
+        budgetLowMax: settings.budgetLowMax ? Number(settings.budgetLowMax) : undefined,
+        budgetMediumMax: settings.budgetMediumMax ? Number(settings.budgetMediumMax) : undefined,
+        budgetHighMax: settings.budgetHighMax ? Number(settings.budgetHighMax) : undefined,
       };
     }
 
