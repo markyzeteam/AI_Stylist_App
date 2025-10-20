@@ -276,14 +276,19 @@ export default function GeminiSettings() {
                       <Text as="p" variant="bodyMd" tone="subdued">
                         This prompt is used when analyzing product images to extract visual features (colors, style, silhouette, etc.)
                       </Text>
+                      <Banner tone="info">
+                        <Text as="p" variant="bodySm">
+                          <strong>Note:</strong> You can customize the analysis instructions, but the JSON format structure is fixed and automatically enforced to ensure data consistency. The response will always include: detectedColors, colorSeasons, silhouetteType, styleClassification, fabricTexture, designDetails, patternType, and additionalNotes.
+                        </Text>
+                      </Banner>
                       <TextField
-                        label="Image Analysis Prompt"
+                        label="Image Analysis Prompt (Customizable)"
                         name="prompt"
                         value={prompt}
                         onChange={setPrompt}
                         multiline={8}
                         autoComplete="off"
-                        helpText="Customize how Gemini analyzes product images. Use JSON format instructions."
+                        helpText="Customize what you want Gemini to focus on when analyzing images. The JSON format will be automatically enforced."
                       />
                     </BlockStack>
 

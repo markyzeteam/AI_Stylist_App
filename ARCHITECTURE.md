@@ -317,6 +317,7 @@ model FilteredSelectionWithImgAnalyzed {
   fabricTexture     String?
   designDetails     String[]
   patternType       String?
+  additionalNotes   String?   @db.Text // Free-text notes from Gemini
 
   // Size information
   sizeChart         Json?
@@ -1381,10 +1382,31 @@ Medium Store (2,000 products, 100 users/day):
 
 ## 📝 IMPLEMENTATION NOTES
 
-**Latest Update:** 2025-10-17
+**Latest Update:** 2025-10-20
 **Status:** ✅ Deployed and fixed
 
 ### Critical Fixes Applied
+
+**✅ Enhancement: Fixed JSON Format + additionalNotes Field (2025-10-20)**
+- **What:** Made JSON format unchangeable and added free-text field for Gemini
+- **Changes Made:**
+  1. Separated customizable prompt from fixed JSON format structure
+  2. Added `FIXED_JSON_FORMAT_INSTRUCTION` constant (not customizable)
+  3. Added `additionalNotes` field to ProductImageAnalysis interface
+  4. Added `additionalNotes` column to database schema (String? @db.Text)
+  5. Updated `saveAnalyzedProduct()` to save additionalNotes
+  6. Updated UI to clarify what's customizable vs fixed
+  7. Added Banner in gemini-settings explaining the fixed structure
+- **Files Modified:**
+  - `app/utils/geminiAnalysis.ts` - Separated prompt logic, added additionalNotes field
+  - `prisma/schema.prisma` - Added additionalNotes column to FilteredSelectionWithImgAnalyzed
+  - `app/routes/app.gemini-settings.tsx` - Added info banner about fixed format
+- **Benefits:**
+  - Users can customize analysis focus without breaking data structure
+  - Gemini can add detailed observations in additionalNotes (free text)
+  - Prevents JSON parsing errors from user prompt edits
+  - Ensures consistent database schema across all shops
+- **Migration Required:** Run `npx prisma migrate dev --name add-additional-notes` to add the new column
 
 **✅ Fix: Gemini JSON Parsing Error (2025-01-17)**
 - **Issue:** Gemini returns responses wrapped in markdown code blocks (```json ... ```)

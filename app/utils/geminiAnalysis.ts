@@ -25,6 +25,7 @@ export interface ProductImageAnalysis {
   fabricTexture?: string;
   designDetails: string[];
   patternType?: string;
+  additionalNotes?: string;
   rawAnalysis: any;
 }
 
@@ -42,7 +43,7 @@ export interface ShopifyProduct {
   availableSizes?: string[];
 }
 
-// Default prompt for Gemini image analysis
+// Default prompt for Gemini image analysis (CUSTOMIZABLE PART)
 export const DEFAULT_GEMINI_SYSTEM_PROMPT = `You are an expert fashion analyst with deep knowledge of:
 - Color theory and seasonal color analysis (Spring, Summer, Autumn, Winter)
 - Clothing silhouettes and fit types
@@ -52,7 +53,7 @@ export const DEFAULT_GEMINI_SYSTEM_PROMPT = `You are an expert fashion analyst w
 
 Your task is to analyze clothing product images with precision and consistency.`;
 
-export const DEFAULT_GEMINI_IMAGE_PROMPT = `Analyze this clothing product image and provide detailed visual analysis in JSON format.
+export const DEFAULT_GEMINI_IMAGE_PROMPT = `Analyze this clothing product image and provide detailed visual analysis.
 
 Extract the following information:
 
@@ -63,6 +64,10 @@ Extract the following information:
 5. **fabricTexture**: Apparent fabric type (e.g., "Smooth silk", "Textured knit", "Denim", "Flowing chiffon")
 6. **designDetails**: Notable design elements (e.g., ["V-neckline", "Puff sleeves", "Side pockets", "Pleated skirt"])
 7. **patternType**: Pattern classification (e.g., "Solid", "Striped", "Floral", "Geometric", "Polka dot")
+8. **additionalNotes**: Any other relevant observations or styling notes (free text)`;
+
+// FIXED JSON FORMAT (NOT CUSTOMIZABLE - ensures consistent data structure)
+const FIXED_JSON_FORMAT_INSTRUCTION = `
 
 CRITICAL: You MUST always return valid JSON. Even if the image is unclear, contains logos only, or you cannot fully analyze it, still return JSON with empty arrays or "Unknown" values.
 
@@ -74,7 +79,8 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text, no expl
   "styleClassification": ["Casual", "Bohemian"],
   "fabricTexture": "Flowing cotton",
   "designDetails": ["V-neckline", "Short sleeves"],
-  "patternType": "Floral"
+  "patternType": "Floral",
+  "additionalNotes": "Optional free-text notes about the garment"
 }
 
 If you cannot analyze the image properly, return:
@@ -85,7 +91,8 @@ If you cannot analyze the image properly, return:
   "styleClassification": ["Unknown"],
   "fabricTexture": "Unknown",
   "designDetails": [],
-  "patternType": "Unknown"
+  "patternType": "Unknown",
+  "additionalNotes": ""
 }`;
 
 /**
@@ -206,12 +213,15 @@ export async function analyzeProductImage(
     // Determine mime type from URL
     const mimeType = imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    // Build prompt with system instructions
+    // Build prompt with system instructions + fixed format (always appended)
+    const customPrompt = settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT;
     const fullPrompt = `${DEFAULT_GEMINI_SYSTEM_PROMPT}
 
-${settings.prompt}
+${customPrompt}
 
-Product Title: ${productTitle}`;
+Product Title: ${productTitle}
+
+${FIXED_JSON_FORMAT_INSTRUCTION}`;
 
     // Call Gemini with image and enforce JSON output
     const result = await model.generateContent({
@@ -315,6 +325,7 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
       fabricTexture: parsed.fabricTexture || undefined,
       designDetails: Array.isArray(parsed.designDetails) ? parsed.designDetails : [],
       patternType: parsed.patternType || undefined,
+      additionalNotes: parsed.additionalNotes || undefined,
     };
   } catch (error) {
     console.error("❌ Error parsing Gemini analysis:", error);
@@ -564,6 +575,7 @@ export async function saveAnalyzedProduct(
         fabricTexture: analysis.fabricTexture,
         designDetails: analysis.designDetails,
         patternType: analysis.patternType,
+        additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
         lastUpdated: new Date(),
       },
@@ -589,6 +601,7 @@ export async function saveAnalyzedProduct(
         fabricTexture: analysis.fabricTexture,
         designDetails: analysis.designDetails,
         patternType: analysis.patternType,
+        additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
       },
     });

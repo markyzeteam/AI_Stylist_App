@@ -29,6 +29,11 @@ class BodyShapeAdvisor {
       depth: '', // light/medium/deep
       intensity: '' // bright/muted
     };
+    this.valuesPreferences = {
+      sustainability: false,
+      budgetRange: 'medium', // low, medium, high, luxury
+      styles: [] // minimalist, classic, trendy, bohemian, etc.
+    };
 
     this.init();
   }
@@ -78,6 +83,7 @@ class BodyShapeAdvisor {
       knownColorSeason: this.renderKnownColorSeason.bind(this),
       colorSeasonAnalysisLoading: this.renderColorSeasonAnalysisLoading.bind(this),
       colorSeasonResults: this.renderColorSeasonResults.bind(this),
+      valuesQuestionnaire: this.renderValuesQuestionnaire.bind(this),
       products: this.renderProducts.bind(this)
     };
 
@@ -798,6 +804,16 @@ class BodyShapeAdvisor {
       console.log(`Added measurement: age=${this.measurements.age}`);
     }
 
+    // Add values preferences if available
+    if (this.valuesPreferences) {
+      formData.append('sustainability', this.valuesPreferences.sustainability);
+      formData.append('budgetRange', this.valuesPreferences.budgetRange);
+      if (this.valuesPreferences.styles && this.valuesPreferences.styles.length > 0) {
+        formData.append('stylePreferences', this.valuesPreferences.styles.join(','));
+      }
+      console.log(`Added values: sustainability=${this.valuesPreferences.sustainability}, budget=${this.valuesPreferences.budgetRange}, styles=${this.valuesPreferences.styles.join(',')}`);
+    }
+
     const apiUrl = `${this.config.apiEndpoint}/api/gemini/recommendations`;
     console.log(`Fetching from: ${apiUrl}`);
 
@@ -1448,13 +1464,158 @@ class BodyShapeAdvisor {
           <h4>🛍️ Ready to Shop?</h4>
           <p>Browse products that match both your ${this.bodyShapeResult.shape} body shape and ${this.colorSeasonResult} skin color season!</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.getProductsAfterColorSeason()" style="flex: 1; min-width: 200px;">
-              Browse Recommended Products
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
+              Continue to Shopping Preferences
             </button>
           </div>
         </div>
       </div>
     `;
+  }
+
+  renderValuesQuestionnaire() {
+    return `
+      <div class="bsa-values-questionnaire">
+        <div class="bsa-header">
+          <h3>📋 Shopping Preferences & Values</h3>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('colorSeasonResults')">
+            ← Back
+          </button>
+        </div>
+
+        <p style="color: #6b7280; margin-bottom: 2rem;">
+          Help us refine your recommendations by sharing your shopping values and style preferences.
+        </p>
+
+        <form class="bsa-form" onsubmit="bodyShapeAdvisor.handleValuesSubmit(event)">
+          <div class="bsa-form-section">
+            <h4>🌱 Sustainability</h4>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
+              Do you prefer sustainable and eco-friendly fashion?
+            </p>
+            <div class="bsa-form-field">
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="sustainability"
+                  value="true"
+                  ${this.valuesPreferences.sustainability ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 18px; height: 18px; cursor: pointer;"
+                />
+                <span>Yes, prioritize sustainable and eco-friendly products</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="bsa-form-section">
+            <h4>💰 Budget Range</h4>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
+              What's your typical spending range per item?
+            </p>
+            <div class="bsa-form-field">
+              <select name="budgetRange" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;">
+                <option value="low" ${this.valuesPreferences.budgetRange === 'low' ? 'selected' : ''}>Budget-Friendly (Under $30)</option>
+                <option value="medium" ${this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($30-$80)</option>
+                <option value="high" ${this.valuesPreferences.budgetRange === 'high' ? 'selected' : ''}>Premium ($80-$200)</option>
+                <option value="luxury" ${this.valuesPreferences.budgetRange === 'luxury' ? 'selected' : ''}>Luxury ($200+)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bsa-form-section">
+            <h4>✨ Style Preferences</h4>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
+              Select all styles that resonate with you (optional):
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="minimalist"
+                  ${this.valuesPreferences.styles.includes('minimalist') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Minimalist</span>
+              </label>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="classic"
+                  ${this.valuesPreferences.styles.includes('classic') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Classic</span>
+              </label>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="trendy"
+                  ${this.valuesPreferences.styles.includes('trendy') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Trendy</span>
+              </label>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="bohemian"
+                  ${this.valuesPreferences.styles.includes('bohemian') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Bohemian</span>
+              </label>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="edgy"
+                  ${this.valuesPreferences.styles.includes('edgy') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Edgy</span>
+              </label>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  name="styles"
+                  value="romantic"
+                  ${this.valuesPreferences.styles.includes('romantic') ? 'checked' : ''}
+                  style="margin-right: 0.5rem; width: 16px; height: 16px; cursor: pointer;"
+                />
+                <span>Romantic</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="bsa-btn bsa-btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 16px; font-weight: 600;">
+            Get My Personalized Recommendations
+          </button>
+        </form>
+      </div>
+    `;
+  }
+
+  handleValuesSubmit(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    // Get sustainability preference
+    this.valuesPreferences.sustainability = formData.get('sustainability') === 'true';
+
+    // Get budget range
+    this.valuesPreferences.budgetRange = formData.get('budgetRange');
+
+    // Get style preferences (multiple checkboxes)
+    this.valuesPreferences.styles = formData.getAll('styles');
+
+    console.log('Values preferences:', this.valuesPreferences);
+
+    // Now get products with all preferences
+    this.getProductsAfterColorSeason();
   }
 
   attachEventListeners() {

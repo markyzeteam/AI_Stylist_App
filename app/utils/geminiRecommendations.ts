@@ -75,7 +75,12 @@ export async function getGeminiProductRecommendations(
   minimumMatchScore: number = 30,
   maxProductsToScan: number = 0,
   onlyInStock: boolean = false,
-  colorSeason?: string
+  colorSeason?: string,
+  valuesPreferences?: {
+    sustainability: boolean;
+    budgetRange?: string;
+    styles: string[];
+  }
 ): Promise<ProductRecommendation[]> {
   try {
     console.log(`🤖 Getting Gemini recommendations for ${bodyShape} (${shop})`);

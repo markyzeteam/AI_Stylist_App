@@ -142,6 +142,7 @@ model FilteredSelectionWithImgAnalyzed {
   fabricTexture     String?
   designDetails     String[]
   patternType       String?
+  additionalNotes   String?   @db.Text
 
   // Size information
   sizeChart         Json?

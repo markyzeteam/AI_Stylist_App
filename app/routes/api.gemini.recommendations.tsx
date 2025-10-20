@@ -41,6 +41,12 @@ export async function action({ request }: ActionFunctionArgs) {
     const gender = formData.get("gender") as string;
     const age = formData.get("age") as string;
 
+    // Get values preferences from FormData
+    const sustainability = formData.get("sustainability") === "true";
+    const budgetRange = formData.get("budgetRange") as string | null;
+    const stylePreferences = formData.get("stylePreferences") as string | null;
+    const styles = stylePreferences ? stylePreferences.split(',') : [];
+
     // Get settings from FormData (passed from storefront)
     const numberOfSuggestions = parseInt(formData.get("numberOfSuggestions") as string) || 30;
     const minimumMatchScore = parseInt(formData.get("minimumMatchScore") as string) || 30;
@@ -83,8 +89,18 @@ export async function action({ request }: ActionFunctionArgs) {
       maxProductsToScan,
       onlyInStock,
       hasMeasurements: !!measurements,
+      sustainability,
+      budgetRange: budgetRange || 'none',
+      stylePreferences: styles.length > 0 ? styles.join(', ') : 'none',
     });
     console.log(`${"=".repeat(60)}\n`);
+
+    // Prepare values preferences
+    const valuesPreferences = (sustainability || budgetRange || styles.length > 0) ? {
+      sustainability,
+      budgetRange: budgetRange || undefined,
+      styles,
+    } : undefined;
 
     // Get recommendations from Gemini AI using cached analysis
     const recommendations = await getGeminiProductRecommendations(
@@ -96,7 +112,8 @@ export async function action({ request }: ActionFunctionArgs) {
       minimumMatchScore,
       maxProductsToScan,
       onlyInStock,
-      colorSeason || undefined
+      colorSeason || undefined,
+      valuesPreferences
     );
 
     console.log(`\n✅ Returning ${recommendations.length} recommendations to storefront\n`);
