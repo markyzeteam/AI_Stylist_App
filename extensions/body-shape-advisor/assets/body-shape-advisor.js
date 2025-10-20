@@ -13,6 +13,12 @@ class BodyShapeAdvisor {
     this.productRecommendations = [];
     this.products = []; // Will be loaded from API
     this.productsLoaded = false;
+    this.budgetSettings = {
+      budgetLowMax: 30,
+      budgetMediumMax: 80,
+      budgetHighMax: 200
+    }; // Will be loaded from API
+    this.budgetSettingsLoaded = false;
     this.measurements = {
       gender: '',
       age: '',
@@ -42,8 +48,11 @@ class BodyShapeAdvisor {
   async init() {
     this.render();
     this.attachEventListeners();
-    // Load products in the background
-    await this.loadProducts();
+    // Load products and budget settings in the background
+    await Promise.all([
+      this.loadProducts(),
+      this.loadBudgetSettings()
+    ]);
   }
 
   async loadProducts() {
@@ -68,6 +77,30 @@ class BodyShapeAdvisor {
     } catch (error) {
       console.error('Error loading products from API:', error);
       this.products = [];
+    }
+  }
+
+  async loadBudgetSettings() {
+    if (this.budgetSettingsLoaded) return;
+
+    console.log('Loading budget settings from API...');
+
+    try {
+      const apiUrl = `${this.config.apiEndpoint}/api/budget-settings?shop=${encodeURIComponent(this.config.shopDomain)}`;
+
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (data.budgetLowMax && data.budgetMediumMax && data.budgetHighMax) {
+        this.budgetSettings = data;
+        this.budgetSettingsLoaded = true;
+        console.log(`Loaded budget settings:`, this.budgetSettings);
+      } else {
+        console.error('Invalid budget settings in API response:', data);
+      }
+    } catch (error) {
+      console.error('Error loading budget settings from API:', error);
+      // Keep default values
     }
   }
 
@@ -1545,10 +1578,10 @@ class BodyShapeAdvisor {
             </p>
             <div class="bsa-form-field">
               <select name="budgetRange" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                <option value="low" ${this.valuesPreferences.budgetRange === 'low' ? 'selected' : ''}>Budget-Friendly (Under $30)</option>
-                <option value="medium" ${!this.valuesPreferences.budgetRange || this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($30-$80)</option>
-                <option value="high" ${this.valuesPreferences.budgetRange === 'high' ? 'selected' : ''}>Premium ($80-$200)</option>
-                <option value="luxury" ${this.valuesPreferences.budgetRange === 'luxury' ? 'selected' : ''}>Luxury ($200+)</option>
+                <option value="low" ${this.valuesPreferences.budgetRange === 'low' ? 'selected' : ''}>Budget-Friendly (Under $${this.budgetSettings.budgetLowMax})</option>
+                <option value="medium" ${!this.valuesPreferences.budgetRange || this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($${this.budgetSettings.budgetLowMax}-$${this.budgetSettings.budgetMediumMax})</option>
+                <option value="high" ${this.valuesPreferences.budgetRange === 'high' ? 'selected' : ''}>Premium ($${this.budgetSettings.budgetMediumMax}-$${this.budgetSettings.budgetHighMax})</option>
+                <option value="luxury" ${this.valuesPreferences.budgetRange === 'luxury' ? 'selected' : ''}>Luxury ($${this.budgetSettings.budgetHighMax}+)</option>
               </select>
             </div>
           </div>
