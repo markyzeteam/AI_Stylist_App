@@ -655,6 +655,8 @@ class BodyShapeAdvisor {
 
   async browseProducts() {
     // Go directly to product recommendations using body shape only
+    // Clear previous recommendations to force fresh fetch
+    this.productRecommendations = [];
     this.currentStep = 'products';
     this.render();
 
@@ -705,6 +707,8 @@ class BodyShapeAdvisor {
 
   async getProductsAfterColorSeason() {
     // Get AI-powered recommendations from Gemini using both body shape and color season
+    // Clear previous recommendations to force fresh fetch with new parameters
+    this.productRecommendations = [];
     this.currentStep = 'products';
     this.render();
 
@@ -1031,6 +1035,10 @@ class BodyShapeAdvisor {
 
     const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Skin Color Season` : '';
 
+    // Build profile summary
+    const hasValues = this.valuesPreferences && (this.valuesPreferences.sustainability || this.valuesPreferences.budgetRange || this.valuesPreferences.styles.length > 0);
+    const valuesText = hasValues ? ` + Your Shopping Values` : '';
+
     return `
       <div class="bsa-products">
         <div class="bsa-header">
@@ -1040,11 +1048,18 @@ class BodyShapeAdvisor {
           </button>
         </div>
 
-        ${this.colorSeasonResult ? `
+        ${this.colorSeasonResult || hasValues ? `
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
             <p style="margin: 0; font-size: 18px;">
-              <strong>Your Profile:</strong> ${this.bodyShapeResult.shape} body shape + ${this.colorSeasonResult} skin color season
+              <strong>Your Profile:</strong> ${this.bodyShapeResult.shape} body shape${colorSeasonText}${valuesText}
             </p>
+            ${hasValues ? `
+              <p style="margin: 0.5rem 0 0 0; font-size: 14px; opacity: 0.9;">
+                ${this.valuesPreferences.sustainability ? '🌱 Sustainable' : ''}
+                ${this.valuesPreferences.budgetRange ? `💰 ${this.valuesPreferences.budgetRange}` : ''}
+                ${this.valuesPreferences.styles.length > 0 ? `✨ ${this.valuesPreferences.styles.join(', ')}` : ''}
+              </p>
+            ` : ''}
           </div>
         ` : ''}
 
@@ -1052,7 +1067,7 @@ class BodyShapeAdvisor {
           <div class="bsa-loading">
             <div class="bsa-loading-spinner"></div>
             <h4>🤖 AI Fashion Stylist at Work...</h4>
-            <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape${colorSeasonText}</p>
+            <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape${colorSeasonText}${valuesText}</p>
             <p class="bsa-loading-submessage">Our AI is reviewing products to find your perfect match. This may take 10-30 seconds.</p>
             <div class="bsa-loading-steps">
               <div class="bsa-loading-step bsa-step-active">✓ Fetching products from catalog</div>
