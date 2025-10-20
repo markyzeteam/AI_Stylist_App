@@ -274,10 +274,10 @@ export default function Settings() {
                 </InlineStack>
                 <InlineStack align="space-between">
                   <Text as="span" variant="bodyMd" tone="subdued">
-                    Max Scan:
+                    Max Products to Scan:
                   </Text>
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    {formData.maxProductsToScan === 0 ? 'ALL Products' : formData.maxProductsToScan}
+                    {formData.maxProductsToScan === 0 ? 'Unlimited (ALL)' : `${formData.maxProductsToScan} products`}
                   </Text>
                 </InlineStack>
                 <InlineStack align="space-between">
@@ -290,10 +290,10 @@ export default function Settings() {
                 </InlineStack>
                 <InlineStack align="space-between">
                   <Text as="span" variant="bodyMd" tone="subdued">
-                    Stock Filter:
+                    Stock Availability:
                   </Text>
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    {formData.onlyInStockProducts ? "In-Stock Only" : "All Products"}
+                    {formData.onlyInStockProducts ? "In-Stock Only" : "All (Including Out-of-Stock)"}
                   </Text>
                 </InlineStack>
                 <InlineStack align="space-between">
