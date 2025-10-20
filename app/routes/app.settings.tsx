@@ -126,10 +126,10 @@ export default function Settings() {
 
                 <form onSubmit={handleSubmit}>
                   <BlockStack gap="400">
+                    <input type="hidden" name="numberOfSuggestions" value={formData.numberOfSuggestions} />
                     <TextField
                       label="Number of Suggestions"
                       type="number"
-                      name="numberOfSuggestions"
                       value={formData.numberOfSuggestions.toString()}
                       onChange={(value) =>
                         setFormData({ ...formData, numberOfSuggestions: parseInt(value) || 30 })
@@ -140,10 +140,10 @@ export default function Settings() {
                       max={100}
                     />
 
+                    <input type="hidden" name="minimumMatchScore" value={formData.minimumMatchScore} />
                     <TextField
                       label="Minimum Match Score (%)"
                       type="number"
-                      name="minimumMatchScore"
                       value={formData.minimumMatchScore.toString()}
                       onChange={(value) =>
                         setFormData({ ...formData, minimumMatchScore: parseInt(value) || 30 })
@@ -154,10 +154,10 @@ export default function Settings() {
                       max={100}
                     />
 
+                    <input type="hidden" name="maxProductsToScan" value={formData.maxProductsToScan} />
                     <TextField
                       label="Maximum Products to Scan"
                       type="number"
-                      name="maxProductsToScan"
                       value={formData.maxProductsToScan.toString()}
                       onChange={(value) =>
                         setFormData({ ...formData, maxProductsToScan: parseInt(value) || 0 })
@@ -168,10 +168,10 @@ export default function Settings() {
                       max={50000}
                     />
 
+                    <input type="hidden" name="maxRefreshesPerDay" value={formData.maxRefreshesPerDay} />
                     <TextField
                       label="Maximum Refreshes Per Day"
                       type="number"
-                      name="maxRefreshesPerDay"
                       value={formData.maxRefreshesPerDay.toString()}
                       onChange={(value) =>
                         setFormData({ ...formData, maxRefreshesPerDay: parseInt(value) || 3 })

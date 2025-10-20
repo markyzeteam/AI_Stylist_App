@@ -338,6 +338,23 @@ export default function GeminiSettings() {
                         </Text>
                       </BlockStack>
                     </Banner>
+
+                    <input type="hidden" name="actionType" value="save" />
+                    <input type="hidden" name="prompt" value={prompt} />
+                    <input type="hidden" name="systemPrompt" value={systemPrompt} />
+                    <input type="hidden" name="enableRateLimiting" value={enableRateLimiting.toString()} />
+                    <input type="hidden" name="requestsPerMinute" value={requestsPerMinute} />
+                    <input type="hidden" name="requestsPerDay" value={requestsPerDay} />
+                    <input type="hidden" name="batchSize" value={batchSize} />
+                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
+                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
+                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
+
+                    <InlineStack align="end">
+                      <Button variant="primary" submit>
+                        Save API Settings
+                      </Button>
+                    </InlineStack>
                   </BlockStack>
                 </form>
               </BlockStack>
@@ -471,30 +488,30 @@ export default function GeminiSettings() {
                       </BlockStack>
                     </Banner>
 
+                    <input type="hidden" name="requestsPerMinute" value={requestsPerMinute} />
                     <TextField
                       label="Requests Per Minute (RPM)"
                       type="number"
-                      name="requestsPerMinute"
                       value={requestsPerMinute}
                       onChange={setRequestsPerMinute}
                       helpText="Maximum API requests per minute (Gemini free tier: 15 RPM)"
                       min="1"
                     />
 
+                    <input type="hidden" name="requestsPerDay" value={requestsPerDay} />
                     <TextField
                       label="Requests Per Day (RPD)"
                       type="number"
-                      name="requestsPerDay"
                       value={requestsPerDay}
                       onChange={setRequestsPerDay}
                       helpText="Maximum API requests per day (Gemini free tier: 1,500 RPD)"
                       min="1"
                     />
 
+                    <input type="hidden" name="batchSize" value={batchSize} />
                     <TextField
                       label="Batch Size"
                       type="number"
-                      name="batchSize"
                       value={batchSize}
                       onChange={setBatchSize}
                       helpText="Number of products to process before checking rate limits (recommended: 10)"
@@ -516,12 +533,16 @@ export default function GeminiSettings() {
                       </Text>
                     </Banner>
 
+                    <input type="hidden" name="actionType" value="save" />
                     <input type="hidden" name="apiKey" value={apiKey} />
                     <input type="hidden" name="model" value={model} />
                     <input type="hidden" name="enabled" value={enabled.toString()} />
                     <input type="hidden" name="prompt" value={prompt} />
                     <input type="hidden" name="systemPrompt" value={systemPrompt} />
-                    <input type="hidden" name="actionType" value="save" />
+                    <input type="hidden" name="useImageAnalysis" value={useImageAnalysis.toString()} />
+                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
+                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
+                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
 
                     <InlineStack align="end">
                       <Button variant="primary" submit>
@@ -558,9 +579,9 @@ export default function GeminiSettings() {
                           <strong>Note:</strong> You can customize the analysis instructions, but the JSON format structure is fixed and automatically enforced to ensure data consistency. The response will always include: detectedColors, colorSeasons, silhouetteType, styleClassification, fabricTexture, designDetails, patternType, and additionalNotes.
                         </Text>
                       </Banner>
+                      <input type="hidden" name="prompt" value={prompt} />
                       <TextField
                         label="Image Analysis Prompt (Customizable)"
-                        name="prompt"
                         value={prompt}
                         onChange={setPrompt}
                         multiline={8}
@@ -578,9 +599,9 @@ export default function GeminiSettings() {
                       <Text as="p" variant="bodyMd" tone="subdued">
                         This system prompt guides Gemini when generating personalized product recommendations
                       </Text>
+                      <input type="hidden" name="systemPrompt" value={systemPrompt} />
                       <TextField
                         label="System Prompt"
-                        name="systemPrompt"
                         value={systemPrompt}
                         onChange={setSystemPrompt}
                         multiline={6}
@@ -589,10 +610,18 @@ export default function GeminiSettings() {
                       />
                     </BlockStack>
 
+                    <input type="hidden" name="actionType" value="save" />
                     <input type="hidden" name="apiKey" value={apiKey} />
                     <input type="hidden" name="model" value={model} />
                     <input type="hidden" name="enabled" value={enabled.toString()} />
-                    <input type="hidden" name="actionType" value="save" />
+                    <input type="hidden" name="useImageAnalysis" value={useImageAnalysis.toString()} />
+                    <input type="hidden" name="enableRateLimiting" value={enableRateLimiting.toString()} />
+                    <input type="hidden" name="requestsPerMinute" value={requestsPerMinute} />
+                    <input type="hidden" name="requestsPerDay" value={requestsPerDay} />
+                    <input type="hidden" name="batchSize" value={batchSize} />
+                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
+                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
+                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
 
                     <Divider />
 
