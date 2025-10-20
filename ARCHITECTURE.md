@@ -15,13 +15,21 @@
 
 ---
 
-## ⚡ LATEST UPDATE: FLEXIBLE RATE LIMITING SYSTEM
+## ⚡ LATEST UPDATE: INCREMENTAL UPDATES + FLEXIBLE RATE LIMITING
 
 **Date:** 2025-01-20
-**Change:** Added adaptive rate limiting system that works with any Gemini API tier (Free, Paid, Enterprise)
-**Why:** Enables stores of any size to use the app without hitting API rate limits, with automatic pause/resume functionality
+**Change:** Added incremental updates (skip already-analyzed products) + adaptive rate limiting system
+**Why:** Massive cost savings and efficiency - only analyze NEW or UPDATED products, respecting API rate limits
 
 ### Key Features:
+
+#### **Incremental Updates (NEW!):**
+- ✅ **Smart Filtering**: Only analyzes NEW products or products with changed image/title
+- ✅ **Automatic Skip**: Already-analyzed products are skipped entirely (0 API calls!)
+- ✅ **Cost Savings**: Second refresh of 491 products = 0 API calls if nothing changed
+- ✅ **Clear Reporting**: Shows "X already analyzed, Y newly analyzed" in console and UI
+
+#### **Flexible Rate Limiting:**
 - ✅ **Configurable Rate Limits**: Set requests per minute (RPM) and requests per day (RPD) based on your API tier
 - ✅ **Preset Tiers**: Free (15 RPM, 1,500 RPD), Paid (2,000 RPM, 50,000 RPD), Enterprise (Unlimited)
 - ✅ **Batch Processing**: Process products in configurable batches with automatic rate limit checking
@@ -32,10 +40,11 @@
 - ✅ **Pacific Time Reset**: Respects Gemini's midnight PT reset time for daily quotas
 
 ### Implementation:
+- **Incremental Logic**: Compare fetched products with database, filter by NEW or changed image/title
 - **Database**: Added rate limit fields to `GeminiSettings` table (requestsPerMinute, requestsPerDay, batchSize, enableRateLimiting)
 - **Utility**: Created `app/utils/rateLimiter.ts` with rate limit tracking and enforcement
 - **Admin UI**: Added rate limiting configuration section in Gemini Settings
-- **Refresh Logic**: Updated `app._index.tsx` to use rate limiting during product refresh
+- **Refresh Logic**: Updated `app._index.tsx` to use incremental updates + rate limiting
 
 ---
 
@@ -113,7 +122,16 @@ Pre-compute and cache product analysis to provide instant, personalized fashion 
              │
              ↓
     ┌──────────────────────────────────────┐
-    │ Process Products in Batches          │
+    │ Check Existing Analysis (DB)         │
+    │ • Load all analyzed products         │
+    │ • Compare with fetched products      │
+    │ • Filter: NEW or image/title changed │
+    │ • Skip already-analyzed products     │
+    └────────┬─────────────────────────────┘
+             │
+             ↓
+    ┌──────────────────────────────────────┐
+    │ Process Only New/Updated Products    │
     │ • Default batch size: 10 products    │
     │ • Before each batch:                 │
     │   - Check RPM/RPD quota              │

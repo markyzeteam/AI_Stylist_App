@@ -82,23 +82,72 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log(`✅ Fetched ${products.length} products`);
 
-    // STEP 3: Process products with rate limiting
-    console.log(`\n🖼️  Analyzing ${products.length} products with rate limiting...\n`);
+    // STEP 3: Filter out already-analyzed products (incremental update)
+    console.log(`\n🔍 Checking which products need analysis...`);
+
+    const existingProducts = await db.filteredSelectionWithImgAnalyzed.findMany({
+      where: { shop },
+      select: {
+        shopifyProductId: true,
+        imageUrl: true,
+        title: true,
+        updatedAt: true,
+      },
+    });
+
+    const existingMap = new Map(
+      existingProducts.map(p => [p.shopifyProductId, p])
+    );
+
+    // Filter: only analyze if product is NEW or image/title changed
+    const productsToAnalyze = products.filter(product => {
+      const existing = existingMap.get(product.id);
+
+      if (!existing) {
+        return true; // New product
+      }
+
+      // Check if image or title changed
+      const imageChanged = existing.imageUrl !== product.imageUrl;
+      const titleChanged = existing.title !== product.title;
+
+      return imageChanged || titleChanged;
+    });
+
+    console.log(`📊 Analysis needed:`);
+    console.log(`   Total products: ${products.length}`);
+    console.log(`   Already analyzed: ${products.length - productsToAnalyze.length}`);
+    console.log(`   Need analysis: ${productsToAnalyze.length}`);
+
+    if (productsToAnalyze.length === 0) {
+      console.log(`\n✅ All products are already analyzed! No API calls needed.`);
+      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All products already analyzed");
+      return json({
+        success: true,
+        message: `All ${products.length} products are already analyzed! No updates needed.`,
+        productsFetched: products.length,
+        productsAnalyzed: 0,
+        productsSkipped: products.length,
+      });
+    }
+
+    // STEP 4: Process only new/updated products with rate limiting
+    console.log(`\n🖼️  Analyzing ${productsToAnalyze.length} new/updated products with rate limiting...\n`);
 
     let analyzed = 0;
     let failed = 0;
-    let skipped = 0;
+    let skippedNoImage = 0;
     let geminiApiCalls = 0;
-    const totalProducts = products.length;
+    const totalProducts = productsToAnalyze.length;
     let currentBatch = 0;
 
-    for (let i = 0; i < products.length; i++) {
-      const product = products[i];
+    for (let i = 0; i < productsToAnalyze.length; i++) {
+      const product = productsToAnalyze[i];
 
       try {
         if (!product.imageUrl) {
           console.log(`⏭ [${i + 1}/${totalProducts}] Skipping ${product.title} (no image)`);
-          skipped++;
+          skippedNoImage++;
           continue;
         }
 
@@ -136,11 +185,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
             return json({
               success: false,
-              message: `Daily API limit reached. Analyzed ${analyzed}/${totalProducts} products. Will resume tomorrow at midnight PT.`,
-              productsFetched: totalProducts,
+              message: `Daily API limit reached. Analyzed ${analyzed}/${totalProducts} new/updated products. Will resume tomorrow at midnight PT.`,
+              productsFetched: products.length,
               productsAnalyzed: analyzed,
               productsFailed: failed,
-              productsSkipped: skipped,
+              productsSkipped: products.length - productsToAnalyze.length,
+              skippedNoImage,
             });
           }
         }
@@ -179,20 +229,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const totalCost = inputCost + outputCost;
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const alreadyAnalyzed = products.length - productsToAnalyze.length;
 
     console.log(`\n✅ REFRESH COMPLETED in ${elapsedTime}s`);
-    console.log(`   Analyzed: ${analyzed}, Failed: ${failed}, Skipped: ${skipped}, Cost: $${totalCost.toFixed(4)}`);
+    console.log(`   Total products: ${products.length}`);
+    console.log(`   Already analyzed: ${alreadyAnalyzed}`);
+    console.log(`   Newly analyzed: ${analyzed}`);
+    console.log(`   Failed: ${failed}`);
+    console.log(`   Skipped (no image): ${skippedNoImage}`);
+    console.log(`   Cost: $${totalCost.toFixed(4)}`);
 
     // STEP 5: Log activity
     await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed");
 
     return json({
       success: true,
-      message: `Successfully analyzed ${analyzed}/${totalProducts} products! Cost: $${totalCost.toFixed(4)}`,
+      message: `Successfully analyzed ${analyzed} new/updated products! (${alreadyAnalyzed} already up-to-date) Cost: $${totalCost.toFixed(4)}`,
       productsFetched: products.length,
       productsAnalyzed: analyzed,
       productsFailed: failed,
-      productsSkipped: skipped,
+      productsSkipped: alreadyAnalyzed,
+      skippedNoImage,
       estimatedCost: totalCost,
     });
   } catch (error: any) {
@@ -213,7 +270,7 @@ export default function Index() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const handleRefresh = () => {
-    if (confirm("This will re-analyze ALL products in your catalog with Gemini AI, even previously analyzed ones. This may take a while and will use API credits. Continue?")) {
+    if (confirm("This will analyze NEW and UPDATED products in your catalog with Gemini AI. Previously analyzed products will be skipped to save API credits. Continue?")) {
       const formData = new FormData();
       submit(formData, { method: "post" });
     }
