@@ -172,6 +172,13 @@ export async function saveGeminiSettings(
   settings: GeminiSettings
 ): Promise<boolean> {
   try {
+    console.log("Saving Gemini settings:", {
+      shop,
+      budgetLowMax: settings.budgetLowMax,
+      budgetMediumMax: settings.budgetMediumMax,
+      budgetHighMax: settings.budgetHighMax,
+    });
+
     await db.geminiSettings.upsert({
       where: { shop },
       update: {
@@ -208,7 +215,7 @@ export async function saveGeminiSettings(
       },
     });
 
-    console.log("Gemini settings saved successfully for shop:", shop);
+    console.log("✅ Gemini settings saved successfully for shop:", shop);
     return true;
   } catch (error) {
     console.error("Error saving Gemini settings:", error);

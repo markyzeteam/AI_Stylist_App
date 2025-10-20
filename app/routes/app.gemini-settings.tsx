@@ -95,6 +95,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const budgetMediumMax = parseFloat(formData.get("budgetMediumMax") as string) || 80;
   const budgetHighMax = parseFloat(formData.get("budgetHighMax") as string) || 200;
 
+  console.log("📝 Form data - Budget ranges:", {
+    budgetLowMax,
+    budgetMediumMax,
+    budgetHighMax,
+    raw: {
+      low: formData.get("budgetLowMax"),
+      medium: formData.get("budgetMediumMax"),
+      high: formData.get("budgetHighMax"),
+    }
+  });
+
   // If API key field is masked (••••••••), keep the existing key
   const finalApiKey = apiKey && apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
 
