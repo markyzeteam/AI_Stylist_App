@@ -1387,6 +1387,29 @@ Medium Store (2,000 products, 100 users/day):
 
 ### Critical Fixes Applied
 
+**✅ Fix: Settings Sync Between Admin and Storefront (2025-10-20)**
+- **Issue:** Admin settings (e.g., numberOfSuggestions: 5) weren't being used by storefront, which defaulted to 30
+- **Root Cause:**
+  - Admin saved settings to current session only (by session.id)
+  - Multiple session records can exist for same shop
+  - API fetches by shop domain, might get different session without settings
+- **Fix Applied:**
+  1. Admin now updates ALL sessions for the shop using `updateMany({ where: { shop } })`
+  2. API now fetches most recent session with `orderBy: { id: 'desc' }`
+  3. Added detailed debugging to track settings sync issues
+  4. Added console logs showing: "Settings saved to X database session(s) for shop: Y"
+- **Files Modified:**
+  - `app/routes/app.settings.tsx` - Changed from `session.update()` to `session.updateMany()` (lines 54-62)
+  - `app/routes/api.settings.tsx` - Added orderBy, enhanced debugging (lines 31-52)
+- **Testing:**
+  - After saving settings in admin, check logs for: "Settings saved to X database session(s)"
+  - Storefront should now correctly use admin values instead of defaulting to 30
+- **Benefits:**
+  - Settings consistency across all sessions for same shop
+  - Better debugging visibility for settings sync issues
+  - Prevents settings from being lost between admin saves and storefront fetches
+- **Commit:** `b4aa78f` - Fix settings sync between admin and storefront API
+
 **✅ Enhancement: Fixed JSON Format + additionalNotes Field (2025-10-20)**
 - **What:** Made JSON format unchangeable and added free-text field for Gemini
 - **Changes Made:**
