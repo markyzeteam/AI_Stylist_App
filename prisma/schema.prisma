@@ -207,6 +207,13 @@ model GeminiSettings {
   prompt       String?  @db.Text // Editable image analysis prompt (Phase 1)
   systemPrompt String?  @db.Text // Editable recommendation system prompt (Phase 2)
   enabled      Boolean  @default(true)
+
+  // Rate limiting (configurable based on API tier)
+  requestsPerMinute  Int     @default(15)    // Free: 15, Paid: 2000
+  requestsPerDay     Int     @default(1500)  // Free: 1500, Paid: 50000+
+  batchSize          Int     @default(10)    // How many to process before checking limits
+  enableRateLimiting Boolean @default(true)  // Allow disabling for unlimited paid tiers
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

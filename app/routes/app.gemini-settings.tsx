@@ -39,6 +39,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       enabled: settings.enabled,
       prompt: settings.prompt,
       systemPrompt: settings.systemPrompt,
+      requestsPerMinute: settings.requestsPerMinute || 15,
+      requestsPerDay: settings.requestsPerDay || 1500,
+      batchSize: settings.batchSize || 10,
+      enableRateLimiting: settings.enableRateLimiting ?? true,
     }
   });
 };
@@ -78,6 +82,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const enabled = formData.get("enabled") === "true";
   const prompt = formData.get("prompt") as string;
   const systemPrompt = formData.get("systemPrompt") as string;
+  const requestsPerMinute = parseInt(formData.get("requestsPerMinute") as string) || 15;
+  const requestsPerDay = parseInt(formData.get("requestsPerDay") as string) || 1500;
+  const batchSize = parseInt(formData.get("batchSize") as string) || 10;
+  const enableRateLimiting = formData.get("enableRateLimiting") === "true";
 
   // If API key field is masked (••••••••), keep the existing key
   const finalApiKey = apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
@@ -89,6 +97,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     enabled,
     prompt: prompt || existingSettings.prompt,
     systemPrompt: systemPrompt || existingSettings.systemPrompt,
+    requestsPerMinute,
+    requestsPerDay,
+    batchSize,
+    enableRateLimiting,
   });
 
   if (success) {
@@ -115,6 +127,11 @@ export default function GeminiSettings() {
   const [enabled, setEnabled] = useState(settings.enabled);
   const [prompt, setPrompt] = useState(settings.prompt || "");
   const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || "");
+  const [apiTier, setApiTier] = useState("custom");
+  const [requestsPerMinute, setRequestsPerMinute] = useState(String(settings.requestsPerMinute));
+  const [requestsPerDay, setRequestsPerDay] = useState(String(settings.requestsPerDay));
+  const [batchSize, setBatchSize] = useState(String(settings.batchSize));
+  const [enableRateLimiting, setEnableRateLimiting] = useState(settings.enableRateLimiting);
 
   const isKeyVisible = searchParams.get("showKey") === "true";
 
@@ -123,7 +140,30 @@ export default function GeminiSettings() {
     setApiKey(settings.apiKey);
     setPrompt(settings.prompt || "");
     setSystemPrompt(settings.systemPrompt || "");
-  }, [settings.apiKey, settings.prompt, settings.systemPrompt]);
+    setRequestsPerMinute(String(settings.requestsPerMinute));
+    setRequestsPerDay(String(settings.requestsPerDay));
+    setBatchSize(String(settings.batchSize));
+    setEnableRateLimiting(settings.enableRateLimiting);
+  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting]);
+
+  // Handle API tier selection
+  const handleApiTierChange = (value: string) => {
+    setApiTier(value);
+    if (value === "free") {
+      setRequestsPerMinute("15");
+      setRequestsPerDay("1500");
+      setEnableRateLimiting(true);
+    } else if (value === "paid") {
+      setRequestsPerMinute("2000");
+      setRequestsPerDay("50000");
+      setEnableRateLimiting(true);
+    } else if (value === "unlimited") {
+      setRequestsPerMinute("10000");
+      setRequestsPerDay("1000000");
+      setEnableRateLimiting(false);
+    }
+    // "custom" doesn't change values
+  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -249,6 +289,108 @@ export default function GeminiSettings() {
                     <InlineStack align="end">
                       <Button variant="primary" submit>
                         Save Settings
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </form>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Rate Limiting Settings
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Configure API rate limits based on your Gemini API tier to prevent errors and optimize costs
+                </Text>
+
+                <Divider />
+
+                <form onSubmit={handleSubmit}>
+                  <BlockStack gap="400">
+                    <Select
+                      label="API Tier Preset"
+                      options={[
+                        { label: "Free Tier (15 RPM, 1,500 RPD)", value: "free" },
+                        { label: "Paid Tier (2,000 RPM, 50,000 RPD)", value: "paid" },
+                        { label: "Enterprise/Unlimited", value: "unlimited" },
+                        { label: "Custom (Manual Entry)", value: "custom" },
+                      ]}
+                      value={apiTier}
+                      onChange={handleApiTierChange}
+                      helpText="Select your API tier to auto-fill rate limits, or choose Custom to set your own"
+                    />
+
+                    <Banner tone="info">
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodySm">
+                          <strong>Free Tier:</strong> 15 requests/minute, 1,500/day - Perfect for testing and small stores (up to ~1,500 products/day)
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          <strong>Paid Tier:</strong> 2,000 requests/minute, 50,000/day - For medium to large stores
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          <strong>Enterprise:</strong> Unlimited - For very large stores or custom API plans
+                        </Text>
+                      </BlockStack>
+                    </Banner>
+
+                    <TextField
+                      label="Requests Per Minute (RPM)"
+                      type="number"
+                      name="requestsPerMinute"
+                      value={requestsPerMinute}
+                      onChange={setRequestsPerMinute}
+                      helpText="Maximum API requests per minute (Gemini free tier: 15 RPM)"
+                      min="1"
+                    />
+
+                    <TextField
+                      label="Requests Per Day (RPD)"
+                      type="number"
+                      name="requestsPerDay"
+                      value={requestsPerDay}
+                      onChange={setRequestsPerDay}
+                      helpText="Maximum API requests per day (Gemini free tier: 1,500 RPD)"
+                      min="1"
+                    />
+
+                    <TextField
+                      label="Batch Size"
+                      type="number"
+                      name="batchSize"
+                      value={batchSize}
+                      onChange={setBatchSize}
+                      helpText="Number of products to process before checking rate limits (recommended: 10)"
+                      min="1"
+                      max="100"
+                    />
+
+                    <Checkbox
+                      label="Enable Rate Limiting"
+                      checked={enableRateLimiting}
+                      onChange={setEnableRateLimiting}
+                      helpText="Disable only if you have unlimited API access or want to handle rate limiting externally"
+                    />
+                    <input type="hidden" name="enableRateLimiting" value={enableRateLimiting.toString()} />
+
+                    <Banner tone="warning">
+                      <Text as="p" variant="bodySm">
+                        <strong>Note:</strong> The system will automatically pause when approaching rate limits. If you hit the daily limit, the refresh will resume the next day at midnight PT (Gemini's reset time).
+                      </Text>
+                    </Banner>
+
+                    <input type="hidden" name="apiKey" value={apiKey} />
+                    <input type="hidden" name="model" value={model} />
+                    <input type="hidden" name="enabled" value={enabled.toString()} />
+                    <input type="hidden" name="prompt" value={prompt} />
+                    <input type="hidden" name="systemPrompt" value={systemPrompt} />
+                    <input type="hidden" name="actionType" value="save" />
+
+                    <InlineStack align="end">
+                      <Button variant="primary" submit>
+                        Save Rate Limit Settings
                       </Button>
                     </InlineStack>
                   </BlockStack>

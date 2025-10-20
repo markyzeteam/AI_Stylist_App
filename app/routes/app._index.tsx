@@ -33,7 +33,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       analyzeProductImage,
       saveAnalyzedProduct,
       logRefreshActivity,
+      loadGeminiSettings,
     } = await import("../utils/geminiAnalysis");
+    const {
+      canMakeRequest,
+      recordRequest,
+      waitIfNeeded,
+      getRemainingQuota,
+      formatWaitTime,
+    } = await import("../utils/rateLimiter");
     const { db } = await import("../db.server");
 
     console.log(`\n${"=".repeat(60)}`);
@@ -42,29 +50,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const startTime = Date.now();
 
-    // STEP 1: Check rate limiting (3x per day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // STEP 1: Load rate limit settings
+    const settings = await loadGeminiSettings(shop);
+    const rateLimitConfig = {
+      requestsPerMinute: settings.requestsPerMinute || 15,
+      requestsPerDay: settings.requestsPerDay || 1500,
+      batchSize: settings.batchSize || 10,
+      enableRateLimiting: settings.enableRateLimiting ?? true,
+    };
 
-    const refreshesToday = await db.productRefreshLog.count({
-      where: {
-        shop,
-        startedAt: {
-          gte: today,
-        },
-        status: "completed",
-      },
-    });
-
-    console.log(`📊 Refreshes today: ${refreshesToday}/3`);
-
-    if (refreshesToday >= 3) {
-      console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
-      return json({
-        success: false,
-        message: `Rate limit reached: ${refreshesToday}/3 refreshes today. Try again tomorrow.`,
-      }, { status: 429 });
-    }
+    console.log(`⚙️ Rate Limit Config:`);
+    console.log(`   RPM: ${rateLimitConfig.requestsPerMinute}`);
+    console.log(`   RPD: ${rateLimitConfig.requestsPerDay}`);
+    console.log(`   Batch Size: ${rateLimitConfig.batchSize}`);
+    console.log(`   Enabled: ${rateLimitConfig.enableRateLimiting}\n`);
 
     // STEP 2: Fetch products
     console.log(`\n📦 Fetching products from Shopify...`);
@@ -83,23 +82,75 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log(`✅ Fetched ${products.length} products`);
 
-    // STEP 3: Process ALL products (no 30-day filter, no limits)
-    console.log(`\n🖼️  Analyzing ALL ${products.length} products...`);
+    // STEP 3: Process products with rate limiting
+    console.log(`\n🖼️  Analyzing ${products.length} products with rate limiting...\n`);
 
     let analyzed = 0;
     let failed = 0;
+    let skipped = 0;
     let geminiApiCalls = 0;
+    const totalProducts = products.length;
+    let currentBatch = 0;
 
-    for (const product of products) {
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+
       try {
         if (!product.imageUrl) {
-          console.log(`⏭ Skipping ${product.title} (no image)`);
+          console.log(`⏭ [${i + 1}/${totalProducts}] Skipping ${product.title} (no image)`);
+          skipped++;
           continue;
         }
 
-        console.log(`🔍 Analyzing: ${product.title}`);
+        // Check if we should wait for rate limits (before each batch)
+        if (i % rateLimitConfig.batchSize === 0) {
+          currentBatch++;
+          const quota = getRemainingQuota(shop, rateLimitConfig);
+
+          console.log(`\n📊 [Batch ${currentBatch}] Rate Limit Status:`);
+          console.log(`   Requests this minute: ${quota.requestsThisMinute}/${rateLimitConfig.requestsPerMinute}`);
+          console.log(`   Requests today: ${quota.requestsToday}/${rateLimitConfig.requestsPerDay}`);
+          console.log(`   Remaining today: ${quota.remainingDay}`);
+
+          // Wait if needed
+          try {
+            await waitIfNeeded(shop, rateLimitConfig, (waitTimeMs, reason) => {
+              console.log(`\n⏸ ${reason}`);
+              console.log(`   Pausing for ${formatWaitTime(waitTimeMs)}...`);
+            });
+          } catch (error: any) {
+            // Daily limit reached
+            console.error(`\n❌ ${error.message}`);
+            console.log(`   Processed ${analyzed} of ${totalProducts} products before limit`);
+
+            await logRefreshActivity(
+              shop,
+              "admin_manual",
+              totalProducts,
+              analyzed,
+              geminiApiCalls,
+              0,
+              "partial",
+              error.message
+            );
+
+            return json({
+              success: false,
+              message: `Daily API limit reached. Analyzed ${analyzed}/${totalProducts} products. Will resume tomorrow at midnight PT.`,
+              productsFetched: totalProducts,
+              productsAnalyzed: analyzed,
+              productsFailed: failed,
+              productsSkipped: skipped,
+            });
+          }
+        }
+
+        console.log(`🔍 [${i + 1}/${totalProducts}] Analyzing: ${product.title}`);
+
+        // Analyze the product
         const analysis = await analyzeProductImage(product.imageUrl, shop, product.title);
         geminiApiCalls++;
+        recordRequest(shop);
 
         if (!analysis) {
           console.error(`❌ Analysis failed`);
@@ -110,7 +161,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const saved = await saveAnalyzedProduct(shop, product, analysis);
         if (saved) {
           analyzed++;
-          console.log(`✅ Saved`);
+          console.log(`✅ Saved (${analyzed}/${totalProducts} completed)`);
         } else {
           failed++;
         }
@@ -120,7 +171,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    // STEP 6: Calculate costs
+    // STEP 4: Calculate costs
     const tokensPerImage = 258;
     const tokensPerOutput = 5000;
     const inputCost = (geminiApiCalls * tokensPerImage * 0.10) / 1000000;
@@ -130,17 +181,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
     console.log(`\n✅ REFRESH COMPLETED in ${elapsedTime}s`);
-    console.log(`   Analyzed: ${analyzed}, Failed: ${failed}, Cost: $${totalCost.toFixed(4)}`);
+    console.log(`   Analyzed: ${analyzed}, Failed: ${failed}, Skipped: ${skipped}, Cost: $${totalCost.toFixed(4)}`);
 
-    // STEP 7: Log activity
+    // STEP 5: Log activity
     await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed");
 
     return json({
       success: true,
-      message: `Successfully analyzed ${analyzed} products! Cost: $${totalCost.toFixed(4)}`,
+      message: `Successfully analyzed ${analyzed}/${totalProducts} products! Cost: $${totalCost.toFixed(4)}`,
       productsFetched: products.length,
       productsAnalyzed: analyzed,
       productsFailed: failed,
+      productsSkipped: skipped,
       estimatedCost: totalCost,
     });
   } catch (error: any) {
@@ -249,8 +301,13 @@ export default function Index() {
                     🔄 Product Refresh
                   </Text>
                   <Text as="p" variant="bodyMd">
-                    Analyzes ALL products in your catalog with Gemini AI, even previously analyzed ones (limit: 3x per day)
+                    Analyzes ALL products in your catalog with Gemini AI. The system automatically respects API rate limits and will pause/resume as needed.
                   </Text>
+                  <Banner tone="info">
+                    <Text as="p" variant="bodySm">
+                      Rate limiting is configured in <strong>Gemini AI Settings</strong>. Default: Free tier (15 RPM, 1,500 RPD)
+                    </Text>
+                  </Banner>
                   {resetMessage && (
                     <Banner tone={resetMessage.includes("✅") ? "success" : "critical"}>
                       <Text as="p" variant="bodyMd">{resetMessage}</Text>

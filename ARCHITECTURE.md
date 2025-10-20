@@ -15,7 +15,31 @@
 
 ---
 
-## ⚡ LATEST UPDATE: GEMINI-ONLY ARCHITECTURE (RECOMMENDED)
+## ⚡ LATEST UPDATE: FLEXIBLE RATE LIMITING SYSTEM
+
+**Date:** 2025-01-20
+**Change:** Added adaptive rate limiting system that works with any Gemini API tier (Free, Paid, Enterprise)
+**Why:** Enables stores of any size to use the app without hitting API rate limits, with automatic pause/resume functionality
+
+### Key Features:
+- ✅ **Configurable Rate Limits**: Set requests per minute (RPM) and requests per day (RPD) based on your API tier
+- ✅ **Preset Tiers**: Free (15 RPM, 1,500 RPD), Paid (2,000 RPM, 50,000 RPD), Enterprise (Unlimited)
+- ✅ **Batch Processing**: Process products in configurable batches with automatic rate limit checking
+- ✅ **Smart Pausing**: Automatically pauses when approaching RPM limits and resumes after 60 seconds
+- ✅ **Daily Limit Handling**: Stops processing when daily limit is reached, can resume next day
+- ✅ **Progress Tracking**: Real-time console output shows batch progress, rate limit status, and remaining quota
+- ✅ **In-Memory Tracking**: Lightweight rate limit state management per shop
+- ✅ **Pacific Time Reset**: Respects Gemini's midnight PT reset time for daily quotas
+
+### Implementation:
+- **Database**: Added rate limit fields to `GeminiSettings` table (requestsPerMinute, requestsPerDay, batchSize, enableRateLimiting)
+- **Utility**: Created `app/utils/rateLimiter.ts` with rate limit tracking and enforcement
+- **Admin UI**: Added rate limiting configuration section in Gemini Settings
+- **Refresh Logic**: Updated `app._index.tsx` to use rate limiting during product refresh
+
+---
+
+## ⚡ PREVIOUS UPDATE: GEMINI-ONLY ARCHITECTURE (RECOMMENDED)
 
 **Date:** 2025-01-XX
 **Change:** Simplified to use Gemini 2.0 Flash for BOTH image analysis AND recommendations
@@ -33,7 +57,8 @@ Pre-compute and cache product analysis to provide instant, personalized fashion 
 - ✅ Real-time recommendations with Gemini (cached analysis)
 - ✅ Multiple filter paths (body shape, color season, values)
 - ✅ Incremental updates (only new/changed products)
-- ✅ 3x/day refresh limit (cost control)
+- ✅ Flexible rate limiting (works with Free, Paid, or Enterprise API tiers)
+- ✅ Automatic pause/resume when approaching rate limits
 - ✅ Size recommendations based on measurements
 
 ### AI Provider (UPDATED)
@@ -61,7 +86,7 @@ Pre-compute and cache product analysis to provide instant, personalized fashion 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     PHASE 1: ADMIN REFRESH                          │
-│                    (3x per day maximum)                             │
+│              (With Adaptive Rate Limiting)                          │
 └─────────────────────────────────────────────────────────────────────┘
 
     ┌─────────────────┐
@@ -70,10 +95,13 @@ Pre-compute and cache product analysis to provide instant, personalized fashion 
     └────────┬────────┘
              │
              ↓
-    ┌─────────────────────────────┐
-    │ Check Daily Limit (3x/day)  │
-    │ IF count >= 3: ABORT        │
-    └────────┬────────────────────┘
+    ┌──────────────────────────────────────┐
+    │ Load Rate Limit Settings             │
+    │ • RPM: 15 (Free) / 2000 (Paid)       │
+    │ • RPD: 1500 (Free) / 50000 (Paid)    │
+    │ • Batch Size: 10 (configurable)      │
+    │ • Enable Rate Limiting: true/false   │
+    └────────┬─────────────────────────────┘
              │
              ↓
     ┌──────────────────────────────────────┐
@@ -85,26 +113,21 @@ Pre-compute and cache product analysis to provide instant, personalized fashion 
              │
              ↓
     ┌──────────────────────────────────────┐
-    │ Apply Basic Filters                  │
-    │ • Stock availability                 │
-    │ • Categories (admin settings)        │
-    │ • Price range                        │
+    │ Process Products in Batches          │
+    │ • Default batch size: 10 products    │
+    │ • Before each batch:                 │
+    │   - Check RPM/RPD quota              │
+    │   - Wait if approaching limits       │
+    │   - Stop if daily limit reached      │
     └────────┬─────────────────────────────┘
              │
              ↓
     ┌──────────────────────────────────────┐
-    │ Compare with Existing Database       │
-    │ • Find NEW products                  │
-    │ • Find UPDATED products              │
-    │   (image URL changed, title changed) │
-    └────────┬─────────────────────────────┘
-             │
-             ↓
-    ┌──────────────────────────────────────┐
-    │ Send ONLY New/Updated to Gemini      │
-    │ • Batch: 50-100 products typically   │
-    │ • Analyze image + extract features   │
-    │ • Model: Gemini 2.0 Flash            │
+    │ For Each Product in Batch:           │
+    │ • Skip if no image                   │
+    │ • Analyze with Gemini 2.0 Flash      │
+    │ • Record API request                 │
+    │ • Track progress (X/Total)           │
     └────────┬─────────────────────────────┘
              │
              ↓

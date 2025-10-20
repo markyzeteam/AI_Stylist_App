@@ -15,6 +15,17 @@ export interface GeminiSettings {
   prompt?: string;
   systemPrompt?: string;
   enabled: boolean;
+  requestsPerMinute?: number;
+  requestsPerDay?: number;
+  batchSize?: number;
+  enableRateLimiting?: boolean;
+}
+
+export interface RateLimitConfig {
+  requestsPerMinute: number;
+  requestsPerDay: number;
+  batchSize: number;
+  enableRateLimiting: boolean;
 }
 
 export interface ProductImageAnalysis {
@@ -111,6 +122,10 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         prompt: settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT,
         systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_SYSTEM_PROMPT,
         enabled: settings.enabled,
+        requestsPerMinute: settings.requestsPerMinute,
+        requestsPerDay: settings.requestsPerDay,
+        batchSize: settings.batchSize,
+        enableRateLimiting: settings.enableRateLimiting,
       };
     }
 
@@ -121,6 +136,10 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
       enabled: true,
+      requestsPerMinute: 15,
+      requestsPerDay: 1500,
+      batchSize: 10,
+      enableRateLimiting: true,
     };
   } catch (error) {
     console.error("Error loading Gemini settings:", error);
@@ -130,6 +149,10 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
       enabled: true,
+      requestsPerMinute: 15,
+      requestsPerDay: 1500,
+      batchSize: 10,
+      enableRateLimiting: true,
     };
   }
 }
@@ -150,6 +173,10 @@ export async function saveGeminiSettings(
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
         enabled: settings.enabled,
+        requestsPerMinute: settings.requestsPerMinute,
+        requestsPerDay: settings.requestsPerDay,
+        batchSize: settings.batchSize,
+        enableRateLimiting: settings.enableRateLimiting,
         updatedAt: new Date(),
       },
       create: {
@@ -159,6 +186,10 @@ export async function saveGeminiSettings(
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
         enabled: settings.enabled,
+        requestsPerMinute: settings.requestsPerMinute || 15,
+        requestsPerDay: settings.requestsPerDay || 1500,
+        batchSize: settings.batchSize || 10,
+        enableRateLimiting: settings.enableRateLimiting ?? true,
       },
     });
 
