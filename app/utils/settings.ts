@@ -3,7 +3,6 @@ export interface AppSettings {
   minimumMatchScore: number;
   maxProductsToScan: number;
   onlyInStockProducts: boolean;
-  enableImageAnalysis: boolean;
   maxRefreshesPerDay: number;
 }
 
@@ -15,7 +14,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   minimumMatchScore: 30,
   maxProductsToScan: 0, // 0 = ALL products
   onlyInStockProducts: true,
-  enableImageAnalysis: false,
   maxRefreshesPerDay: 3, // Limit admin product refreshes per day
 };
 
