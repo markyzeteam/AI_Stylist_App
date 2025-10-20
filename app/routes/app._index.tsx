@@ -32,6 +32,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       fetchShopifyProducts,
       analyzeProductImage,
       saveAnalyzedProduct,
+      saveBasicProduct,
       logRefreshActivity,
       loadGeminiSettings,
     } = await import("../utils/geminiAnalysis");
@@ -50,8 +51,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const startTime = Date.now();
 
-    // STEP 1: Load rate limit settings
+    // STEP 1: Load settings
     const settings = await loadGeminiSettings(shop);
+    const useImageAnalysis = settings.useImageAnalysis ?? true;
     const rateLimitConfig = {
       requestsPerMinute: settings.requestsPerMinute || 15,
       requestsPerDay: settings.requestsPerDay || 1500,
@@ -59,11 +61,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       enableRateLimiting: settings.enableRateLimiting ?? true,
     };
 
-    console.log(`⚙️ Rate Limit Config:`);
+    console.log(`⚙️ Settings:`);
+    console.log(`   Image Analysis: ${useImageAnalysis ? 'ON' : 'OFF (Basic Mode)'}`);
     console.log(`   RPM: ${rateLimitConfig.requestsPerMinute}`);
     console.log(`   RPD: ${rateLimitConfig.requestsPerDay}`);
     console.log(`   Batch Size: ${rateLimitConfig.batchSize}`);
-    console.log(`   Enabled: ${rateLimitConfig.enableRateLimiting}\n`);
+    console.log(`   Rate Limiting: ${rateLimitConfig.enableRateLimiting}\n`);
 
     // STEP 2: Fetch products
     console.log(`\n📦 Fetching products from Shopify...`);
@@ -82,17 +85,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log(`✅ Fetched ${products.length} products`);
 
-    // STEP 3: Filter out already-analyzed products (incremental update)
-    console.log(`\n🔍 Checking which products need analysis...`);
+    // STEP 3: Filter out already-processed products (incremental update)
+    console.log(`\n🔍 Checking which products need processing...`);
 
-    const existingProducts = await db.filteredSelectionWithImgAnalyzed.findMany({
-      where: { shop },
-      select: {
-        shopifyProductId: true,
-        imageUrl: true,
-        title: true,
-      },
-    });
+    // Use the appropriate table based on useImageAnalysis setting
+    const existingProducts = useImageAnalysis
+      ? await db.filteredSelectionWithImgAnalyzed.findMany({
+          where: { shop },
+          select: {
+            shopifyProductId: true,
+            imageUrl: true,
+            title: true,
+          },
+        })
+      : await db.filteredSelection.findMany({
+          where: { shop },
+          select: {
+            shopifyProductId: true,
+            imageUrl: true,
+            title: true,
+          },
+        });
 
     const existingMap = new Map(
       existingProducts.map(p => [p.shopifyProductId, p])
@@ -113,25 +126,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return imageChanged || titleChanged;
     });
 
-    console.log(`📊 Analysis needed:`);
+    console.log(`📊 Processing summary:`);
     console.log(`   Total products: ${products.length}`);
-    console.log(`   Already analyzed: ${products.length - productsToAnalyze.length}`);
-    console.log(`   Need analysis: ${productsToAnalyze.length}`);
+    console.log(`   Already processed: ${products.length - productsToAnalyze.length}`);
+    console.log(`   Need processing: ${productsToAnalyze.length}`);
+    console.log(`   Mode: ${useImageAnalysis ? 'AI Image Analysis' : 'Basic (No AI)'}`);
 
     if (productsToAnalyze.length === 0) {
-      console.log(`\n✅ All products are already analyzed! No API calls needed.`);
-      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All products already analyzed");
+      console.log(`\n✅ All products are already processed! No work needed.`);
+      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All products already processed");
       return json({
         success: true,
-        message: `All ${products.length} products are already analyzed! No updates needed.`,
+        message: `All ${products.length} products are already processed! No updates needed.`,
         productsFetched: products.length,
         productsAnalyzed: 0,
         productsSkipped: products.length,
       });
     }
 
-    // STEP 4: Process only new/updated products with rate limiting
-    console.log(`\n🖼️  Analyzing ${productsToAnalyze.length} new/updated products with rate limiting...\n`);
+    // STEP 4: Process only new/updated products
+    const processingMode = useImageAnalysis ? 'with AI image analysis' : 'in basic mode (no AI)';
+    console.log(`\n${useImageAnalysis ? '🖼️' : '⚡'}  Processing ${productsToAnalyze.length} new/updated products ${processingMode}...\n`);
 
     let analyzed = 0;
     let failed = 0;
@@ -150,8 +165,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           continue;
         }
 
-        // Check if we should wait for rate limits (before each batch)
-        if (i % rateLimitConfig.batchSize === 0) {
+        // Check if we should wait for rate limits (before each batch) - ONLY in AI mode
+        if (useImageAnalysis && i % rateLimitConfig.batchSize === 0) {
           currentBatch++;
           const quota = getRemainingQuota(shop, rateLimitConfig);
 
@@ -194,25 +209,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        console.log(`🔍 [${i + 1}/${totalProducts}] Analyzing: ${product.title}`);
+        if (useImageAnalysis) {
+          // AI Image Analysis Mode
+          console.log(`🖼️  [${i + 1}/${totalProducts}] Analyzing: ${product.title}`);
 
-        // Analyze the product
-        const analysis = await analyzeProductImage(product.imageUrl, shop, product.title);
-        geminiApiCalls++;
-        recordRequest(shop);
+          const analysis = await analyzeProductImage(product.imageUrl, shop, product.title);
+          geminiApiCalls++;
+          recordRequest(shop);
 
-        if (!analysis) {
-          console.error(`❌ Analysis failed`);
-          failed++;
-          continue;
-        }
+          if (!analysis) {
+            console.error(`❌ Analysis failed`);
+            failed++;
+            continue;
+          }
 
-        const saved = await saveAnalyzedProduct(shop, product, analysis);
-        if (saved) {
-          analyzed++;
-          console.log(`✅ Saved (${analyzed}/${totalProducts} completed)`);
+          const saved = await saveAnalyzedProduct(shop, product, analysis);
+          if (saved) {
+            analyzed++;
+            console.log(`✅ Saved with AI analysis (${analyzed}/${totalProducts} completed)`);
+          } else {
+            failed++;
+          }
         } else {
-          failed++;
+          // Basic Mode (No AI)
+          console.log(`⚡ [${i + 1}/${totalProducts}] Saving: ${product.title}`);
+
+          const saved = await saveBasicProduct(shop, product);
+          if (saved) {
+            analyzed++;
+            console.log(`✅ Saved basic data (${analyzed}/${totalProducts} completed)`);
+          } else {
+            failed++;
+          }
         }
       } catch (error: any) {
         console.error(`❌ Error:`, error.message);
@@ -231,19 +259,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const alreadyAnalyzed = products.length - productsToAnalyze.length;
 
     console.log(`\n✅ REFRESH COMPLETED in ${elapsedTime}s`);
+    console.log(`   Mode: ${useImageAnalysis ? 'AI Image Analysis' : 'Basic (No AI)'}`);
     console.log(`   Total products: ${products.length}`);
-    console.log(`   Already analyzed: ${alreadyAnalyzed}`);
-    console.log(`   Newly analyzed: ${analyzed}`);
+    console.log(`   Already processed: ${alreadyAnalyzed}`);
+    console.log(`   Newly processed: ${analyzed}`);
     console.log(`   Failed: ${failed}`);
     console.log(`   Skipped (no image): ${skippedNoImage}`);
-    console.log(`   Cost: $${totalCost.toFixed(4)}`);
+    if (useImageAnalysis) {
+      console.log(`   API calls: ${geminiApiCalls}`);
+      console.log(`   Cost: $${totalCost.toFixed(4)}`);
+    }
 
     // STEP 5: Log activity
     await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed");
 
+    const successMessage = useImageAnalysis
+      ? `Successfully analyzed ${analyzed} new/updated products with AI! (${alreadyAnalyzed} already up-to-date) Cost: $${totalCost.toFixed(4)}`
+      : `Successfully saved ${analyzed} new/updated products in basic mode! (${alreadyAnalyzed} already up-to-date) No AI cost.`;
+
     return json({
       success: true,
-      message: `Successfully analyzed ${analyzed} new/updated products! (${alreadyAnalyzed} already up-to-date) Cost: $${totalCost.toFixed(4)}`,
+      message: successMessage,
       productsFetched: products.length,
       productsAnalyzed: analyzed,
       productsFailed: failed,

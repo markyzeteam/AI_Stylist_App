@@ -43,6 +43,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       requestsPerDay: settings.requestsPerDay || 1500,
       batchSize: settings.batchSize || 10,
       enableRateLimiting: settings.enableRateLimiting ?? true,
+      useImageAnalysis: settings.useImageAnalysis ?? true,
     }
   });
 };
@@ -86,6 +87,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const requestsPerDay = parseInt(formData.get("requestsPerDay") as string) || 1500;
   const batchSize = parseInt(formData.get("batchSize") as string) || 10;
   const enableRateLimiting = formData.get("enableRateLimiting") === "true";
+  const useImageAnalysis = formData.get("useImageAnalysis") === "true";
 
   // If API key field is masked (••••••••), keep the existing key
   const finalApiKey = apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
@@ -101,6 +103,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     requestsPerDay,
     batchSize,
     enableRateLimiting,
+    useImageAnalysis,
   });
 
   if (success) {
@@ -132,6 +135,7 @@ export default function GeminiSettings() {
   const [requestsPerDay, setRequestsPerDay] = useState(String(settings.requestsPerDay));
   const [batchSize, setBatchSize] = useState(String(settings.batchSize));
   const [enableRateLimiting, setEnableRateLimiting] = useState(settings.enableRateLimiting);
+  const [useImageAnalysis, setUseImageAnalysis] = useState(settings.useImageAnalysis);
 
   const isKeyVisible = searchParams.get("showKey") === "true";
 
@@ -144,7 +148,8 @@ export default function GeminiSettings() {
     setRequestsPerDay(String(settings.requestsPerDay));
     setBatchSize(String(settings.batchSize));
     setEnableRateLimiting(settings.enableRateLimiting);
-  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting]);
+    setUseImageAnalysis(settings.useImageAnalysis);
+  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis]);
 
   // Handle API tier selection
   const handleApiTierChange = (value: string) => {
@@ -284,6 +289,30 @@ export default function GeminiSettings() {
                       helpText="When disabled, the system will use a basic algorithmic fallback (not recommended)"
                     />
                     <input type="hidden" name="enabled" value={enabled.toString()} />
+
+                    <Divider />
+
+                    <Checkbox
+                      label="Use AI Image Analysis"
+                      checked={useImageAnalysis}
+                      onChange={setUseImageAnalysis}
+                      helpText="When enabled, uses Gemini to analyze product images (colors, style, silhouette). When disabled, uses basic product data only (faster, no AI cost)"
+                    />
+                    <input type="hidden" name="useImageAnalysis" value={useImageAnalysis.toString()} />
+
+                    <Banner tone={useImageAnalysis ? "info" : "warning"}>
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                          {useImageAnalysis ? "🎨 AI Image Analysis: ON" : "⚡ Basic Mode: ON (No Image Analysis)"}
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          {useImageAnalysis
+                            ? "Products will be analyzed with Gemini AI for visual features (colors, patterns, style). Best for personalized recommendations."
+                            : "Products will be stored without image analysis. Faster refresh, no API costs, but recommendations will be based only on product data (title, description, tags)."}
+                        </Text>
+                      </BlockStack>
+                    </Banner>
+
                     <input type="hidden" name="actionType" value="save" />
 
                     <InlineStack align="end">

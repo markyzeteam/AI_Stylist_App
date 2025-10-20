@@ -19,6 +19,7 @@ export interface GeminiSettings {
   requestsPerDay?: number;
   batchSize?: number;
   enableRateLimiting?: boolean;
+  useImageAnalysis?: boolean;
 }
 
 export interface RateLimitConfig {
@@ -126,6 +127,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         requestsPerDay: settings.requestsPerDay,
         batchSize: settings.batchSize,
         enableRateLimiting: settings.enableRateLimiting,
+        useImageAnalysis: settings.useImageAnalysis,
       };
     }
 
@@ -140,6 +142,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       requestsPerDay: 1500,
       batchSize: 10,
       enableRateLimiting: true,
+      useImageAnalysis: true,
     };
   } catch (error) {
     console.error("Error loading Gemini settings:", error);
@@ -153,6 +156,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       requestsPerDay: 1500,
       batchSize: 10,
       enableRateLimiting: true,
+      useImageAnalysis: true,
     };
   }
 }
@@ -177,6 +181,7 @@ export async function saveGeminiSettings(
         requestsPerDay: settings.requestsPerDay,
         batchSize: settings.batchSize,
         enableRateLimiting: settings.enableRateLimiting,
+        useImageAnalysis: settings.useImageAnalysis,
         updatedAt: new Date(),
       },
       create: {
@@ -190,6 +195,7 @@ export async function saveGeminiSettings(
         requestsPerDay: settings.requestsPerDay || 1500,
         batchSize: settings.batchSize || 10,
         enableRateLimiting: settings.enableRateLimiting ?? true,
+        useImageAnalysis: settings.useImageAnalysis ?? true,
       },
     });
 
@@ -567,6 +573,59 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
   } catch (error) {
     console.error('❌ Error fetching products from Shopify:', error);
     return [];
+  }
+}
+
+/**
+ * Save product without image analysis to database (FilteredSelection)
+ */
+export async function saveBasicProduct(
+  shop: string,
+  product: ShopifyProduct
+): Promise<boolean> {
+  try {
+    await db.filteredSelection.upsert({
+      where: {
+        shop_shopifyProductId: {
+          shop,
+          shopifyProductId: product.id,
+        },
+      },
+      update: {
+        title: product.title,
+        handle: product.handle,
+        description: product.description,
+        productType: product.productType,
+        tags: product.tags || [],
+        price: parseFloat(product.price) || 0,
+        imageUrl: product.imageUrl,
+        variants: product.variants || [],
+        inStock: product.inStock || false,
+        availableSizes: product.availableSizes || [],
+        categories: [product.productType || 'general'],
+        lastUpdated: new Date(),
+      },
+      create: {
+        shop,
+        shopifyProductId: product.id,
+        title: product.title,
+        handle: product.handle,
+        description: product.description,
+        productType: product.productType,
+        tags: product.tags || [],
+        price: parseFloat(product.price) || 0,
+        imageUrl: product.imageUrl,
+        variants: product.variants || [],
+        inStock: product.inStock || false,
+        availableSizes: product.availableSizes || [],
+        categories: [product.productType || 'general'],
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error(`❌ Error saving basic product ${product.title}:`, error);
+    return false;
   }
 }
 

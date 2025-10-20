@@ -15,19 +15,26 @@
 
 ---
 
-## ⚡ LATEST UPDATE: INCREMENTAL UPDATES + FLEXIBLE RATE LIMITING
+## ⚡ LATEST UPDATE: AI IMAGE ANALYSIS TOGGLE
 
 **Date:** 2025-01-20
-**Change:** Added incremental updates (skip already-analyzed products) + adaptive rate limiting system
-**Why:** Massive cost savings and efficiency - only analyze NEW or UPDATED products, respecting API rate limits
+**Change:** Added optional toggle to disable AI image analysis and use basic mode
+**Why:** Flexibility to save API costs by storing basic product data only (no image analysis)
 
 ### Key Features:
 
-#### **Incremental Updates (NEW!):**
+#### **Image Analysis Toggle (NEW!):**
+- ✅ **Flexible Processing**: Choose between AI Image Analysis mode or Basic mode (no AI)
+- ✅ **Cost Control**: Basic mode = $0 API costs (stores product data without Gemini analysis)
+- ✅ **Database Tables**: Uses `FilteredSelectionWithImgAnalyzed` (AI) or `FilteredSelection` (basic) based on setting
+- ✅ **Admin Control**: Simple toggle in Gemini Settings with clear explanation
+- ✅ **Rate Limiting Skip**: Basic mode bypasses rate limiting checks (no API calls needed)
+
+#### **Incremental Updates:**
 - ✅ **Smart Filtering**: Only analyzes NEW products or products with changed image/title
 - ✅ **Automatic Skip**: Already-analyzed products are skipped entirely (0 API calls!)
 - ✅ **Cost Savings**: Second refresh of 491 products = 0 API calls if nothing changed
-- ✅ **Clear Reporting**: Shows "X already analyzed, Y newly analyzed" in console and UI
+- ✅ **Clear Reporting**: Shows "X already processed, Y newly processed" in console and UI
 
 #### **Flexible Rate Limiting:**
 - ✅ **Configurable Rate Limits**: Set requests per minute (RPM) and requests per day (RPD) based on your API tier
@@ -40,11 +47,13 @@
 - ✅ **Pacific Time Reset**: Respects Gemini's midnight PT reset time for daily quotas
 
 ### Implementation:
+- **Image Analysis Toggle**: Added `useImageAnalysis` boolean to `GeminiSettings` table
+- **Dual Processing Modes**: Created `saveBasicProduct()` function alongside `saveAnalyzedProduct()`
 - **Incremental Logic**: Compare fetched products with database, filter by NEW or changed image/title
 - **Database**: Added rate limit fields to `GeminiSettings` table (requestsPerMinute, requestsPerDay, batchSize, enableRateLimiting)
 - **Utility**: Created `app/utils/rateLimiter.ts` with rate limit tracking and enforcement
-- **Admin UI**: Added rate limiting configuration section in Gemini Settings
-- **Refresh Logic**: Updated `app._index.tsx` to use incremental updates + rate limiting
+- **Admin UI**: Added toggle switch and rate limiting configuration in Gemini Settings
+- **Refresh Logic**: Updated `app._index.tsx` to use appropriate mode based on setting
 
 ---
 
