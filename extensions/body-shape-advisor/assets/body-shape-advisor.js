@@ -400,11 +400,11 @@ class BodyShapeAdvisor {
           <h4>🛍️ Ready to Shop?</h4>
           <p>Browse our collection to find items perfect for your ${this.bodyShapeResult.shape} body shape!</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.browseProducts()" style="flex: 1; min-width: 200px;">
-              Browse Recommended Products
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
+              Continue to Shopping Preferences
             </button>
             <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('colorSeasonPathSelection')" style="flex: 1; min-width: 200px;">
-              Move to Color Analysis
+              Add Color Season Analysis
             </button>
           </div>
         </div>
@@ -1474,11 +1474,14 @@ class BodyShapeAdvisor {
   }
 
   renderValuesQuestionnaire() {
+    // Determine the back button destination
+    const backStep = this.colorSeasonResult ? 'colorSeasonResults' : 'results';
+
     return `
       <div class="bsa-values-questionnaire">
         <div class="bsa-header">
           <h3>📋 Shopping Preferences & Values</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('colorSeasonResults')">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('${backStep}')">
             ← Back
           </button>
         </div>
@@ -1615,7 +1618,14 @@ class BodyShapeAdvisor {
     console.log('Values preferences:', this.valuesPreferences);
 
     // Now get products with all preferences
-    this.getProductsAfterColorSeason();
+    // Check if we have color season data
+    if (this.colorSeasonResult) {
+      // User went through color season analysis
+      this.getProductsAfterColorSeason();
+    } else {
+      // User skipped color season, just use body shape
+      this.browseProducts();
+    }
   }
 
   attachEventListeners() {
