@@ -83,49 +83,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log(`✅ Fetched ${products.length} products`);
 
-    // STEP 3: Get existing analyzed products
-    const existingAnalyzed = await db.filteredSelectionWithImgAnalyzed.findMany({
-      where: { shop },
-      select: { shopifyProductId: true, lastUpdated: true },
-    });
-
-    const analyzedMap = new Map(
-      existingAnalyzed.map(p => [p.shopifyProductId, p.lastUpdated])
-    );
-
-    // STEP 4: Filter products needing analysis
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const productsToAnalyze = products.filter(p => {
-      const lastAnalyzed = analyzedMap.get(p.id);
-      if (!lastAnalyzed) return true; // Not analyzed yet
-      if (lastAnalyzed < thirtyDaysAgo) return true; // Old analysis
-      return false;
-    });
-
-    console.log(`📊 Products needing analysis: ${productsToAnalyze.length}`);
-
-    if (productsToAnalyze.length === 0) {
-      console.log(`✅ All products up-to-date`);
-      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All up-to-date");
-      return json({
-        success: true,
-        message: "All products are up-to-date!",
-        productsFetched: products.length,
-        productsAnalyzed: 0,
-      });
-    }
-
-    // STEP 5: Analyze products (limit to 10 for quick testing)
-    const productsToProcess = productsToAnalyze.slice(0, 10);
-    console.log(`\n🖼️  Analyzing ${productsToProcess.length} products...`);
+    // STEP 3: Process ALL products (no 30-day filter, no limits)
+    console.log(`\n🖼️  Analyzing ALL ${products.length} products...`);
 
     let analyzed = 0;
     let failed = 0;
     let geminiApiCalls = 0;
 
-    for (const product of productsToProcess) {
+    for (const product of products) {
       try {
         if (!product.imageUrl) {
           console.log(`⏭ Skipping ${product.title} (no image)`);
@@ -196,7 +161,7 @@ export default function Index() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const handleRefresh = () => {
-    if (confirm("This will analyze your products with Gemini AI. Continue?")) {
+    if (confirm("This will re-analyze ALL products in your catalog with Gemini AI, even previously analyzed ones. This may take a while and will use API credits. Continue?")) {
       const formData = new FormData();
       submit(formData, { method: "post" });
     }
@@ -284,7 +249,7 @@ export default function Index() {
                     🔄 Product Refresh
                   </Text>
                   <Text as="p" variant="bodyMd">
-                    Run a product refresh to analyze your catalog with Gemini AI (limit: 3x per day)
+                    Analyzes ALL products in your catalog with Gemini AI, even previously analyzed ones (limit: 3x per day)
                   </Text>
                   {resetMessage && (
                     <Banner tone={resetMessage.includes("✅") ? "success" : "critical"}>
