@@ -156,9 +156,9 @@ export default function GeminiSettings() {
   const [batchSize, setBatchSize] = useState(String(settings.batchSize));
   const [enableRateLimiting, setEnableRateLimiting] = useState(settings.enableRateLimiting);
   const [useImageAnalysis, setUseImageAnalysis] = useState(settings.useImageAnalysis);
-  const [budgetLowMax, setBudgetLowMax] = useState(String(settings.budgetLowMax));
-  const [budgetMediumMax, setBudgetMediumMax] = useState(String(settings.budgetMediumMax));
-  const [budgetHighMax, setBudgetHighMax] = useState(String(settings.budgetHighMax));
+  const [budgetLowMax, setBudgetLowMax] = useState(String(settings.budgetLowMax || 30));
+  const [budgetMediumMax, setBudgetMediumMax] = useState(String(settings.budgetMediumMax || 80));
+  const [budgetHighMax, setBudgetHighMax] = useState(String(settings.budgetHighMax || 200));
 
   const isKeyVisible = searchParams.get("showKey") === "true";
 
@@ -171,9 +171,9 @@ export default function GeminiSettings() {
     setRequestsPerDay(String(settings.requestsPerDay));
     setBatchSize(String(settings.batchSize));
     setEnableRateLimiting(settings.enableRateLimiting);
-    setBudgetLowMax(String(settings.budgetLowMax));
-    setBudgetMediumMax(String(settings.budgetMediumMax));
-    setBudgetHighMax(String(settings.budgetHighMax));
+    setBudgetLowMax(String(settings.budgetLowMax || 30));
+    setBudgetMediumMax(String(settings.budgetMediumMax || 80));
+    setBudgetHighMax(String(settings.budgetHighMax || 200));
     setUseImageAnalysis(settings.useImageAnalysis);
   }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis]);
 
