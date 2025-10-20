@@ -1387,6 +1387,27 @@ Medium Store (2,000 products, 100 users/day):
 
 ### Critical Fixes Applied
 
+**✅ Enhancement: Remove Product Refresh Limits (2025-10-20)**
+- **What:** Removed 30-day check and 10-product limit from admin refresh
+- **Before:**
+  - Only analyzed products that were NEW or older than 30 days
+  - Limited to 10 products per refresh
+  - Could not force re-analysis of recent products
+- **After:**
+  - Re-analyzes ALL products in catalog every refresh
+  - No product count limits (processes entire catalog)
+  - Allows complete refresh after filter/prompt changes
+- **Changes Made:**
+  1. Removed 30-day age filter logic
+  2. Removed `.slice(0, 10)` product limit
+  3. Updated UI text to clarify "analyzes ALL products"
+  4. Enhanced confirmation dialog to warn about API usage
+- **Files Modified:**
+  - `app/routes/app._index.tsx` - Removed filtering logic (lines 86-122)
+- **Use Case:** When you update Gemini prompts or filters and want to re-analyze your entire catalog with the new settings
+- **Note:** 3x/day rate limit still applies to prevent excessive costs
+- **Commit:** `52f0128` - Remove 30-day check and product limits from admin refresh
+
 **✅ Fix: Settings Sync Between Admin and Storefront (2025-10-20)**
 - **Issue:** Admin settings (e.g., numberOfSuggestions: 5) weren't being used by storefront, which defaulted to 30
 - **Root Cause:**
