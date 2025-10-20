@@ -96,7 +96,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const budgetHighMax = parseFloat(formData.get("budgetHighMax") as string) || 200;
 
   // If API key field is masked (••••••••), keep the existing key
-  const finalApiKey = apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
+  const finalApiKey = apiKey && apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
 
   // Save settings
   const success = await saveGeminiSettings(shop, {
