@@ -15,7 +15,20 @@
 
 ---
 
-## ⚡ LATEST UPDATE: AI IMAGE ANALYSIS TOGGLE
+## ⚡ LATEST UPDATE: FIX CUSTOM SYSTEM PROMPT FOR RECOMMENDATIONS
+
+**Date:** 2025-01-20
+**Change:** Fixed bug where custom systemPrompt was not being used in recommendations
+**Why:** Admin could edit the recommendation system prompt in settings, but it was being ignored
+
+**What was fixed:**
+- `app/utils/geminiRecommendations.ts` now uses `geminiSettings.systemPrompt` (customizable) instead of hardcoded `DEFAULT_GEMINI_RECOMMENDATION_PROMPT`
+- Admin can now fully customize how Gemini thinks about product recommendations
+- Falls back to default prompt if no custom prompt is set
+
+---
+
+## ⚡ PREVIOUS UPDATE: AI IMAGE ANALYSIS TOGGLE
 
 **Date:** 2025-01-20
 **Change:** Added optional toggle to disable AI image analysis and use basic mode

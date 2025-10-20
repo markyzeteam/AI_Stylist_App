@@ -150,7 +150,8 @@ export async function getGeminiProductRecommendations(
       productsForAI,
       numberOfSuggestions,
       minimumMatchScore,
-      colorSeason
+      colorSeason,
+      geminiSettings
     );
 
     // STEP 5: Call Gemini API (text-only)
@@ -259,7 +260,8 @@ function buildGeminiRecommendationPrompt(
   products: any[],
   limit: number,
   minimumMatchScore: number,
-  colorSeason?: string
+  colorSeason?: string,
+  geminiSettings?: any
 ): string {
   const measurementInfo = measurements
     ? `
@@ -293,7 +295,10 @@ Customer Measurements:
   const colorGuidance = colorSeason ? colorSeasonGuidance[colorSeason] : "";
   const colorSeasonInfo = colorSeason ? `\nColor Season: ${colorSeason}\nColor Guidance: ${colorGuidance}` : "";
 
-  return `${DEFAULT_GEMINI_RECOMMENDATION_PROMPT}
+  // Use custom systemPrompt from settings, or fall back to default
+  const systemPrompt = geminiSettings?.systemPrompt || DEFAULT_GEMINI_RECOMMENDATION_PROMPT;
+
+  return `${systemPrompt}
 
 ${measurementInfo}
 
