@@ -82,7 +82,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Handle normal settings save
   const apiKey = formData.get("apiKey") as string;
-  const model = formData.get("model") as string;
+  const model = (formData.get("model") as string) || existingSettings.model || "gemini-2.0-flash-exp";
   const enabled = formData.get("enabled") === "true";
   const prompt = formData.get("prompt") as string;
   const systemPrompt = formData.get("systemPrompt") as string;
@@ -399,6 +399,13 @@ export default function GeminiSettings() {
                     </Banner>
 
                     <input type="hidden" name="actionType" value="save" />
+                    <input type="hidden" name="model" value={model} />
+                    <input type="hidden" name="enabled" value={enabled.toString()} />
+                    <input type="hidden" name="useImageAnalysis" value={useImageAnalysis.toString()} />
+                    <input type="hidden" name="enableRateLimiting" value={enableRateLimiting.toString()} />
+                    <input type="hidden" name="requestsPerMinute" value={requestsPerMinute} />
+                    <input type="hidden" name="requestsPerDay" value={requestsPerDay} />
+                    <input type="hidden" name="batchSize" value={batchSize} />
 
                     <InlineStack align="end">
                       <Button variant="primary" submit>
