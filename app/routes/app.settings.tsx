@@ -48,13 +48,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Also save to database session for the API endpoint
   try {
     const { session } = await authenticate.admin(request);
-    await prisma.session.update({
-      where: { id: session.id },
+    const shop = session.shop;
+
+    // Update ALL sessions for this shop to ensure consistency
+    const updateResult = await prisma.session.updateMany({
+      where: { shop },
       data: {
         appSettings: JSON.stringify(settings)
       }
     });
-    console.log("✓ Settings also saved to database session");
+
+    console.log(`✅ Settings saved to ${updateResult.count} database session(s) for shop: ${shop}`);
+    console.log(`📊 Saved settings:`, settings);
   } catch (dbError) {
     console.error("Failed to save settings to database:", dbError);
   }

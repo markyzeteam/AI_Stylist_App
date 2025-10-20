@@ -29,11 +29,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Load settings from database
     const sessionRecord = await db.session.findFirst({
-      where: { shop }
+      where: { shop },
+      orderBy: { id: 'desc' } // Get the most recent session
     });
 
-    if (!sessionRecord || !sessionRecord.appSettings) {
-      console.log(`⚠️ No settings found for ${shop}, returning defaults`);
+    if (!sessionRecord) {
+      console.log(`⚠️ No session found for ${shop}`);
+      console.log(`📋 Checking all shops in database...`);
+      const allSessions = await db.session.findMany({
+        select: { shop: true, appSettings: true }
+      });
+      console.log(`📋 Available shops:`, allSessions.map(s => ({ shop: s.shop, hasSettings: !!s.appSettings })));
+      return json({ settings: DEFAULT_SETTINGS }, { headers: corsHeaders });
+    }
+
+    if (!sessionRecord.appSettings) {
+      console.log(`⚠️ Session found for ${shop} but no appSettings saved yet`);
       return json({ settings: DEFAULT_SETTINGS }, { headers: corsHeaders });
     }
 
