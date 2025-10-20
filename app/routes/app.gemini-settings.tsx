@@ -95,14 +95,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const budgetMediumMax = parseFloat(formData.get("budgetMediumMax") as string) || 80;
   const budgetHighMax = parseFloat(formData.get("budgetHighMax") as string) || 200;
 
-  console.log("📝 Form data - Budget ranges:", {
+  console.log("📝 Form data received:", {
+    apiKey: apiKey ? "***" + apiKey.slice(-4) : "none",
+    model,
+    enabled,
+    requestsPerMinute,
+    requestsPerDay,
+    batchSize,
+    enableRateLimiting,
+    useImageAnalysis,
     budgetLowMax,
     budgetMediumMax,
     budgetHighMax,
     raw: {
-      low: formData.get("budgetLowMax"),
-      medium: formData.get("budgetMediumMax"),
-      high: formData.get("budgetHighMax"),
+      requestsPerMinute: formData.get("requestsPerMinute"),
+      requestsPerDay: formData.get("requestsPerDay"),
+      batchSize: formData.get("batchSize"),
     }
   });
 
@@ -150,7 +158,18 @@ export default function GeminiSettings() {
   const [enabled, setEnabled] = useState(settings.enabled);
   const [prompt, setPrompt] = useState(settings.prompt || "");
   const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || "");
-  const [apiTier, setApiTier] = useState("custom");
+  // Detect which API tier preset matches current settings
+  const detectApiTier = () => {
+    const rpm = settings.requestsPerMinute;
+    const rpd = settings.requestsPerDay;
+
+    if (rpm === 15 && rpd === 1500) return "free";
+    if (rpm === 2000 && rpd === 50000) return "paid";
+    if (rpm === 10000 && rpd === 1000000) return "unlimited";
+    return "custom";
+  };
+
+  const [apiTier, setApiTier] = useState(detectApiTier());
   const [requestsPerMinute, setRequestsPerMinute] = useState(String(settings.requestsPerMinute));
   const [requestsPerDay, setRequestsPerDay] = useState(String(settings.requestsPerDay));
   const [batchSize, setBatchSize] = useState(String(settings.batchSize));
@@ -175,6 +194,14 @@ export default function GeminiSettings() {
     setBudgetMediumMax(String(settings.budgetMediumMax || 80));
     setBudgetHighMax(String(settings.budgetHighMax || 200));
     setUseImageAnalysis(settings.useImageAnalysis);
+
+    // Re-detect API tier when settings load
+    const rpm = settings.requestsPerMinute;
+    const rpd = settings.requestsPerDay;
+    if (rpm === 15 && rpd === 1500) setApiTier("free");
+    else if (rpm === 2000 && rpd === 50000) setApiTier("paid");
+    else if (rpm === 10000 && rpd === 1000000) setApiTier("unlimited");
+    else setApiTier("custom");
   }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
 
   // Handle API tier selection
