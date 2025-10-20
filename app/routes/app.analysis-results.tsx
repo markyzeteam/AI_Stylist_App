@@ -37,21 +37,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (product.geminiAnalysis) {
         const rawAnalysis = product.geminiAnalysis as any;
 
-        // Map database fields to UI fields
+        // Map all database fields to UI fields separately
         analysis = {
           colors: rawAnalysis.detectedColors || [],
+          colorSeasons: rawAnalysis.colorSeasons || [],
           style: rawAnalysis.styleClassification || [],
-          silhouette: rawAnalysis.silhouetteType ? [rawAnalysis.silhouetteType] : [],
-          description: [
-            rawAnalysis.patternType ? `Pattern: ${rawAnalysis.patternType}` : null,
-            rawAnalysis.fabricTexture ? `Fabric: ${rawAnalysis.fabricTexture}` : null,
-            rawAnalysis.designDetails && rawAnalysis.designDetails.length > 0
-              ? `Details: ${rawAnalysis.designDetails.join(', ')}`
-              : null,
-            rawAnalysis.colorSeasons && rawAnalysis.colorSeasons.length > 0
-              ? `Seasons: ${rawAnalysis.colorSeasons.join(', ')}`
-              : null,
-          ].filter(Boolean).join(' • '),
+          silhouette: rawAnalysis.silhouetteType || null,
+          fabric: rawAnalysis.fabricTexture || null,
+          pattern: rawAnalysis.patternType || null,
+          details: rawAnalysis.designDetails || [],
+          additionalNotes: rawAnalysis.additionalNotes || product.additionalNotes || null,
         };
       }
     } catch (e) {
@@ -196,21 +191,50 @@ export default function AnalysisResults() {
                     </BlockStack>
 
                     {product.analysis ? (
-                      <InlineStack gap="200" wrap>
-                        {product.analysis.colors && product.analysis.colors.length > 0 && (
-                          <>
-                            <Text as="span" variant="bodySm">🎨</Text>
-                            {product.analysis.colors.slice(0, 3).map((color: string, idx: number) => (
-                              <Badge key={idx}>{color}</Badge>
-                            ))}
-                            {product.analysis.colors.length > 3 && (
-                              <Text as="span" variant="bodySm" tone="subdued">
-                                +{product.analysis.colors.length - 3} more
-                              </Text>
-                            )}
-                          </>
-                        )}
-                      </InlineStack>
+                      <BlockStack gap="200">
+                        <InlineStack gap="200" wrap>
+                          {product.analysis.colors && product.analysis.colors.length > 0 && (
+                            <>
+                              <Text as="span" variant="bodySm">🎨</Text>
+                              {product.analysis.colors.slice(0, 3).map((color: string, idx: number) => (
+                                <Badge key={idx}>{color}</Badge>
+                              ))}
+                              {product.analysis.colors.length > 3 && (
+                                <Text as="span" variant="bodySm" tone="subdued">
+                                  +{product.analysis.colors.length - 3} more
+                                </Text>
+                              )}
+                            </>
+                          )}
+                        </InlineStack>
+                        <InlineStack gap="200" wrap>
+                          {product.analysis.silhouette && (
+                            <>
+                              <Text as="span" variant="bodySm">✨</Text>
+                              <Badge tone="success">{product.analysis.silhouette}</Badge>
+                            </>
+                          )}
+                          {product.analysis.pattern && (
+                            <>
+                              <Text as="span" variant="bodySm">📐</Text>
+                              <Badge tone="magic">{product.analysis.pattern}</Badge>
+                            </>
+                          )}
+                          {product.analysis.style && product.analysis.style.length > 0 && (
+                            <>
+                              <Text as="span" variant="bodySm">👗</Text>
+                              {product.analysis.style.slice(0, 2).map((style: string, idx: number) => (
+                                <Badge key={idx} tone="info">{style}</Badge>
+                              ))}
+                              {product.analysis.style.length > 2 && (
+                                <Text as="span" variant="bodySm" tone="subdued">
+                                  +{product.analysis.style.length - 2} more
+                                </Text>
+                              )}
+                            </>
+                          )}
+                        </InlineStack>
+                      </BlockStack>
                     ) : (
                       <Text as="p" variant="bodyMd" tone="subdued">
                         No analysis data available
@@ -258,6 +282,7 @@ export default function AnalysisResults() {
 
               {selectedProduct.analysis ? (
                 <BlockStack gap="400">
+                  {/* Colors */}
                   {selectedProduct.analysis.colors &&
                     selectedProduct.analysis.colors.length > 0 && (
                       <div>
@@ -274,6 +299,26 @@ export default function AnalysisResults() {
                       </div>
                     )}
 
+                  {/* Color Seasons */}
+                  {selectedProduct.analysis.colorSeasons &&
+                    selectedProduct.analysis.colorSeasons.length > 0 && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          🌸 Color Seasons
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <InlineStack gap="200" wrap>
+                            {selectedProduct.analysis.colorSeasons.map((season: string, idx: number) => (
+                              <Badge key={idx} tone="attention">
+                                {season}
+                              </Badge>
+                            ))}
+                          </InlineStack>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Style Classification */}
                   {selectedProduct.analysis.style &&
                     selectedProduct.analysis.style.length > 0 && (
                       <div>
@@ -292,34 +337,72 @@ export default function AnalysisResults() {
                       </div>
                     )}
 
-                  {selectedProduct.analysis.silhouette &&
-                    selectedProduct.analysis.silhouette.length > 0 && (
+                  {/* Silhouette */}
+                  {selectedProduct.analysis.silhouette && (
                       <div>
                         <Text as="p" variant="headingSm" fontWeight="semibold">
                           ✨ Silhouette
                         </Text>
                         <div style={{ marginTop: "12px" }}>
+                          <Badge tone="success">{selectedProduct.analysis.silhouette}</Badge>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Pattern Type */}
+                  {selectedProduct.analysis.pattern && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          📐 Pattern
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <Badge tone="magic">{selectedProduct.analysis.pattern}</Badge>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Fabric Texture */}
+                  {selectedProduct.analysis.fabric && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          🧵 Fabric
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
+                          <Text as="p" variant="bodyMd">
+                            {selectedProduct.analysis.fabric}
+                          </Text>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Design Details */}
+                  {selectedProduct.analysis.details &&
+                    selectedProduct.analysis.details.length > 0 && (
+                      <div>
+                        <Text as="p" variant="headingSm" fontWeight="semibold">
+                          ✂️ Design Details
+                        </Text>
+                        <div style={{ marginTop: "12px" }}>
                           <InlineStack gap="200" wrap>
-                            {selectedProduct.analysis.silhouette.map(
-                              (silhouette: string, idx: number) => (
-                                <Badge key={idx} tone="success">
-                                  {silhouette}
-                                </Badge>
-                              )
-                            )}
+                            {selectedProduct.analysis.details.map((detail: string, idx: number) => (
+                              <Badge key={idx} tone="read-only">
+                                {detail}
+                              </Badge>
+                            ))}
                           </InlineStack>
                         </div>
                       </div>
                     )}
 
-                  {selectedProduct.analysis.description && (
+                  {/* Additional Notes */}
+                  {selectedProduct.analysis.additionalNotes && (
                     <div>
                       <Text as="p" variant="headingSm" fontWeight="semibold">
-                        📝 Description
+                        📝 Additional Notes
                       </Text>
                       <div style={{ marginTop: "12px" }}>
                         <Text as="p" variant="bodyMd" breakWord>
-                          {selectedProduct.analysis.description}
+                          {selectedProduct.analysis.additionalNotes}
                         </Text>
                       </div>
                     </div>
