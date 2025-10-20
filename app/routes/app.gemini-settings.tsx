@@ -44,6 +44,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       batchSize: settings.batchSize || 10,
       enableRateLimiting: settings.enableRateLimiting ?? true,
       useImageAnalysis: settings.useImageAnalysis ?? true,
+      budgetLowMax: settings.budgetLowMax || 30,
+      budgetMediumMax: settings.budgetMediumMax || 80,
+      budgetHighMax: settings.budgetHighMax || 200,
     }
   });
 };
@@ -88,6 +91,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const batchSize = parseInt(formData.get("batchSize") as string) || 10;
   const enableRateLimiting = formData.get("enableRateLimiting") === "true";
   const useImageAnalysis = formData.get("useImageAnalysis") === "true";
+  const budgetLowMax = parseFloat(formData.get("budgetLowMax") as string) || 30;
+  const budgetMediumMax = parseFloat(formData.get("budgetMediumMax") as string) || 80;
+  const budgetHighMax = parseFloat(formData.get("budgetHighMax") as string) || 200;
 
   // If API key field is masked (••••••••), keep the existing key
   const finalApiKey = apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
@@ -104,6 +110,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     batchSize,
     enableRateLimiting,
     useImageAnalysis,
+    budgetLowMax,
+    budgetMediumMax,
+    budgetHighMax,
   });
 
   if (success) {
@@ -136,6 +145,9 @@ export default function GeminiSettings() {
   const [batchSize, setBatchSize] = useState(String(settings.batchSize));
   const [enableRateLimiting, setEnableRateLimiting] = useState(settings.enableRateLimiting);
   const [useImageAnalysis, setUseImageAnalysis] = useState(settings.useImageAnalysis);
+  const [budgetLowMax, setBudgetLowMax] = useState(String(settings.budgetLowMax));
+  const [budgetMediumMax, setBudgetMediumMax] = useState(String(settings.budgetMediumMax));
+  const [budgetHighMax, setBudgetHighMax] = useState(String(settings.budgetHighMax));
 
   const isKeyVisible = searchParams.get("showKey") === "true";
 
@@ -148,6 +160,9 @@ export default function GeminiSettings() {
     setRequestsPerDay(String(settings.requestsPerDay));
     setBatchSize(String(settings.batchSize));
     setEnableRateLimiting(settings.enableRateLimiting);
+    setBudgetLowMax(String(settings.budgetLowMax));
+    setBudgetMediumMax(String(settings.budgetMediumMax));
+    setBudgetHighMax(String(settings.budgetHighMax));
     setUseImageAnalysis(settings.useImageAnalysis);
   }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis]);
 
@@ -309,6 +324,76 @@ export default function GeminiSettings() {
                           {useImageAnalysis
                             ? "Products will be analyzed with Gemini AI for visual features (colors, patterns, style). Best for personalized recommendations."
                             : "Products will be stored without image analysis. Faster refresh, no API costs, but recommendations will be based only on product data (title, description, tags)."}
+                        </Text>
+                      </BlockStack>
+                    </Banner>
+                  </BlockStack>
+                </form>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  💰 Budget Range Settings
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Define price ranges for customer budget preferences. These ranges will be used to filter products when customers select their budget in the shopping preferences questionnaire.
+                </Text>
+
+                <Divider />
+
+                <form onSubmit={handleSubmit}>
+                  <BlockStack gap="400">
+                    <TextField
+                      label='Budget "Low" Maximum Price'
+                      type="number"
+                      value={budgetLowMax}
+                      onChange={setBudgetLowMax}
+                      helpText={`Products under $${budgetLowMax} will be shown to budget-conscious customers`}
+                      prefix="$"
+                      min="1"
+                      step="1"
+                      autoComplete="off"
+                    />
+                    <input type="hidden" name="budgetLowMax" value={budgetLowMax} />
+
+                    <TextField
+                      label='Budget "Medium" Maximum Price'
+                      type="number"
+                      value={budgetMediumMax}
+                      onChange={setBudgetMediumMax}
+                      helpText={`Mid-range: $${budgetLowMax} - $${budgetMediumMax}`}
+                      prefix="$"
+                      min="1"
+                      step="1"
+                      autoComplete="off"
+                    />
+                    <input type="hidden" name="budgetMediumMax" value={budgetMediumMax} />
+
+                    <TextField
+                      label='Budget "High" Maximum Price'
+                      type="number"
+                      value={budgetHighMax}
+                      onChange={setBudgetHighMax}
+                      helpText={`Premium range: $${budgetMediumMax} - $${budgetHighMax}. Luxury is $${budgetHighMax}+`}
+                      prefix="$"
+                      min="1"
+                      step="1"
+                      autoComplete="off"
+                    />
+                    <input type="hidden" name="budgetHighMax" value={budgetHighMax} />
+
+                    <Banner tone="info">
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                          Current Budget Ranges:
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          • Low: Under ${budgetLowMax}<br />
+                          • Medium: ${budgetLowMax} - ${budgetMediumMax}<br />
+                          • High: ${budgetMediumMax} - ${budgetHighMax}<br />
+                          • Luxury: ${budgetHighMax}+
                         </Text>
                       </BlockStack>
                     </Banner>

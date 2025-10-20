@@ -115,8 +115,15 @@ export async function getGeminiProductRecommendations(
       console.log(`✓ Color season filter (${colorSeason}): ${cachedProducts.length} → ${filteredProducts.length} products`);
     }
 
+    // STEP 2.5: Filter by budget range if provided
+    if (valuesPreferences?.budgetRange) {
+      const beforeBudgetFilter = filteredProducts.length;
+      filteredProducts = filterByBudget(filteredProducts, valuesPreferences.budgetRange, geminiSettings);
+      console.log(`✓ Budget filter (${valuesPreferences.budgetRange}): ${beforeBudgetFilter} → ${filteredProducts.length} products`);
+    }
+
     if (filteredProducts.length === 0) {
-      console.log("⚠ No products match color season filter");
+      console.log("⚠ No products match filters (color season / budget)");
       return [];
     }
 
@@ -203,6 +210,36 @@ export async function getGeminiProductRecommendations(
       return [];
     }
   }
+}
+
+/**
+ * Filter products by budget range using admin-configured price ranges
+ */
+function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSettings: any): CachedProduct[] {
+  // Get budget ranges from admin settings (with fallback defaults)
+  const lowMax = parseFloat(geminiSettings.budgetLowMax?.toString() || '30');
+  const mediumMax = parseFloat(geminiSettings.budgetMediumMax?.toString() || '80');
+  const highMax = parseFloat(geminiSettings.budgetHighMax?.toString() || '200');
+
+  const budgetRanges: { [key: string]: { min: number; max: number; label: string } } = {
+    'low': { min: 0, max: lowMax, label: `Under $${lowMax}` },
+    'medium': { min: lowMax, max: mediumMax, label: `$${lowMax}-$${mediumMax}` },
+    'high': { min: mediumMax, max: highMax, label: `$${mediumMax}-$${highMax}` },
+    'luxury': { min: highMax, max: Infinity, label: `$${highMax}+` }
+  };
+
+  const range = budgetRanges[budgetRange];
+  if (!range) {
+    console.warn(`⚠ Unknown budget range: ${budgetRange}, skipping budget filter`);
+    return products;
+  }
+
+  console.log(`💰 Budget range "${budgetRange}": ${range.label} (${range.min} - ${range.max === Infinity ? '∞' : range.max})`);
+
+  return products.filter(p => {
+    const price = parseFloat(p.price);
+    return price >= range.min && price < range.max;
+  });
 }
 
 /**

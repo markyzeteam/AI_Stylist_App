@@ -217,6 +217,12 @@ model GeminiSettings {
   // Image analysis toggle
   useImageAnalysis   Boolean @default(true)  // Use FilteredSelectionWithImgAnalyzed (true) or FilteredSelection (false)
 
+  // Budget ranges (admin-configurable price ranges)
+  budgetLowMax       Decimal @default(30)    @db.Decimal(10, 2)  // Low: $0 - $30
+  budgetMediumMax    Decimal @default(80)    @db.Decimal(10, 2)  // Medium: $30 - $80
+  budgetHighMax      Decimal @default(200)   @db.Decimal(10, 2)  // High: $80 - $200
+  // Luxury: $200+
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
