@@ -20,6 +20,9 @@ export interface GeminiSettings {
   batchSize?: number;
   enableRateLimiting?: boolean;
   useImageAnalysis?: boolean;
+  budgetLowMax?: number;
+  budgetMediumMax?: number;
+  budgetHighMax?: number;
 }
 
 export interface RateLimitConfig {
@@ -182,6 +185,9 @@ export async function saveGeminiSettings(
         batchSize: settings.batchSize,
         enableRateLimiting: settings.enableRateLimiting,
         useImageAnalysis: settings.useImageAnalysis,
+        budgetLowMax: settings.budgetLowMax,
+        budgetMediumMax: settings.budgetMediumMax,
+        budgetHighMax: settings.budgetHighMax,
         updatedAt: new Date(),
       },
       create: {
@@ -196,6 +202,9 @@ export async function saveGeminiSettings(
         batchSize: settings.batchSize || 10,
         enableRateLimiting: settings.enableRateLimiting ?? true,
         useImageAnalysis: settings.useImageAnalysis ?? true,
+        budgetLowMax: settings.budgetLowMax || 30,
+        budgetMediumMax: settings.budgetMediumMax || 80,
+        budgetHighMax: settings.budgetHighMax || 200,
       },
     });
 
