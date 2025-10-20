@@ -238,7 +238,8 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 
   return products.filter(p => {
     const price = parseFloat(p.price);
-    return price >= range.min && price < range.max;
+    // Filter out invalid prices (0 or negative) and apply budget range
+    return price > 0 && price >= range.min && price < range.max;
   });
 }
 
@@ -251,7 +252,10 @@ async function fetchCachedProducts(
   maxProductsToScan: number
 ): Promise<CachedProduct[]> {
   try {
-    const where: any = { shop };
+    const where: any = {
+      shop,
+      price: { gt: 0 } // Filter out $0 and invalid prices
+    };
 
     if (onlyInStock) {
       where.inStock = true;
