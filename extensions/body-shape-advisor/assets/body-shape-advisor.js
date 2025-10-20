@@ -397,14 +397,19 @@ class BodyShapeAdvisor {
         `}
 
         <div class="bsa-next-steps">
-          <h4>🛍️ Ready to Shop?</h4>
-          <p>Browse our collection to find items perfect for your ${this.bodyShapeResult.shape} body shape!</p>
-          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
-              Continue to Shopping Preferences
-            </button>
-            <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('colorSeasonPathSelection')" style="flex: 1; min-width: 200px;">
+          <h4>🛍️ What's Next?</h4>
+          <p>Enhance your recommendations or start shopping now!</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('colorSeasonPathSelection')" style="flex: 1; min-width: 200px;">
               Add Color Season Analysis
+            </button>
+            <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
+              Set Shopping Preferences
+            </button>
+          </div>
+          <div style="text-align: center;">
+            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.browseProducts()" style="text-decoration: underline;">
+              Skip to Products →
             </button>
           </div>
         </div>
@@ -1466,6 +1471,9 @@ class BodyShapeAdvisor {
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
             <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
               Continue to Shopping Preferences
+            </button>
+            <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.getProductsAfterColorSeason()" style="flex: 1; min-width: 200px;">
+              Skip to Products
             </button>
           </div>
         </div>
