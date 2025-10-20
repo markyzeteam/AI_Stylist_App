@@ -91,7 +91,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         shopifyProductId: true,
         imageUrl: true,
         title: true,
-        updatedAt: true,
       },
     });
 
