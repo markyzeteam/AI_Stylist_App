@@ -15,7 +15,25 @@
 
 ---
 
-## ⚡ LATEST UPDATE: VALUES PREFERENCES IN RECOMMENDATIONS
+## ⚡ LATEST UPDATE: BUDGET RANGE FORM SUBMISSION FIX
+
+**Date:** 2025-10-20
+**Change:** Fixed bug where budget range values were not being submitted properly from admin settings form
+**Why:** Form was submitting with null values, causing defaults (30, 80, 200) to be used instead of user input
+
+**What was fixed:**
+- **useEffect dependency array:** Added missing `settings.budgetLowMax`, `settings.budgetMediumMax`, `settings.budgetHighMax` dependencies
+- **Hidden input placement:** Moved hidden inputs before TextField components for proper form serialization
+- **Missing hidden fields:** Added `apiKey`, `prompt`, `systemPrompt` to budget form to ensure complete settings are saved
+
+**Impact:**
+- ✅ Budget range settings now save correctly with user-specified values
+- ✅ Form submission includes all required fields
+- ✅ State updates properly when settings are loaded from database
+
+---
+
+## ⚡ PREVIOUS UPDATE: VALUES PREFERENCES IN RECOMMENDATIONS
 
 **Date:** 2025-01-20
 **Change:** Fixed bug where values preferences (sustainability, budget, style) were not being used in product recommendations
