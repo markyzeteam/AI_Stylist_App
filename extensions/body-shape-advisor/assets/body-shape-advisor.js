@@ -1736,10 +1736,9 @@ class BodyShapeAdvisor {
               <div class="bsa-celebrity-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <div style="display: flex; gap: 1.5rem; align-items: start; flex-wrap: wrap;">
                   <div style="flex-shrink: 0;">
-                    <div class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem;">
+                    <div id="celeb-img-${index}" class="bsa-celebrity-image" data-celebrity-name="${encodeURIComponent(celeb.name)}" style="width: 150px; height: 150px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative;">
                       <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
-                      <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2; margin-bottom: 0.75rem;">${celeb.name}</div>
-                      ${celeb.imageSearchQuery ? `<a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(celeb.imageSearchQuery)}" target="_blank" style="font-size: 11px; color: white; opacity: 0.9; text-decoration: underline;">View Photos →</a>` : ''}
+                      <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2;">Loading...</div>
                     </div>
                   </div>
                   <div style="flex: 1; min-width: 250px;">
@@ -1802,6 +1801,7 @@ class BodyShapeAdvisor {
       if (result.success) {
         this.celebrityRecommendations = result.data;
         this.render(); // Re-render with the data
+        this.loadCelebrityImages(); // Load actual celebrity images
       } else {
         console.error('Failed to load celebrity recommendations:', result.error);
         // Provide fallback
@@ -1838,6 +1838,54 @@ class BodyShapeAdvisor {
       };
       this.render();
     }
+  }
+
+  async loadCelebrityImages() {
+    if (!this.celebrityRecommendations || !this.celebrityRecommendations.celebrities) return;
+
+    // Load Wikipedia images for each celebrity
+    this.celebrityRecommendations.celebrities.forEach(async (celeb, index) => {
+      const container = document.getElementById(`celeb-img-${index}`);
+      if (!container) return;
+
+      try {
+        // Search Wikipedia for the celebrity
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(celeb.name)}&prop=pageimages&pithumbsize=300`;
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+        const imageUrl = pages[pageId]?.thumbnail?.source;
+
+        if (imageUrl) {
+          // Replace placeholder with actual image
+          container.innerHTML = `
+            <img src="${imageUrl}"
+                 alt="${celeb.name}"
+                 style="width: 100%; height: 100%; object-fit: cover;"
+                 onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'>⭐</div><div style=\\'font-size: 14px; font-weight: 600; color: white;\\'>${celeb.name}</div></div>'">
+          `;
+        } else {
+          // No image found, show nice placeholder
+          container.innerHTML = `
+            <div style="text-align: center; padding: 1rem;">
+              <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+              <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error(`Failed to load image for ${celeb.name}:`, error);
+        // Show placeholder on error
+        container.innerHTML = `
+          <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+            <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
+          </div>
+        `;
+      }
+    });
   }
 
   continueToProducts() {
