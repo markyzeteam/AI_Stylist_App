@@ -432,7 +432,7 @@ export default function Index() {
                     {totalScannedCount} / {totalProductsCount}
                   </Text>
                   <Badge tone={parseFloat(scanPercentage) >= 80 ? "success" : parseFloat(scanPercentage) >= 50 ? "attention" : "info"} size="large">
-                    {scanPercentage}% scanned
+                    {`${scanPercentage}% scanned`}
                   </Badge>
                 </InlineStack>
                 <Text as="p" variant="bodyMd" tone="subdued">
