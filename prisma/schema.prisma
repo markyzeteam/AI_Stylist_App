@@ -106,12 +106,11 @@ model FilteredSelection {
   availableSizes    String[]
   categories        String[]
 
-  // Priority/Business metrics (same as FilteredSelectionWithImgAnalyzed)
+  // Raw Shopify business data (for priority calculations at request time)
   inventoryQuantity Int?      @default(0)
   totalSold         Int?      @default(0)
   profitMargin      Decimal?  @db.Decimal(5, 2)
-  isOnSale          Boolean   @default(false)
-  salePrice         Decimal?  @db.Decimal(10, 2)
+  compareAtPrice    Decimal?  @db.Decimal(10, 2)  // For calculating isOnSale dynamically
   publishedAt       DateTime?
 
   // Timestamps
@@ -164,12 +163,11 @@ model FilteredSelectionWithImgAnalyzed {
   budgetCategory    String?
   styleScores       Json?
 
-  // Priority/Business metrics
+  // Raw Shopify business data (for priority calculations at request time)
   inventoryQuantity Int?      @default(0)
   totalSold         Int?      @default(0)
   profitMargin      Decimal?  @db.Decimal(5, 2)
-  isOnSale          Boolean   @default(false)
-  salePrice         Decimal?  @db.Decimal(10, 2)
+  compareAtPrice    Decimal?  @db.Decimal(10, 2)  // For calculating isOnSale dynamically
   publishedAt       DateTime?
 
   // Timestamps

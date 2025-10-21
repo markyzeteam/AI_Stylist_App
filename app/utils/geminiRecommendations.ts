@@ -245,6 +245,7 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 
 /**
  * Calculate priority score for a product based on recommendation settings
+ * Performs business analysis at request time using raw Shopify data
  */
 function calculatePriorityScore(
   product: any,
@@ -298,9 +299,15 @@ function calculatePriorityScore(
     score += marginFactor * settings.highMarginBoost;
   }
 
-  // On Sale Score
-  if (product.isOnSale && settings.onSaleBoost > 0) {
-    score += settings.onSaleBoost;
+  // On Sale Score (calculated dynamically from raw price data)
+  if (settings.onSaleBoost > 0) {
+    const price = parseFloat(product.price?.toString() || '0');
+    const compareAtPrice = parseFloat(product.compareAtPrice?.toString() || '0');
+    const isOnSale = compareAtPrice > 0 && compareAtPrice > price;
+
+    if (isOnSale) {
+      score += settings.onSaleBoost;
+    }
   }
 
   return score;

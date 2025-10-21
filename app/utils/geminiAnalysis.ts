@@ -619,17 +619,15 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
 
 /**
  * Save product without image analysis to database (FilteredSelection)
+ * Stores RAW Shopify data only - business analysis happens at request time
  */
 export async function saveBasicProduct(
   shop: string,
   product: ShopifyProduct
 ): Promise<boolean> {
   try {
-    // Calculate business metrics
     const price = parseFloat(product.price) || 0;
     const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
-    const isOnSale = compareAtPrice > price;
-    const salePrice = isOnSale ? price : null;
 
     await db.filteredSelection.upsert({
       where: {
@@ -651,11 +649,10 @@ export async function saveBasicProduct(
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
         lastUpdated: new Date(),
-        // Priority/Business metrics
+        // Raw Shopify business data (NO calculations)
         inventoryQuantity: product.inventoryQuantity || 0,
+        compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
-        isOnSale,
-        salePrice,
       },
       create: {
         shop,
@@ -671,11 +668,10 @@ export async function saveBasicProduct(
         inStock: product.inStock || false,
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
-        // Priority/Business metrics
+        // Raw Shopify business data (NO calculations)
         inventoryQuantity: product.inventoryQuantity || 0,
+        compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
-        isOnSale,
-        salePrice,
       },
     });
 
@@ -688,6 +684,7 @@ export async function saveBasicProduct(
 
 /**
  * Save analyzed product to database (FilteredSelectionWithImgAnalyzed)
+ * Stores RAW Shopify data + Gemini analysis - business analysis happens at request time
  */
 export async function saveAnalyzedProduct(
   shop: string,
@@ -695,11 +692,8 @@ export async function saveAnalyzedProduct(
   analysis: ProductImageAnalysis
 ): Promise<boolean> {
   try {
-    // Calculate if product is on sale
     const price = parseFloat(product.price) || 0;
     const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
-    const isOnSale = compareAtPrice > price;
-    const salePrice = isOnSale ? price : null;
 
     // Note: totalSold and profitMargin are not available from Shopify GraphQL API
     // They would require additional queries or integrations
@@ -735,11 +729,10 @@ export async function saveAnalyzedProduct(
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
         lastUpdated: new Date(),
-        // Priority fields
+        // Raw Shopify business data (NO calculations)
         inventoryQuantity: product.inventoryQuantity || 0,
+        compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
-        isOnSale,
-        salePrice,
       },
       create: {
         shop,
@@ -765,11 +758,10 @@ export async function saveAnalyzedProduct(
         patternType: analysis.patternType,
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
-        // Priority fields
+        // Raw Shopify business data (NO calculations)
         inventoryQuantity: product.inventoryQuantity || 0,
+        compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
-        isOnSale,
-        salePrice,
       },
     });
 
