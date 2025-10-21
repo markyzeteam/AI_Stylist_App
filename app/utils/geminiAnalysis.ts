@@ -233,6 +233,55 @@ export async function saveGeminiSettings(
 /**
  * Analyze a single product image using Gemini
  */
+/**
+ * Retry helper with exponential backoff for API calls
+ * Exported for reuse in other modules
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000,
+  maxDelay: number = 10000
+): Promise<T> {
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if it's a retryable error (503, 429, network issues)
+      const isRetryable =
+        error?.status === 503 ||
+        error?.status === 429 ||
+        error?.message?.includes('overloaded') ||
+        error?.message?.includes('rate limit');
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+      const jitter = Math.random() * 0.3 * delay; // Add 0-30% jitter
+      const totalDelay = delay + jitter;
+
+      console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(totalDelay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, totalDelay));
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Delay helper to add spacing between API calls
+ */
+async function delayBetweenCalls(ms: number = 500): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function analyzeProductImage(
   imageUrl: string,
   shop: string,
@@ -283,8 +332,11 @@ Product Title: ${productTitle}
 
 ${FIXED_JSON_FORMAT_INSTRUCTION}`;
 
-    // Call Gemini with image and enforce JSON output
-    const result = await model.generateContent({
+    // Add small delay before API call to avoid overwhelming the service
+    await delayBetweenCalls(500);
+
+    // Call Gemini with image and enforce JSON output - with retry logic
+    const result = await retryWithBackoff(() => model.generateContent({
       contents: [
         {
           role: "user",
@@ -305,7 +357,7 @@ ${FIXED_JSON_FORMAT_INSTRUCTION}`;
         temperature: 0.3,
         responseMimeType: "application/json",
       },
-    });
+    }));
 
     const response = await result.response;
     const text = response.text();

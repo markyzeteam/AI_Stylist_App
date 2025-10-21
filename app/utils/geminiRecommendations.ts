@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "../db.server";
-import { loadGeminiSettings } from "./geminiAnalysis";
+import { loadGeminiSettings, retryWithBackoff } from "./geminiAnalysis";
 
 /**
  * PHASE 2: Gemini Recommendations Utility
@@ -177,7 +177,7 @@ export async function getGeminiProductRecommendations(
     console.log(`🤖 Calling Gemini API (${geminiSettings.model})...`);
     const startTime = Date.now();
 
-    const result = await model.generateContent(prompt);
+    const result = await retryWithBackoff(() => model.generateContent(prompt));
     const response = await result.response;
     const text = response.text();
 
