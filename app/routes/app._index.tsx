@@ -18,8 +18,38 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return json({});
+  const { session, admin } = await authenticate.admin(request);
+  const shop = session.shop;
+
+  // Import db
+  const { db } = await import("../db.server");
+
+  // Get total count of analyzed products
+  const totalScannedCount = await db.filteredSelectionWithImgAnalyzed.count({
+    where: { shop },
+  });
+
+  // Fetch total products from Shopify
+  let totalProductsCount = 0;
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query {
+        productsCount {
+          count
+        }
+      }`
+    );
+    const data = await response.json();
+    totalProductsCount = data.data.productsCount.count;
+  } catch (error) {
+    console.error("Error fetching total products count:", error);
+  }
+
+  return json({
+    totalScannedCount,
+    totalProductsCount,
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -298,11 +328,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function Index() {
   const navigate = useNavigate();
+  const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isRefreshing = navigation.state === "submitting";
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const { totalScannedCount, totalProductsCount } = loaderData;
+  const scanPercentage = totalProductsCount > 0
+    ? ((totalScannedCount / totalProductsCount) * 100).toFixed(1)
+    : "0";
 
   const handleRefresh = () => {
     if (confirm("This will analyze NEW and UPDATED products in your catalog with Gemini AI. Previously analyzed products will be skipped to save API credits. Continue?")) {
@@ -351,6 +387,25 @@ export default function Index() {
                 </Text>
               </Banner>
             )}
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h3" variant="headingMd">
+                  📊 Scanning Progress
+                </Text>
+                <InlineStack gap="300" align="start" blockAlign="center">
+                  <Text as="p" variant="headingLg" fontWeight="semibold">
+                    {totalScannedCount} / {totalProductsCount}
+                  </Text>
+                  <Badge tone={parseFloat(scanPercentage) >= 80 ? "success" : parseFloat(scanPercentage) >= 50 ? "attention" : "info"} size="large">
+                    {scanPercentage}% scanned
+                  </Badge>
+                </InlineStack>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {totalScannedCount} products have been analyzed with Gemini AI out of {totalProductsCount} total products in your store.
+                </Text>
+              </BlockStack>
+            </Card>
 
             <Banner tone="info">
               <BlockStack gap="200">

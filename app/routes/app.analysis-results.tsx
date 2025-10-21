@@ -29,6 +29,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     take: 50,
   });
 
+  // Get total count of analyzed products
+  const totalScannedCount = await db.filteredSelectionWithImgAnalyzed.count({
+    where: { shop },
+  });
+
+  // Fetch total products from Shopify using the admin API
+  const { admin } = await authenticate.admin(request);
+  let totalProductsCount = 0;
+
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query {
+        productsCount {
+          count
+        }
+      }`
+    );
+    const data = await response.json();
+    totalProductsCount = data.data.productsCount.count;
+  } catch (error) {
+    console.error("Error fetching total products count:", error);
+  }
+
   // Parse the JSON analysis for each product
   const parsedProducts = products.map(product => {
     let analysis = null;
@@ -62,7 +86,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   });
 
-  return json({ products: parsedProducts });
+  return json({
+    products: parsedProducts,
+    totalScannedCount,
+    totalProductsCount,
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -95,11 +123,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function AnalysisResults() {
-  const { products } = useLoaderData<typeof loader>();
+  const { products, totalScannedCount, totalProductsCount } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [isClearing, setIsClearing] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [modalActive, setModalActive] = useState(false);
+
+  const scanPercentage = totalProductsCount > 0
+    ? ((totalScannedCount / totalProductsCount) * 100).toFixed(1)
+    : "0";
 
   const handleClearAll = async () => {
     if (
@@ -154,9 +186,19 @@ export default function AnalysisResults() {
                     <Text as="h2" variant="headingLg">
                       Product Analysis Results
                     </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Showing {products.length} analyzed products with Gemini AI
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Showing {products.length} most recent of {totalScannedCount} total analyzed products
+                      </Text>
+                      <InlineStack gap="200" align="start">
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          {totalScannedCount} / {totalProductsCount} products scanned
+                        </Text>
+                        <Badge tone={parseFloat(scanPercentage) >= 80 ? "success" : parseFloat(scanPercentage) >= 50 ? "attention" : "info"}>
+                          {scanPercentage}% complete
+                        </Badge>
+                      </InlineStack>
+                    </BlockStack>
                   </BlockStack>
                   {products.length > 0 && (
                     <Button

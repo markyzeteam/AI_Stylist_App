@@ -15,7 +15,37 @@
 
 ---
 
-## ⚡ LATEST UPDATE: COMPLETE ADMIN FORMS AUDIT & FIX
+## ⚡ LATEST UPDATE: PRODUCT SCANNING STATISTICS DISPLAY
+
+**Date:** 2025-10-21
+**Change:** Added product scanning statistics with percentage completion tracking
+**What:** Dashboard and Analysis Results pages now display total products, scanned products count, and percentage completion
+**Why:** Provides visibility into product scanning progress and helps admins track AI analysis coverage
+
+### Feature Details:
+- **Dashboard (`app._index.tsx`)**: Added "Scanning Progress" card showing:
+  - Total scanned / total products count
+  - Percentage complete badge (color-coded: green ≥80%, yellow ≥50%, blue <50%)
+  - Descriptive text explaining the statistics
+
+- **Analysis Results (`app.analysis-results.tsx`)**: Enhanced header showing:
+  - "Showing X most recent of Y total analyzed products"
+  - Scanned count / total count with percentage badge
+  - Real-time statistics from Shopify GraphQL API
+
+### Technical Implementation:
+- Uses Shopify Admin GraphQL `productsCount` query for total products
+- Database count query on `FilteredSelectionWithImgAnalyzed` table for scanned products
+- Percentage calculation: `(scannedCount / totalCount) * 100`
+- Color-coded badges for quick visual feedback
+
+### Files Modified:
+- `app/routes/app._index.tsx` - Added loader to fetch counts, added statistics card
+- `app/routes/app.analysis-results.tsx` - Added counts to loader, enhanced UI display
+
+---
+
+## ⚡ PREVIOUS UPDATE: COMPLETE ADMIN FORMS AUDIT & FIX
 
 **Date:** 2025-10-20
 **Change:** Fixed ALL admin forms that were failing to submit values properly
