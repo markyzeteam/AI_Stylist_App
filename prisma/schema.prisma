@@ -106,12 +106,23 @@ model FilteredSelection {
   availableSizes    String[]
   categories        String[]
 
+  // Priority/Business metrics (same as FilteredSelectionWithImgAnalyzed)
+  inventoryQuantity Int?      @default(0)
+  totalSold         Int?      @default(0)
+  profitMargin      Decimal?  @db.Decimal(5, 2)
+  isOnSale          Boolean   @default(false)
+  salePrice         Decimal?  @db.Decimal(10, 2)
+  publishedAt       DateTime?
+
   // Timestamps
   fetchedAt         DateTime  @default(now())
   lastUpdated       DateTime  @updatedAt
 
   @@unique([shop, shopifyProductId])
   @@index([shop, inStock])
+  @@index([shop, inventoryQuantity])
+  @@index([shop, totalSold])
+  @@index([shop, publishedAt])
 }
 
 // Products with Gemini image analysis

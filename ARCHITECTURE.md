@@ -15,7 +15,121 @@
 
 ---
 
-## ⚡ LATEST UPDATE: PRODUCT SCANNING STATISTICS DISPLAY
+## ⚡ LATEST UPDATE: PRODUCT RECOMMENDATION PRIORITY SYSTEM
+
+**Date:** 2025-10-21
+**Build:** app-81
+**Change:** Added comprehensive product recommendation priority system
+**What:** Admins can now control which products are prioritized in customer recommendations based on business goals
+**Why:** Enables merchants to strategically promote products (move slow inventory, push new arrivals, maximize profit margins, etc.)
+
+### Feature Details:
+
+#### 1. **Priority Settings UI (`app.recommendation-priority.tsx`)**
+New admin page with:
+- **Strategy Selection**: 6 pre-configured strategies:
+  - Balanced (default) - All factors equal at 50%
+  - New Arrivals - Boost recently published products
+  - Move Inventory - Clear overstocked/slow-moving items
+  - Bestsellers - Promote high-selling products
+  - High Margin - Maximize profit per sale
+  - Seasonal - Focus on sale/discounted items
+- **Boost Sliders**: Fine-tune each factor (0-100):
+  - New Arrivals Boost (products published within X days)
+  - Overstocked Items Boost (high inventory levels)
+  - Slow-Moving Items Boost (low sales history)
+  - High Profit Margin Boost
+  - Sale Items Boost (compareAtPrice > price)
+- **Configurable Thresholds**:
+  - New Arrival Window (days)
+  - High Inventory Threshold (units)
+  - Low Sales Threshold (units sold)
+- Real-time preview of current configuration
+
+#### 2. **Database Schema Updates**
+**New Model: RecommendationPrioritySettings**
+```prisma
+model RecommendationPrioritySettings {
+  shop            String   @unique
+  strategy        String   @default("balanced")
+
+  // Weight factors (0-100)
+  newArrivalBoost     Int  @default(50)
+  lowInventoryBoost   Int  @default(50)
+  lowSalesBoost       Int  @default(50)
+  highMarginBoost     Int  @default(50)
+  onSaleBoost         Int  @default(50)
+
+  // Thresholds
+  newArrivalDays      Int  @default(30)
+  lowInventoryThreshold Int @default(10)
+  lowSalesThreshold   Int  @default(5)
+}
+```
+
+**Enhanced Model: FilteredSelectionWithImgAnalyzed**
+Added priority tracking fields:
+- `inventoryQuantity` - Total stock level from Shopify
+- `totalSold` - Historical sales count (null until data source added)
+- `profitMargin` - Profit percentage (null until data source added)
+- `isOnSale` - Calculated from compareAtPrice > price
+- `salePrice` - Current sale price if on sale
+- `publishedAt` - Product publication date from Shopify
+- Database indexes on shop+inventoryQuantity, shop+totalSold, shop+publishedAt
+
+#### 3. **Logic Implementation**
+**Priority Scoring Algorithm** (`calculatePriorityScore()` in `geminiRecommendations.ts`):
+- Calculates weighted score (0-500) for each product based on:
+  - **New Arrival Score**: Freshness factor × newArrivalBoost
+  - **Overstock Score**: Inventory level factor × lowInventoryBoost
+  - **Slow-Moving Score**: Low sales factor × lowSalesBoost
+  - **High Margin Score**: Margin percentage × highMarginBoost
+  - **On Sale Score**: Full boost if isOnSale = true
+- Products sorted by priority score (highest first) before AI recommendation
+
+**Updated fetchCachedProducts()**:
+- Fetches priority settings from database (or uses defaults)
+- Calculates priority score for each product
+- Sorts products by priority before returning
+- Ensures business priorities are reflected in AI recommendations
+
+**Enhanced Shopify Data Fetching**:
+- Updated GraphQL queries to fetch:
+  - `publishedAt` - Product publication timestamp
+  - `compareAtPrice` - Original price for sale detection
+  - `displayName` - Better variant display names
+- Updated `saveAnalyzedProduct()` to store priority fields
+- Automatic sale detection via price comparison
+
+#### 4. **Navigation Update**
+Added "Priority Settings" link to main navigation menu
+
+### Technical Implementation:
+- **Files Created**:
+  - `app/routes/app.recommendation-priority.tsx` - Priority settings UI
+- **Files Modified**:
+  - `prisma/schema.prisma` - Added RecommendationPrioritySettings model and priority fields
+  - `app/routes/app.tsx` - Added navigation link
+  - `app/utils/geminiRecommendations.ts` - Added calculatePriorityScore() and updated fetchCachedProducts()
+  - `app/utils/geminiAnalysis.ts` - Updated ShopifyProduct interface, GraphQL queries, and saveAnalyzedProduct()
+
+### Limitations:
+- **totalSold** and **profitMargin** are not available from Shopify GraphQL API
+  - Currently set to null in database
+  - Would require Shopify Analytics API, external integrations, or manual updates
+- Priority scores only consider available data (inventory, publishedAt, isOnSale)
+- Score calculation happens at fetch time (not cached)
+
+### Future Enhancements:
+- Integrate Shopify Analytics API for totalSold data
+- Add profit margin calculation from cost/price fields
+- Cache priority scores for better performance
+- Add A/B testing for different priority strategies
+- Add priority score visibility in admin analysis results
+
+---
+
+## ⚡ PREVIOUS UPDATE: PRODUCT SCANNING STATISTICS DISPLAY
 
 **Date:** 2025-10-21
 **Change:** Added product scanning statistics with percentage completion tracking

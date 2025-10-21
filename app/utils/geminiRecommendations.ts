@@ -324,6 +324,12 @@ async function fetchCachedProducts(
       where.inStock = true;
     }
 
+    // Fetch Gemini settings to check if image analysis is enabled
+    const geminiSettings = await db.geminiSettings.findUnique({
+      where: { shop },
+    });
+    const useImageAnalysis = geminiSettings?.useImageAnalysis ?? true;
+
     // Fetch priority settings
     let prioritySettings = await db.recommendationPrioritySettings.findUnique({
       where: { shop },
@@ -348,20 +354,39 @@ async function fetchCachedProducts(
       };
     }
 
-    // Fetch products
-    let products = await db.filteredSelectionWithImgAnalyzed.findMany({
-      where,
-      take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
-    });
+    // Fetch products from appropriate table based on image analysis setting
+    let productsWithScores: Array<{ product: any; priorityScore: number }>;
 
-    // Calculate priority scores and sort
-    const productsWithScores = products.map(p => ({
-      product: p,
-      priorityScore: calculatePriorityScore(p, prioritySettings!),
-    }));
+    if (useImageAnalysis) {
+      // Use FilteredSelectionWithImgAnalyzed (has AI analysis data)
+      console.log(`📊 Fetching from FilteredSelectionWithImgAnalyzed (image analysis enabled)`);
+      const products = await db.filteredSelectionWithImgAnalyzed.findMany({
+        where,
+        take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
+      });
+
+      productsWithScores = products.map(p => ({
+        product: p,
+        priorityScore: calculatePriorityScore(p, prioritySettings!),
+      }));
+    } else {
+      // Use FilteredSelection (basic mode, no AI analysis)
+      console.log(`📊 Fetching from FilteredSelection (image analysis disabled)`);
+      const products = await db.filteredSelection.findMany({
+        where,
+        take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
+      });
+
+      productsWithScores = products.map(p => ({
+        product: p,
+        priorityScore: calculatePriorityScore(p, prioritySettings!),
+      }));
+    }
 
     // Sort by priority score (highest first)
     productsWithScores.sort((a, b) => b.priorityScore - a.priorityScore);
+
+    console.log(`✅ Fetched ${productsWithScores.length} products, sorted by priority score`);
 
     // Map to CachedProduct format
     return productsWithScores.map(({ product: p }) => ({
@@ -377,13 +402,14 @@ async function fetchCachedProducts(
       variants: p.variants as any[] || [],
       inStock: p.inStock,
       availableSizes: p.availableSizes || [],
-      detectedColors: p.detectedColors || [],
-      colorSeasons: p.colorSeasons || [],
-      silhouetteType: p.silhouetteType || undefined,
-      styleClassification: p.styleClassification || [],
-      fabricTexture: p.fabricTexture || undefined,
-      designDetails: p.designDetails || [],
-      patternType: p.patternType || undefined,
+      // Image analysis fields (will be empty arrays/undefined for FilteredSelection)
+      detectedColors: (p as any).detectedColors || [],
+      colorSeasons: (p as any).colorSeasons || [],
+      silhouetteType: (p as any).silhouetteType || undefined,
+      styleClassification: (p as any).styleClassification || [],
+      fabricTexture: (p as any).fabricTexture || undefined,
+      designDetails: (p as any).designDetails || [],
+      patternType: (p as any).patternType || undefined,
     }));
   } catch (error) {
     console.error("❌ Error fetching cached products:", error);

@@ -625,6 +625,12 @@ export async function saveBasicProduct(
   product: ShopifyProduct
 ): Promise<boolean> {
   try {
+    // Calculate business metrics
+    const price = parseFloat(product.price) || 0;
+    const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
+    const isOnSale = compareAtPrice > price;
+    const salePrice = isOnSale ? price : null;
+
     await db.filteredSelection.upsert({
       where: {
         shop_shopifyProductId: {
@@ -638,13 +644,18 @@ export async function saveBasicProduct(
         description: product.description,
         productType: product.productType,
         tags: product.tags || [],
-        price: parseFloat(product.price) || 0,
+        price,
         imageUrl: product.imageUrl,
         variants: product.variants || [],
         inStock: product.inStock || false,
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
         lastUpdated: new Date(),
+        // Priority/Business metrics
+        inventoryQuantity: product.inventoryQuantity || 0,
+        publishedAt: product.publishedAt || null,
+        isOnSale,
+        salePrice,
       },
       create: {
         shop,
@@ -654,12 +665,17 @@ export async function saveBasicProduct(
         description: product.description,
         productType: product.productType,
         tags: product.tags || [],
-        price: parseFloat(product.price) || 0,
+        price,
         imageUrl: product.imageUrl,
         variants: product.variants || [],
         inStock: product.inStock || false,
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
+        // Priority/Business metrics
+        inventoryQuantity: product.inventoryQuantity || 0,
+        publishedAt: product.publishedAt || null,
+        isOnSale,
+        salePrice,
       },
     });
 
