@@ -256,7 +256,7 @@ class BodyShapeAdvisor {
 
               <div class="bsa-form-field">
                 <label>Shoulders (<span class="unit-label">cm</span>)</label>
-                <input type="number" name="shoulders" placeholder="40">
+                <input type="number" name="shoulders" required placeholder="40">
                 <small>Measure across shoulder points</small>
               </div>
             </div>
@@ -587,16 +587,30 @@ class BodyShapeAdvisor {
       const shoulderWaistRatio = shouldersNum / waistNum;
       const chestWaistRatio = chest / waistNum;
 
-      console.log('Male body shape calculation:', {
+      console.log('🔍 Male body shape calculation:', {
         chest,
         waist: waistNum,
         shoulders: shouldersNum,
-        shoulderWaistRatio,
-        chestWaistRatio
+        shoulderWaistRatio: shoulderWaistRatio.toFixed(2),
+        chestWaistRatio: chestWaistRatio.toFixed(2),
+        shouldersEmpty: !shoulders,
+        allEqual: chest === waistNum && shouldersNum === waistNum
       });
 
+      // Handle invalid/missing data
+      if (waistNum === 0 || isNaN(shoulderWaistRatio) || isNaN(chestWaistRatio)) {
+        console.warn('⚠️ Invalid measurements detected, defaulting to Rectangle');
+        return {
+          shape: "Rectangle/Straight",
+          description: "Balanced proportions throughout torso",
+          confidence: 0.5,
+          characteristics: ["Shoulders and waist similar width", "Straight silhouette"],
+          recommendations: this.getShapeRecommendations("Rectangle/Straight")
+        };
+      }
+
       // V-Shape/Athletic (broad shoulders, narrow waist)
-      if (shoulderWaistRatio > 1.2 || chestWaistRatio > 1.15) {
+      if (shoulderWaistRatio > 1.25 || chestWaistRatio > 1.2) {
         return {
           shape: "V-Shape/Athletic",
           description: "Broad shoulders and chest with narrow waist",
@@ -607,7 +621,11 @@ class BodyShapeAdvisor {
       }
 
       // Rectangle/Straight (balanced proportions)
-      if (shoulderWaistRatio >= 1.0 && shoulderWaistRatio <= 1.2 && Math.abs(chest - waistNum) < 15) {
+      // More inclusive threshold: accept ratios from 0.9 to 1.25
+      if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.25 &&
+          chestWaistRatio >= 0.9 && chestWaistRatio <= 1.2 &&
+          Math.abs(chest - waistNum) < 20 && Math.abs(shouldersNum - waistNum) < 20) {
+        console.log('✅ Matched Rectangle/Straight');
         return {
           shape: "Rectangle/Straight",
           description: "Balanced proportions throughout torso",
@@ -616,6 +634,8 @@ class BodyShapeAdvisor {
           recommendations: this.getShapeRecommendations("Rectangle/Straight")
         };
       }
+
+      console.log('⬇️ Falling through to Oval/Apple');
 
       // Oval/Apple (fuller midsection)
       return {
