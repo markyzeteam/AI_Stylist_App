@@ -1736,11 +1736,10 @@ class BodyShapeAdvisor {
               <div class="bsa-celebrity-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <div style="display: flex; gap: 1.5rem; align-items: start; flex-wrap: wrap;">
                   <div style="flex-shrink: 0;">
-                    <div class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: flex; align-items: center; justify-content: center;">
-                      <img src="https://source.unsplash.com/150x150/?celebrity,fashion,${encodeURIComponent(celeb.name)}"
-                           alt="${celeb.name}"
-                           style="width: 100%; height: 100%; object-fit: cover;"
-                           onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'>⭐</div><div style=\\'font-size: 12px; color: #6b7280;\\'>${celeb.name}</div></div>'">
+                    <div class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem;">
+                      <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+                      <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2; margin-bottom: 0.75rem;">${celeb.name}</div>
+                      ${celeb.imageSearchQuery ? `<a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(celeb.imageSearchQuery)}" target="_blank" style="font-size: 11px; color: white; opacity: 0.9; text-decoration: underline;">View Photos →</a>` : ''}
                     </div>
                   </div>
                   <div style="flex: 1; min-width: 250px;">
