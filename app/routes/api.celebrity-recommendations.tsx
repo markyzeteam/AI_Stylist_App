@@ -13,16 +13,23 @@ import { retryWithBackoff } from "../utils/geminiAnalysis";
  */
 
 export async function loader({ request }: ActionFunctionArgs) {
-  const url = new URL(request.url);
-  const bodyShape = url.searchParams.get("bodyShape");
-  const colorSeason = url.searchParams.get("colorSeason");
-  const styles = url.searchParams.get("styles"); // comma-separated
-
-  if (!bodyShape) {
-    return json({ error: "Body shape is required" }, { status: 400 });
-  }
+  // Declare variables outside try block so they're accessible in catch
+  let bodyShape: string | null = null;
+  let colorSeason: string | null = null;
+  let styles: string | null = null;
 
   try {
+    const url = new URL(request.url);
+    bodyShape = url.searchParams.get("bodyShape");
+    colorSeason = url.searchParams.get("colorSeason");
+    styles = url.searchParams.get("styles"); // comma-separated
+
+    console.log(`🎬 Celebrity recommendations request: bodyShape=${bodyShape}, colorSeason=${colorSeason}, styles=${styles}`);
+
+    if (!bodyShape) {
+      return json({ error: "Body shape is required" }, { status: 400 });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return json({ error: "Gemini API key not configured" }, { status: 500 });
@@ -107,7 +114,13 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     });
 
   } catch (error: any) {
-    console.error("Error getting celebrity recommendations:", error);
+    console.error("❌ Error getting celebrity recommendations:", error);
+    console.error("Error details:", {
+      name: error?.name,
+      message: error?.message,
+      status: error?.status,
+      stack: error?.stack
+    });
 
     // Check if it's a Gemini overload error (503)
     const isOverloaded = error?.status === 503 || error?.message?.includes('overloaded');
