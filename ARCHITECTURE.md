@@ -15,10 +15,137 @@
 
 ---
 
-## ⚡ LATEST UPDATE: GENDER-AWARE PRODUCT FILTERING
+## ⚡ LATEST UPDATE: FIX MALE BODY SHAPE CALCULATION
 
 **Date:** 2025-10-21
-**Build:** app-91 (pending)
+**Build:** app-92 (pending)
+**Change:** Fixed body shape calculation for males to properly detect different body types instead of always returning "V-Shape/Athletic"
+**What:** The extension's JavaScript now properly calculates male body shapes based on shoulder-to-waist and chest-to-waist ratios
+**Why:** Previous implementation always returned "V-Shape/Athletic" for males regardless of measurements, providing inaccurate recommendations
+
+### Bug Fixed:
+**Issue:** Male users always received "V-Shape/Athletic" body shape result regardless of their measurements
+**Root Cause:** The `calculateShape()` function in the extension had hardcoded male body shape logic that ignored measurements
+**Impact:** Inaccurate body shape analysis and incorrect styling recommendations for non-athletic male users
+
+### Implementation Details:
+
+#### 1. **Updated `calculateShape()` Function** (`extensions/body-shape-advisor/assets/body-shape-advisor.js:546-629`)
+**Before:**
+```javascript
+} else {
+  return {
+    shape: "V-Shape/Athletic",
+    description: "Athletic build",
+    confidence: 0.8,
+    characteristics: ["Athletic build"],
+    recommendations: this.getShapeRecommendations("V-Shape/Athletic")
+  };
+}
+```
+
+**After:**
+```javascript
+} else {
+  // Proper masculine body shape calculation
+  const chest = parseFloat(bust) || 0;
+  const waistNum = parseFloat(waist) || 0;
+  const shouldersNum = parseFloat(shoulders) || 0;
+
+  // Calculate ratios
+  const shoulderWaistRatio = shouldersNum / waistNum;
+  const chestWaistRatio = chest / waistNum;
+
+  // V-Shape/Athletic (broad shoulders, narrow waist)
+  if (shoulderWaistRatio > 1.2 || chestWaistRatio > 1.15) {
+    return V-Shape result...
+  }
+
+  // Rectangle/Straight (balanced proportions)
+  if (shoulderWaistRatio >= 1.0 && shoulderWaistRatio <= 1.2 && Math.abs(chest - waistNum) < 15) {
+    return Rectangle result...
+  }
+
+  // Oval/Apple (fuller midsection)
+  return Oval/Apple result...
+}
+```
+
+#### 2. **Added "Oval/Apple" Body Shape Support**
+**New Shape Added:**
+- `getShapeDescription()` - Added "Oval/Apple" description
+- `getShapeCharacteristics()` - Added "Oval/Apple" characteristics
+- `getShapeRecommendations()` - Added styling recommendations for men with fuller midsections
+
+**Recommendations for Oval/Apple:**
+- Vertical lines and patterns
+- Open jackets and cardigans
+- Darker colors on torso
+- V-neck and scoop neck tops
+- Avoid tight-fitting clothes around midsection
+
+#### 3. **Body Shape Detection Logic**
+**V-Shape/Athletic:**
+- Triggered when: `shoulderWaistRatio > 1.2` OR `chestWaistRatio > 1.15`
+- Example: Shoulders 110cm, Waist 90cm = ratio 1.22 → V-Shape ✓
+- Characteristics: Broad shoulders/chest, narrow waist, athletic build
+
+**Rectangle/Straight:**
+- Triggered when: `1.0 ≤ shoulderWaistRatio ≤ 1.2` AND `|chest - waist| < 15cm`
+- Example: Shoulders 102cm, Waist 98cm, Chest 100cm → Rectangle ✓
+- Characteristics: Balanced proportions, minimal waist definition
+
+**Oval/Apple:**
+- Default for proportions that don't match above
+- Example: Shoulders 95cm, Waist 100cm (ratio 0.95) → Oval/Apple ✓
+- Characteristics: Fuller midsection, less defined waist
+
+### User Experience Impact:
+**Before:**
+- Male user with measurements: Shoulders 100cm, Waist 98cm, Chest 102cm
+- Result: "V-Shape/Athletic" (incorrect)
+- Recommendations: Fitted shirts, minimal padding (not ideal)
+
+**After:**
+- Same measurements
+- Result: "Rectangle/Straight" (correct)
+- Recommendations: Layering, structured jackets, horizontal stripes (appropriate)
+
+### Testing Examples:
+```javascript
+// Athletic build
+Shoulders: 120cm, Waist: 85cm, Chest: 110cm
+→ shoulderWaistRatio = 1.41, chestWaistRatio = 1.29
+→ Result: V-Shape/Athletic ✓
+
+// Balanced build
+Shoulders: 105cm, Waist: 95cm, Chest: 100cm
+→ shoulderWaistRatio = 1.11, |chest - waist| = 5cm
+→ Result: Rectangle/Straight ✓
+
+// Fuller midsection
+Shoulders: 100cm, Waist: 105cm, Chest: 102cm
+→ shoulderWaistRatio = 0.95
+→ Result: Oval/Apple ✓
+```
+
+### Files Modified:
+- `extensions/body-shape-advisor/assets/body-shape-advisor.js`:
+  - Updated `calculateShape()` function (lines 546-629)
+  - Added "Oval/Apple" to `getShapeDescription()` (line 635)
+  - Added "Oval/Apple" to `getShapeCharacteristics()` (line 648)
+  - Added "Oval/Apple" to `getShapeRecommendations()` (lines 671-677)
+
+### Deployment:
+- **Build:** app-92 (pending)
+- **Status:** ✅ Build successful, ready for deployment
+
+---
+
+## ⚡ PREVIOUS UPDATE: GENDER-AWARE PRODUCT FILTERING
+
+**Date:** 2025-10-21
+**Build:** app-91
 **Change:** Added hard code-level gender filtering to prevent cross-gender product recommendations
 **What:** Products are now filtered by gender at the code level before being sent to AI, preventing women's products from being recommended to male users and vice versa
 **Why:** The previous implementation relied solely on AI prompt instructions, which were unreliable. This fix ensures accurate gender-appropriate recommendations.

@@ -545,7 +545,7 @@ class BodyShapeAdvisor {
 
   calculateShape(measurements) {
     // Simplified calculation logic
-    const { bust, waist, hips, gender } = measurements;
+    const { bust, waist, hips, shoulders, gender } = measurements;
 
     if (gender === 'woman') {
       const bustHipDiff = Math.abs(bust - hips);
@@ -578,12 +578,52 @@ class BodyShapeAdvisor {
         };
       }
     } else {
+      // Proper masculine body shape calculation
+      const chest = parseFloat(bust) || 0;
+      const waistNum = parseFloat(waist) || 0;
+      const shouldersNum = parseFloat(shoulders) || 0;
+
+      // Calculate ratios
+      const shoulderWaistRatio = shouldersNum / waistNum;
+      const chestWaistRatio = chest / waistNum;
+
+      console.log('Male body shape calculation:', {
+        chest,
+        waist: waistNum,
+        shoulders: shouldersNum,
+        shoulderWaistRatio,
+        chestWaistRatio
+      });
+
+      // V-Shape/Athletic (broad shoulders, narrow waist)
+      if (shoulderWaistRatio > 1.2 || chestWaistRatio > 1.15) {
+        return {
+          shape: "V-Shape/Athletic",
+          description: "Broad shoulders and chest with narrow waist",
+          confidence: 0.9,
+          characteristics: ["Broad shoulders and chest", "Narrow waist", "Athletic build"],
+          recommendations: this.getShapeRecommendations("V-Shape/Athletic")
+        };
+      }
+
+      // Rectangle/Straight (balanced proportions)
+      if (shoulderWaistRatio >= 1.0 && shoulderWaistRatio <= 1.2 && Math.abs(chest - waistNum) < 15) {
+        return {
+          shape: "Rectangle/Straight",
+          description: "Balanced proportions throughout torso",
+          confidence: 0.85,
+          characteristics: ["Shoulders and waist similar width", "Straight silhouette"],
+          recommendations: this.getShapeRecommendations("Rectangle/Straight")
+        };
+      }
+
+      // Oval/Apple (fuller midsection)
       return {
-        shape: "V-Shape/Athletic",
-        description: "Athletic build",
+        shape: "Oval/Apple",
+        description: "Fuller midsection with broader waist",
         confidence: 0.8,
-        characteristics: ["Athletic build"],
-        recommendations: this.getShapeRecommendations("V-Shape/Athletic")
+        characteristics: ["Fuller midsection", "Less defined waist"],
+        recommendations: this.getShapeRecommendations("Oval/Apple")
       };
     }
   }
@@ -592,6 +632,7 @@ class BodyShapeAdvisor {
     const descriptions = {
       "Pear/Triangle": "Hips wider than bust and shoulders",
       "Apple/Round": "Fuller midsection with less defined waist",
+      "Oval/Apple": "Fuller midsection with broader waist",
       "Hourglass": "Balanced bust and hips with defined waist",
       "Inverted Triangle": "Broader shoulders and bust than hips",
       "Rectangle/Straight": "Similar measurements throughout",
@@ -604,6 +645,7 @@ class BodyShapeAdvisor {
     const characteristics = {
       "Pear/Triangle": "Fuller hips and thighs, narrower shoulders",
       "Apple/Round": "Fuller bust and midsection, slimmer legs",
+      "Oval/Apple": "Fuller midsection, less defined waist, broader torso",
       "Hourglass": "Curved silhouette, well-defined waist",
       "Inverted Triangle": "Broader shoulders, narrower hips",
       "Rectangle/Straight": "Balanced proportions, minimal waist definition",
@@ -625,6 +667,13 @@ class BodyShapeAdvisor {
         "V-neck and scoop neck tops",
         "High-waisted bottoms",
         "Flowing fabrics that skim the body"
+      ],
+      "Oval/Apple": [
+        "Vertical lines and patterns",
+        "Open jackets and cardigans",
+        "Darker colors on torso",
+        "V-neck and scoop neck tops",
+        "Avoid tight-fitting clothes around midsection"
       ],
       "Hourglass": [
         "Fitted clothing that follows your curves",
