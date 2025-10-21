@@ -47,9 +47,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("Error fetching total products count:", error);
   }
 
+  // Get last refresh activity
+  const lastRefresh = await db.productRefreshLog.findFirst({
+    where: { shop },
+    orderBy: { startedAt: "desc" },
+  });
+
   return json({
     totalScannedCount,
     totalProductsCount,
+    lastRefresh: lastRefresh ? {
+      startedAt: lastRefresh.startedAt.toISOString(),
+      completedAt: lastRefresh.completedAt?.toISOString(),
+      status: lastRefresh.status,
+      productsFetched: lastRefresh.productsFetched,
+      productsAnalyzed: lastRefresh.productsAnalyzed,
+      geminiApiCalls: lastRefresh.geminiApiCalls,
+      totalCostUsd: lastRefresh.totalCostUsd?.toString(),
+      errorMessage: lastRefresh.errorMessage,
+    } : null,
   });
 };
 
@@ -336,10 +352,27 @@ export default function Index() {
   const isRefreshing = navigation.state === "submitting";
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  const { totalScannedCount, totalProductsCount } = loaderData;
+  const { totalScannedCount, totalProductsCount, lastRefresh } = loaderData;
   const scanPercentage = totalProductsCount > 0
     ? ((totalScannedCount / totalProductsCount) * 100).toFixed(1)
     : "0";
+
+  // Format last refresh time
+  const formatRefreshTime = (isoString: string | null | undefined) => {
+    if (!isoString) return "Never";
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const handleRefresh = () => {
     if (confirm("This will analyze NEW and UPDATED products in your catalog with Gemini AI. Previously analyzed products will be skipped to save API credits. Continue?")) {
@@ -407,6 +440,71 @@ export default function Index() {
                 </Text>
               </BlockStack>
             </Card>
+
+            {lastRefresh && (
+              <Card>
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h3" variant="headingMd">
+                      🔄 Last Refresh
+                    </Text>
+                    <Badge tone={lastRefresh.status === "completed" ? "success" : lastRefresh.status === "partial" ? "attention" : "info"}>
+                      {lastRefresh.status}
+                    </Badge>
+                  </InlineStack>
+
+                  <BlockStack gap="200">
+                    <InlineStack gap="400" wrap>
+                      <div>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Time
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          {formatRefreshTime(lastRefresh.completedAt || lastRefresh.startedAt)}
+                        </Text>
+                      </div>
+
+                      <div>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Products Analyzed
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          {lastRefresh.productsAnalyzed} of {lastRefresh.productsFetched}
+                        </Text>
+                      </div>
+
+                      <div>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          API Calls
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          {lastRefresh.geminiApiCalls}
+                        </Text>
+                      </div>
+
+                      {lastRefresh.totalCostUsd && parseFloat(lastRefresh.totalCostUsd) > 0 && (
+                        <div>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Estimated Cost
+                          </Text>
+                          <Text as="p" variant="bodyMd" fontWeight="semibold">
+                            ${parseFloat(lastRefresh.totalCostUsd).toFixed(4)}
+                          </Text>
+                        </div>
+                      )}
+                    </InlineStack>
+
+                    {lastRefresh.errorMessage && (
+                      <Banner tone="warning">
+                        <Text as="p" variant="bodySm">
+                          {lastRefresh.errorMessage}
+                        </Text>
+                      </Banner>
+                    )}
+                  </BlockStack>
+                </BlockStack>
+              </Card>
+            )}
 
             <Banner tone="info">
               <BlockStack gap="200">
