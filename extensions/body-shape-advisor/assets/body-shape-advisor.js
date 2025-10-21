@@ -609,8 +609,10 @@ class BodyShapeAdvisor {
         };
       }
 
-      // V-Shape/Athletic (broad shoulders, narrow waist)
-      if (shoulderWaistRatio > 1.25 || chestWaistRatio > 1.2) {
+      // V-Shape/Athletic (significantly broad shoulders, narrow waist)
+      // Both conditions must be true (AND logic) to ensure truly athletic build
+      if (shoulderWaistRatio > 1.3 && chestWaistRatio > 1.25) {
+        console.log('✅ Matched V-Shape/Athletic');
         return {
           shape: "V-Shape/Athletic",
           description: "Broad shoulders and chest with narrow waist",
@@ -621,10 +623,10 @@ class BodyShapeAdvisor {
       }
 
       // Rectangle/Straight (balanced proportions)
-      // More inclusive threshold: accept ratios from 0.9 to 1.25
-      if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.25 &&
-          chestWaistRatio >= 0.9 && chestWaistRatio <= 1.2 &&
-          Math.abs(chest - waistNum) < 20 && Math.abs(shouldersNum - waistNum) < 20) {
+      // More inclusive threshold: most men fall into this category
+      if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.3 &&
+          chestWaistRatio >= 0.9 && chestWaistRatio <= 1.25 &&
+          Math.abs(chest - waistNum) < 25 && Math.abs(shouldersNum - waistNum) < 25) {
         console.log('✅ Matched Rectangle/Straight');
         return {
           shape: "Rectangle/Straight",
