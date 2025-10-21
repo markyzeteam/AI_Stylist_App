@@ -91,23 +91,38 @@ export async function loader({ request }: ActionFunctionArgs) {
     if (hips) measurementsText += `\nHips: ${hips} cm`;
     if (shoulders) measurementsText += `\nShoulders: ${shoulders} cm`;
 
+    // Build age-specific guidance
+    let ageGuidance = '';
+    if (age) {
+      const ageNum = parseInt(age);
+      if (ageNum < 25) {
+        ageGuidance = '\n- AGE CONSIDERATION: Recommend contemporary style icons who appeal to younger demographics and showcase current trends';
+      } else if (ageNum < 40) {
+        ageGuidance = '\n- AGE CONSIDERATION: Recommend celebrities with versatile, professional styles that balance trendy and timeless elements';
+      } else if (ageNum < 60) {
+        ageGuidance = '\n- AGE CONSIDERATION: Recommend sophisticated celebrities known for elegant, mature styling with modern touches';
+      } else {
+        ageGuidance = '\n- AGE CONSIDERATION: Recommend classic, elegant style icons known for timeless, age-appropriate fashion';
+      }
+    }
+
     const prompt = `You are a professional fashion stylist. Recommend 3-4 celebrities who match this person's profile:
 
 Body Shape: ${bodyShape}${measurementsText}
 ${colorSeason ? `Color Season: ${colorSeason}` : ''}
 ${styles ? `Style Preferences: ${styles}` : ''}
 
-IMPORTANT: Recommend celebrities that match the person's gender (${gender || 'not specified'}). For example:
-- If gender is "man", recommend male celebrities only
-- If gender is "woman", recommend female celebrities only
-- If gender is "non-binary", recommend diverse style icons
+IMPORTANT REQUIREMENTS:
+- GENDER: Recommend celebrities that match the person's gender (${gender || 'not specified'}). For example:
+  * If gender is "man", recommend MALE celebrities only
+  * If gender is "woman", recommend FEMALE celebrities only
+  * If gender is "non-binary", recommend diverse style icons${ageGuidance}
 
 For each celebrity, provide:
 1. Name
 2. Why they're a good style match (body shape, measurements, and color season compatibility)
 3. 2-3 specific styling tips inspired by their signature looks
 4. Key wardrobe pieces they often wear that would work well
-5. Size advice based on the person's measurements (e.g., "Based on your measurements, you'd typically wear size M in tops")
 
 Return ONLY a valid JSON object in this exact format (no markdown, no code blocks):
 {
@@ -126,7 +141,6 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
         "Wardrobe piece 2",
         "Wardrobe piece 3"
       ],
-      "sizeAdvice": "Size guidance based on measurements (e.g., 'Based on your measurements, look for size M in tops, size 32 in pants')",
       "imageSearchQuery": "Celebrity Name red carpet fashion"
     }
   ]
@@ -239,58 +253,111 @@ function getFallbackCelebrityRecommendations(
   // Gender-appropriate celebrity recommendations
   let celebrities = [];
 
+  // Determine age-appropriate celebrity selections
+  const ageNum = age ? parseInt(age) : null;
+  const isYoung = ageNum && ageNum < 30;
+  const isMidAge = ageNum && ageNum >= 30 && ageNum < 50;
+  const isMature = ageNum && ageNum >= 50;
+
   if (gender === 'man') {
-    // Male celebrities
-    celebrities = [
-      {
-        name: "Ryan Gosling",
-        matchReason: "Known for his versatile style that works across casual and formal settings, with a keen eye for fit and proportion.",
-        stylingTips: [
-          "Invest in well-fitted basics like tailored shirts and quality denim",
-          "Layer with structured jackets for a polished look",
-          "Keep accessories minimal but meaningful"
-        ],
-        signaturePieces: [
-          "Tailored blazers",
-          "Classic white shirts",
-          "Well-fitted dark jeans"
-        ],
-        sizeAdvice: "Focus on proper fit - avoid overly baggy or tight clothing",
-        imageSearchQuery: "Ryan Gosling style fashion"
-      },
-      {
-        name: "Idris Elba",
-        matchReason: "Masters both smart-casual and formal wear with confidence, emphasizing sharp tailoring and sophisticated color choices.",
-        stylingTips: [
-          "Choose structured pieces that enhance your silhouette",
-          "Don't be afraid of bold colors in accessories",
-          "Prioritize quality fabrics and proper tailoring"
-        ],
-        signaturePieces: [
-          "Three-piece suits",
-          "Leather jackets",
-          "Designer sneakers"
-        ],
-        sizeAdvice: "Tailored fit is key - consider getting pieces adjusted for your frame",
-        imageSearchQuery: "Idris Elba red carpet fashion"
-      },
-      {
-        name: "Harry Styles",
-        matchReason: "Breaks fashion boundaries with bold patterns and colors while maintaining impeccable fit and proportion.",
-        stylingTips: [
-          "Experiment with patterns and textures confidently",
-          "Mix vintage and contemporary pieces",
-          "Use statement accessories to personalize your look"
-        ],
-        signaturePieces: [
-          "Patterned suits",
-          "Vintage band tees",
-          "Bold printed shirts"
-        ],
-        sizeAdvice: "Embrace slightly relaxed fits for a modern, comfortable style",
-        imageSearchQuery: "Harry Styles fashion style"
-      }
-    ];
+    // Male celebrities - age-appropriate
+    if (isYoung) {
+      celebrities = [
+        {
+          name: "Timothée Chalamet",
+          matchReason: "Contemporary style icon known for bold fashion choices and effortless cool that resonates with younger demographics.",
+          stylingTips: [
+            "Experiment with bold colors and unique silhouettes",
+            "Mix high-end and vintage pieces for individual style",
+            "Don't be afraid to break traditional menswear rules"
+          ],
+          signaturePieces: [
+            "Statement blazers",
+            "Designer sneakers",
+            "Layered casual looks"
+          ],
+          imageSearchQuery: "Timothee Chalamet fashion style"
+        },
+        {
+          name: "Michael B. Jordan",
+          matchReason: "Masters contemporary athletic-luxe style with impeccable tailoring and modern edge.",
+          stylingTips: [
+            "Highlight athletic build with fitted, structured pieces",
+            "Layer strategically for depth and interest",
+            "Balance casual and dressed-up elements"
+          ],
+          signaturePieces: [
+            "Fitted bomber jackets",
+            "Tailored joggers",
+            "Crisp white tees"
+          ],
+          imageSearchQuery: "Michael B Jordan style fashion"
+        },
+        {
+          name: "Harry Styles",
+          matchReason: "Breaks fashion boundaries with bold patterns and colors while maintaining impeccable fit and proportion.",
+          stylingTips: [
+            "Experiment with patterns and textures confidently",
+            "Mix vintage and contemporary pieces",
+            "Use statement accessories to personalize your look"
+          ],
+          signaturePieces: [
+            "Patterned suits",
+            "Vintage band tees",
+            "Bold printed shirts"
+          ],
+          imageSearchQuery: "Harry Styles fashion style"
+        }
+      ];
+    } else {
+      celebrities = [
+        {
+          name: "Ryan Gosling",
+          matchReason: "Known for his versatile style that works across casual and formal settings, with a keen eye for fit and proportion.",
+          stylingTips: [
+            "Invest in well-fitted basics like tailored shirts and quality denim",
+            "Layer with structured jackets for a polished look",
+            "Keep accessories minimal but meaningful"
+          ],
+          signaturePieces: [
+            "Tailored blazers",
+            "Classic white shirts",
+            "Well-fitted dark jeans"
+          ],
+          imageSearchQuery: "Ryan Gosling style fashion"
+        },
+        {
+          name: "Idris Elba",
+          matchReason: "Masters both smart-casual and formal wear with confidence, emphasizing sharp tailoring and sophisticated color choices.",
+          stylingTips: [
+            "Choose structured pieces that enhance your silhouette",
+            "Don't be afraid of bold colors in accessories",
+            "Prioritize quality fabrics and proper tailoring"
+          ],
+          signaturePieces: [
+            "Three-piece suits",
+            "Leather jackets",
+            "Designer sneakers"
+          ],
+          imageSearchQuery: "Idris Elba red carpet fashion"
+        },
+        {
+          name: "George Clooney",
+          matchReason: "Epitomizes timeless, sophisticated menswear with a focus on quality and classic styling.",
+          stylingTips: [
+            "Invest in classic, well-made pieces that last",
+            "Stick to refined color palettes and quality fabrics",
+            "Let fit and fabric quality speak for themselves"
+          ],
+          signaturePieces: [
+            "Classic navy suits",
+            "Cashmere sweaters",
+            "Quality leather shoes"
+          ],
+          imageSearchQuery: "George Clooney style fashion"
+        }
+      ];
+    }
   } else if (gender === 'woman') {
     // Female celebrities
     celebrities = [
@@ -307,7 +374,6 @@ function getFallbackCelebrityRecommendations(
           "Classic little black dress",
           "Well-fitted jeans"
         ],
-        sizeAdvice: "Focus on pieces that highlight your waist and create a balanced silhouette",
         imageSearchQuery: "Jennifer Aniston casual chic style"
       },
       {
@@ -323,7 +389,6 @@ function getFallbackCelebrityRecommendations(
           "Structured tops",
           "Bold accessories"
         ],
-        sizeAdvice: "Choose colors that complement your skin tone and silhouettes that flatter your shape",
         imageSearchQuery: "Lupita Nyongo red carpet fashion"
       },
       {
@@ -339,7 +404,6 @@ function getFallbackCelebrityRecommendations(
           "High-waisted bottoms",
           "Statement coats"
         ],
-        sizeAdvice: "Look for pieces that balance your proportions and create a flattering silhouette",
         imageSearchQuery: "Blake Lively street style fashion"
       }
     ];
@@ -359,7 +423,6 @@ function getFallbackCelebrityRecommendations(
           "Statement accessories",
           "Bold monochrome looks"
         ],
-        sizeAdvice: "Focus on structured pieces that feel comfortable and express your personal style",
         imageSearchQuery: "Janelle Monae fashion style"
       },
       {
@@ -375,7 +438,6 @@ function getFallbackCelebrityRecommendations(
           "Minimalist separates",
           "Statement eyewear"
         ],
-        sizeAdvice: "Seek out pieces with interesting construction that complement your unique style",
         imageSearchQuery: "Tilda Swinton fashion red carpet"
       },
       {
@@ -391,7 +453,6 @@ function getFallbackCelebrityRecommendations(
           "Bold suits with flair",
           "Statement headpieces"
         ],
-        sizeAdvice: "Embrace custom or tailored pieces that celebrate your unique proportions",
         imageSearchQuery: "Billy Porter red carpet fashion"
       }
     ];

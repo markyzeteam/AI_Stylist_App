@@ -1412,7 +1412,8 @@ class BodyShapeAdvisor {
         body: JSON.stringify({
           colorSeason: colorSeason,
           colorAnalysis: colorAnalysis,
-          shop: this.config.shopDomain
+          shop: this.config.shopDomain,
+          gender: this.measurements.gender  // Add gender for personalized recommendations
         })
       });
 
@@ -1762,13 +1763,6 @@ class BodyShapeAdvisor {
                         `).join('')}
                       </div>
                     </div>
-
-                    ${celeb.sizeAdvice ? `
-                      <div style="margin-top: 1rem; padding: 0.75rem; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 6px;">
-                        <div style="font-weight: 600; color: #065f46; margin-bottom: 0.25rem; font-size: 14px;">📏 Size Advice:</div>
-                        <p style="margin: 0; color: #047857; font-size: 13px; line-height: 1.5;">${celeb.sizeAdvice}</p>
-                      </div>
-                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -1849,7 +1843,7 @@ class BodyShapeAdvisor {
               'Focus on fit and quality over trends'
             ],
             signaturePieces: this.bodyShapeResult.keyPieces || [],
-            sizeAdvice: 'Focus on proper fit and proportions for your body type'
+
           }]
         };
         this.render();
@@ -1868,7 +1862,7 @@ class BodyShapeAdvisor {
             'Focus on fit and quality over trends'
           ],
           signaturePieces: this.bodyShapeResult.keyPieces || [],
-          sizeAdvice: 'Focus on proper fit and proportions for your body type'
+
         }]
       };
       this.render();

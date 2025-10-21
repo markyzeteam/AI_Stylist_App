@@ -28,7 +28,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const body = await request.json();
-    const { colorSeason, colorAnalysis, shop } = body;
+    const { colorSeason, colorAnalysis, shop, gender } = body;
 
     if (!colorSeason) {
       return json({ error: "Color season required" }, { status: 400, headers: corsHeaders });
@@ -38,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: "Shop parameter required" }, { status: 400, headers: corsHeaders });
     }
 
-    console.log(`Getting Gemini AI color season analysis for ${colorSeason}`);
+    console.log(`Getting Gemini AI color season analysis for ${colorSeason} (${gender || 'unspecified gender'})`);
 
     // Load Gemini settings from database (includes custom API key if set)
     const geminiSettings = await loadGeminiSettings(shop);
@@ -67,7 +67,19 @@ Customer color characteristics:
 - Intensity: ${intensity || "not specified"}`;
     }
 
-    const prompt = `You are an expert color analyst and fashion stylist. A customer has been identified as having a "${colorSeason}" skin color season.${analysisContext}
+    // Build gender-specific context
+    let genderContext = "";
+    if (gender) {
+      if (gender === "man") {
+        genderContext = "\n\nIMPORTANT: This customer is MALE. Provide styling tips focused on men's fashion (shirts, suits, ties, accessories, grooming). DO NOT recommend makeup. Focus on clothing colors, accessories, and how colors work in menswear.";
+      } else if (gender === "woman") {
+        genderContext = "\n\nIMPORTANT: This customer is FEMALE. Provide styling tips for women's fashion including clothing, accessories, and makeup when relevant.";
+      } else {
+        genderContext = "\n\nIMPORTANT: This customer identifies as NON-BINARY. Provide inclusive styling tips that work across different fashion styles, focusing on versatile pieces and colors.";
+      }
+    }
+
+    const prompt = `You are an expert color analyst and fashion stylist. A customer has been identified as having a "${colorSeason}" skin color season.${analysisContext}${genderContext}
 
 Please provide a detailed, personalized color analysis for this season. Your response should be comprehensive and insightful, helping the customer understand:
 
@@ -75,7 +87,7 @@ Please provide a detailed, personalized color analysis for this season. Your res
 2. **Best Colors**: The most flattering colors for this season
 3. **Color Palette by Category**: Organize colors into neutrals, accent colors, and statement colors with reasoning
 4. **Colors to Avoid**: Which colors might not be as flattering and why
-5. **Styling Tips**: Practical advice for incorporating these colors into their wardrobe
+5. **Styling Tips**: Practical advice for incorporating these colors into their wardrobe (MUST be appropriate for their gender)
 
 Format your response as a JSON object with this structure:
 {

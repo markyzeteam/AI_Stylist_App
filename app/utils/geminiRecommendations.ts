@@ -350,6 +350,31 @@ Customer Measurements:
 `
     : "";
 
+  // Build gender and age-specific instructions
+  let genderAgeInstructions = "";
+  if (measurements?.gender) {
+    if (measurements.gender === "man") {
+      genderAgeInstructions += "\n\nGENDER-SPECIFIC REQUIREMENTS:\n- ONLY recommend products designed for MEN (men's clothing, menswear)\n- DO NOT recommend women's clothing, dresses, skirts, or feminine items\n- Focus on men's fashion categories: shirts, pants, suits, jackets, ties, etc.";
+    } else if (measurements.gender === "woman") {
+      genderAgeInstructions += "\n\nGENDER-SPECIFIC REQUIREMENTS:\n- ONLY recommend products designed for WOMEN (women's clothing)\n- DO NOT recommend men's clothing or masculine items unless specifically unisex/gender-neutral\n- Focus on women's fashion categories: dresses, tops, skirts, pants, blouses, etc.";
+    } else {
+      genderAgeInstructions += "\n\nGENDER-SPECIFIC REQUIREMENTS:\n- Recommend gender-neutral and versatile pieces\n- Focus on unisex styles that work across different fashion expressions";
+    }
+  }
+
+  if (measurements?.age) {
+    const age = parseInt(measurements.age);
+    if (age < 25) {
+      genderAgeInstructions += "\n- AGE CONSIDERATION: Younger customer - suggest trendy, contemporary styles appropriate for their age";
+    } else if (age < 40) {
+      genderAgeInstructions += "\n- AGE CONSIDERATION: Young professional - balance trendy and classic styles, workplace-appropriate options";
+    } else if (age < 60) {
+      genderAgeInstructions += "\n- AGE CONSIDERATION: Mature professional - sophisticated, timeless pieces with modern touches";
+    } else {
+      genderAgeInstructions += "\n- AGE CONSIDERATION: Mature customer - elegant, comfortable, age-appropriate styling with quality focus";
+    }
+  }
+
   const bodyShapeGuidance: { [key: string]: string } = {
     "Pear/Triangle": "Focus on balancing wider hips with structured shoulders, A-line silhouettes, and drawing attention upward. Avoid tight bottoms.",
     "Apple/Round": "Emphasize defined waist with empire cuts, V-necks, and flowing fabrics. Create vertical lines. Avoid tight waistbands.",
@@ -397,7 +422,7 @@ Customer Measurements:
 
   return `${systemPrompt}
 
-${measurementInfo}
+${measurementInfo}${genderAgeInstructions}
 
 Body Shape: ${bodyShape}
 Style Guidance: ${guidance}${colorSeasonInfo}${valuesInfo}
@@ -419,7 +444,7 @@ For each recommendation, provide:
 - **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES
 - **score**: Honest suitability score (0-100) where 100 = perfect match. Be realistic but inclusive - aim for scores of 65+ for decent matches.
 - **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape using the visual analysis data (2-3 sentences with specific design details)
-- **sizeAdvice**: Specific sizing guidance for their body shape and proportions
+- **sizeAdvice**: Look at the product's "description" and "availableSizes" fields to provide SPECIFIC size recommendations. If sizing info is in description (e.g., "fits true to size", "runs small", size charts), include that in your advice. Base size recommendations on customer's measurements.
 - **stylingTip**: A unique, actionable styling suggestion for THIS SPECIFIC product
 
 CRITICAL RULES:
@@ -430,6 +455,7 @@ CRITICAL RULES:
 - Use the cached visualAnalysis data to make informed recommendations
 - Provide personalized advice, not generic tips
 - Prioritize variety across different product types (tops, bottoms, dresses, accessories)
+- STRICTLY follow gender-specific requirements above - do NOT recommend products for the wrong gender
 
 Format your response as valid JSON (no markdown):
 {
