@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { retryWithBackoff } from "../utils/geminiAnalysis";
+import { retryWithBackoff, loadGeminiSettings } from "../utils/geminiAnalysis";
 
 /**
  * CELEBRITY STYLE RECOMMENDATIONS API
@@ -28,21 +28,33 @@ export async function loader({ request }: ActionFunctionArgs) {
   let bodyShape: string | null = null;
   let colorSeason: string | null = null;
   let styles: string | null = null;
+  let shop: string | null = null;
 
   try {
     const url = new URL(request.url);
     bodyShape = url.searchParams.get("bodyShape");
     colorSeason = url.searchParams.get("colorSeason");
     styles = url.searchParams.get("styles"); // comma-separated
+    shop = url.searchParams.get("shop");
 
-    console.log(`🎬 Celebrity recommendations request: bodyShape=${bodyShape}, colorSeason=${colorSeason}, styles=${styles}`);
+    console.log(`🎬 Celebrity recommendations request: bodyShape=${bodyShape}, colorSeason=${colorSeason}, styles=${styles}, shop=${shop}`);
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers: corsHeaders });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    if (!shop) {
+      return json({ error: "Shop parameter is required" }, { status: 400, headers: corsHeaders });
+    }
+
+    // Load Gemini settings from database (includes custom API key if set)
+    const geminiSettings = await loadGeminiSettings(shop);
+
+    // Use custom API key from database, or fall back to environment variable
+    const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
+
     if (!apiKey) {
+      console.error("❌ GEMINI_API_KEY not set in database or environment");
       return json({ error: "Gemini API key not configured" }, { status: 500, headers: corsHeaders });
     }
 

@@ -1785,7 +1785,8 @@ class BodyShapeAdvisor {
   async loadCelebrityRecommendations() {
     try {
       const params = new URLSearchParams({
-        bodyShape: this.bodyShapeResult.shape
+        bodyShape: this.bodyShapeResult.shape,
+        shop: this.config.shopDomain
       });
 
       if (this.colorSeasonResult) {
