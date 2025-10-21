@@ -97,6 +97,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log(`${"=".repeat(60)}\n`);
 
     const startTime = Date.now();
+    const startedAt = new Date();
 
     // STEP 1: Load settings
     const settings = await loadGeminiSettings(shop);
@@ -121,7 +122,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (products.length === 0) {
       console.warn(`⚠ No products found`);
-      await logRefreshActivity(shop, "admin_manual", 0, 0, 0, 0, "completed", "No products found");
+      await logRefreshActivity(shop, "admin_manual", 0, 0, 0, 0, "completed", startedAt, "No products found");
       return json({
         success: true,
         message: "No products found in store",
@@ -181,7 +182,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (productsToAnalyze.length === 0) {
       console.log(`\n✅ All products are already processed! No work needed.`);
-      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", "All products already processed");
+      await logRefreshActivity(shop, "admin_manual", products.length, 0, 0, 0, "completed", startedAt, "All products already processed");
       return json({
         success: true,
         message: `All ${products.length} products are already processed! No updates needed.`,
@@ -241,6 +242,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               geminiApiCalls,
               0,
               "partial",
+              startedAt,
               error.message
             );
 
@@ -318,7 +320,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // STEP 5: Log activity
-    await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed");
+    await logRefreshActivity(shop, "admin_manual", products.length, analyzed, geminiApiCalls, totalCost, "completed", startedAt);
 
     const successMessage = useImageAnalysis
       ? `Successfully analyzed ${analyzed} new/updated products with AI! (${alreadyAnalyzed} already up-to-date) Cost: $${totalCost.toFixed(4)}`
