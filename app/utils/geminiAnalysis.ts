@@ -56,6 +56,10 @@ export interface ShopifyProduct {
   variants?: any[];
   inStock?: boolean;
   availableSizes?: string[];
+  inventoryQuantity?: number;
+  totalSold?: number;
+  publishedAt?: Date;
+  compareAtPrice?: string;
 }
 
 // Default prompt for Gemini image analysis (CUSTOMIZABLE PART)
@@ -463,13 +467,16 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
                 productType
                 tags
                 totalInventory
+                publishedAt
                 publishedOnPublication: publishedOnPublication(publicationId: "${onlineStoreId}")
                 variants(first: 10) {
                   edges {
                     node {
                       price
+                      compareAtPrice
                       availableForSale
                       inventoryQuantity
+                      displayName
                     }
                   }
                 }
@@ -497,12 +504,15 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
                 productType
                 tags
                 totalInventory
+                publishedAt
                 variants(first: 10) {
                   edges {
                     node {
                       price
+                      compareAtPrice
                       availableForSale
                       inventoryQuantity
+                      displayName
                     }
                   }
                 }
@@ -558,8 +568,16 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
         // Extract available sizes from variants
         const availableSizes = variants
           .filter((v: any) => v.node.availableForSale === true || (v.node.inventoryQuantity || 0) > 0)
-          .map((v: any) => v.node.title || '')
+          .map((v: any) => v.node.displayName || v.node.title || '')
           .filter((title: string) => title);
+
+        // Calculate total inventory quantity
+        const totalInventory = edge.node.totalInventory || 0;
+
+        // Check if on sale (has compareAtPrice > price)
+        const firstVariant = variants?.[0]?.node;
+        const price = firstVariant?.price || '';
+        const compareAtPrice = firstVariant?.compareAtPrice || '';
 
         return {
           id: edge.node.id,
@@ -568,14 +586,18 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
           description: edge.node.description || '',
           productType: edge.node.productType || '',
           tags: edge.node.tags || [],
-          price: variants?.[0]?.node?.price || '',
+          price,
+          compareAtPrice,
           imageUrl: edge.node.featuredImage?.url || '',
           variants: variants.map((v: any) => ({
             price: v.node.price,
+            compareAtPrice: v.node.compareAtPrice,
             available: v.node.availableForSale === true || (v.node.inventoryQuantity || 0) > 0
           })),
           inStock: isAvailable,
           availableSizes,
+          inventoryQuantity: totalInventory,
+          publishedAt: edge.node.publishedAt ? new Date(edge.node.publishedAt) : undefined,
         };
       });
 
@@ -657,6 +679,16 @@ export async function saveAnalyzedProduct(
   analysis: ProductImageAnalysis
 ): Promise<boolean> {
   try {
+    // Calculate if product is on sale
+    const price = parseFloat(product.price) || 0;
+    const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
+    const isOnSale = compareAtPrice > price;
+    const salePrice = isOnSale ? price : null;
+
+    // Note: totalSold and profitMargin are not available from Shopify GraphQL API
+    // They would require additional queries or integrations
+    // For now, we'll set them to null and they can be manually updated or fetched separately
+
     await db.filteredSelectionWithImgAnalyzed.upsert({
       where: {
         shop_shopifyProductId: {
@@ -670,7 +702,7 @@ export async function saveAnalyzedProduct(
         description: product.description,
         productType: product.productType,
         tags: product.tags || [],
-        price: parseFloat(product.price) || 0,
+        price,
         imageUrl: product.imageUrl,
         variants: product.variants || [],
         inStock: product.inStock || false,
@@ -687,6 +719,11 @@ export async function saveAnalyzedProduct(
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
         lastUpdated: new Date(),
+        // Priority fields
+        inventoryQuantity: product.inventoryQuantity || 0,
+        publishedAt: product.publishedAt || null,
+        isOnSale,
+        salePrice,
       },
       create: {
         shop,
@@ -696,7 +733,7 @@ export async function saveAnalyzedProduct(
         description: product.description,
         productType: product.productType,
         tags: product.tags || [],
-        price: parseFloat(product.price) || 0,
+        price,
         imageUrl: product.imageUrl,
         variants: product.variants || [],
         inStock: product.inStock || false,
@@ -712,6 +749,11 @@ export async function saveAnalyzedProduct(
         patternType: analysis.patternType,
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
+        // Priority fields
+        inventoryQuantity: product.inventoryQuantity || 0,
+        publishedAt: product.publishedAt || null,
+        isOnSale,
+        salePrice,
       },
     });
 

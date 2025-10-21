@@ -244,7 +244,70 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 }
 
 /**
- * Fetch cached analyzed products from database
+ * Calculate priority score for a product based on recommendation settings
+ */
+function calculatePriorityScore(
+  product: any,
+  settings: {
+    newArrivalBoost: number;
+    lowInventoryBoost: number;
+    lowSalesBoost: number;
+    highMarginBoost: number;
+    onSaleBoost: number;
+    newArrivalDays: number;
+    lowInventoryThreshold: number;
+    lowSalesThreshold: number;
+  }
+): number {
+  let score = 0;
+  const now = new Date();
+
+  // New Arrival Score (0-100 based on how recently published)
+  if (product.publishedAt && settings.newArrivalBoost > 0) {
+    const daysSincePublished = Math.floor(
+      (now.getTime() - new Date(product.publishedAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysSincePublished <= settings.newArrivalDays) {
+      const freshnessFactor = 1 - (daysSincePublished / settings.newArrivalDays);
+      score += freshnessFactor * settings.newArrivalBoost;
+    }
+  }
+
+  // Overstocked Score (boost for high inventory)
+  if (product.inventoryQuantity != null && settings.lowInventoryBoost > 0) {
+    if (product.inventoryQuantity > settings.lowInventoryThreshold) {
+      const overstockFactor = Math.min(
+        product.inventoryQuantity / (settings.lowInventoryThreshold * 3),
+        1
+      );
+      score += overstockFactor * settings.lowInventoryBoost;
+    }
+  }
+
+  // Slow-Moving Score (boost for low sales)
+  if (product.totalSold != null && settings.lowSalesBoost > 0) {
+    if (product.totalSold < settings.lowSalesThreshold) {
+      const slowMovingFactor = 1 - (product.totalSold / settings.lowSalesThreshold);
+      score += slowMovingFactor * settings.lowSalesBoost;
+    }
+  }
+
+  // High Margin Score
+  if (product.profitMargin != null && settings.highMarginBoost > 0) {
+    const marginFactor = Math.min(parseFloat(product.profitMargin.toString()) / 100, 1);
+    score += marginFactor * settings.highMarginBoost;
+  }
+
+  // On Sale Score
+  if (product.isOnSale && settings.onSaleBoost > 0) {
+    score += settings.onSaleBoost;
+  }
+
+  return score;
+}
+
+/**
+ * Fetch cached analyzed products from database with priority ordering
  */
 async function fetchCachedProducts(
   shop: string,
@@ -261,13 +324,47 @@ async function fetchCachedProducts(
       where.inStock = true;
     }
 
-    const products = await db.filteredSelectionWithImgAnalyzed.findMany({
+    // Fetch priority settings
+    let prioritySettings = await db.recommendationPrioritySettings.findUnique({
+      where: { shop },
+    });
+
+    // Use defaults if not found
+    if (!prioritySettings) {
+      prioritySettings = {
+        id: '',
+        shop,
+        strategy: 'balanced',
+        newArrivalBoost: 50,
+        lowInventoryBoost: 50,
+        lowSalesBoost: 50,
+        highMarginBoost: 50,
+        onSaleBoost: 50,
+        newArrivalDays: 30,
+        lowInventoryThreshold: 10,
+        lowSalesThreshold: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    // Fetch products
+    let products = await db.filteredSelectionWithImgAnalyzed.findMany({
       where,
-      orderBy: { analyzedAt: 'desc' },
       take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
     });
 
-    return products.map(p => ({
+    // Calculate priority scores and sort
+    const productsWithScores = products.map(p => ({
+      product: p,
+      priorityScore: calculatePriorityScore(p, prioritySettings!),
+    }));
+
+    // Sort by priority score (highest first)
+    productsWithScores.sort((a, b) => b.priorityScore - a.priorityScore);
+
+    // Map to CachedProduct format
+    return productsWithScores.map(({ product: p }) => ({
       id: p.id,
       shopifyProductId: p.shopifyProductId,
       title: p.title,

@@ -26,6 +26,7 @@ export default function App() {
         </Link>
         <Link to="/app/settings">Settings</Link>
         <Link to="/app/gemini-settings">Gemini AI</Link>
+        <Link to="/app/recommendation-priority">Priority Settings</Link>
         <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />

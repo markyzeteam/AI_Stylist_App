@@ -153,6 +153,14 @@ model FilteredSelectionWithImgAnalyzed {
   budgetCategory    String?
   styleScores       Json?
 
+  // Priority/Business metrics
+  inventoryQuantity Int?      @default(0)
+  totalSold         Int?      @default(0)
+  profitMargin      Decimal?  @db.Decimal(5, 2)
+  isOnSale          Boolean   @default(false)
+  salePrice         Decimal?  @db.Decimal(10, 2)
+  publishedAt       DateTime?
+
   // Timestamps
   analyzedAt        DateTime  @default(now())
   geminiModelVersion String?
@@ -162,6 +170,9 @@ model FilteredSelectionWithImgAnalyzed {
   @@index([shop, inStock])
   @@index([colorSeasons])
   @@index([styleClassification])
+  @@index([shop, inventoryQuantity])
+  @@index([shop, totalSold])
+  @@index([shop, publishedAt])
 }
 
 // Refresh tracking (3x/day limit)
@@ -242,4 +253,28 @@ model FilteringSettings {
   excludeKeywords     String[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+// Recommendation Priority Settings
+model RecommendationPrioritySettings {
+  id              String   @id @default(cuid())
+  shop            String   @unique
+
+  // Priority strategy
+  strategy        String   @default("balanced")  // balanced, new_arrivals, move_inventory, bestsellers, high_margin, seasonal
+
+  // Weight factors (0-100, default 50 for balanced)
+  newArrivalBoost     Int  @default(50)  // Boost for recently published products
+  lowInventoryBoost   Int  @default(50)  // Boost for overstocked items
+  lowSalesBoost       Int  @default(50)  // Boost for slow-moving products
+  highMarginBoost     Int  @default(50)  // Boost for high-profit items
+  onSaleBoost         Int  @default(50)  // Boost for sale/discounted items
+
+  // Thresholds
+  newArrivalDays      Int  @default(30)   // Products published within X days are "new"
+  lowInventoryThreshold Int @default(10)  // Inventory count considered "low"
+  lowSalesThreshold   Int  @default(5)    // Total sold considered "low"
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
