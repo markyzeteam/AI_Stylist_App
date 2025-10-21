@@ -108,9 +108,100 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
 
   } catch (error: any) {
     console.error("Error getting celebrity recommendations:", error);
+
+    // Check if it's a Gemini overload error (503)
+    const isOverloaded = error?.status === 503 || error?.message?.includes('overloaded');
+
+    if (isOverloaded) {
+      console.log("⚠️ Gemini API is overloaded, returning fallback celebrity recommendations");
+
+      // Return fallback recommendations based on body shape
+      const fallbackData = getFallbackCelebrityRecommendations(bodyShape, colorSeason, styles);
+
+      return json({
+        success: true,
+        fallback: true,
+        data: fallbackData
+      });
+    }
+
+    // For other errors, return error response
     return json({
       error: "Failed to get celebrity recommendations",
       message: error.message
     }, { status: 500 });
   }
+}
+
+/**
+ * Fallback celebrity recommendations when Gemini API is unavailable
+ */
+function getFallbackCelebrityRecommendations(
+  bodyShape: string | null,
+  colorSeason: string | null,
+  styles: string | null
+): any {
+  const stylesList = styles ? styles.split(',') : [];
+
+  // Generic fallback summary
+  const summary = `Your ${bodyShape || 'unique'} body shape${colorSeason ? ` with ${colorSeason} coloring` : ''} creates a distinctive style profile${stylesList.length > 0 ? ` that aligns beautifully with ${stylesList.join(', ')} aesthetics` : ''}.`;
+
+  // Generic celebrity recommendations (these work well for most body shapes)
+  const celebrities = [
+    {
+      name: "Jennifer Aniston",
+      matchReason: "Known for her timeless style that flatters many body types with classic, well-fitted pieces and versatile silhouettes.",
+      stylingTips: [
+        "Invest in well-fitted basics that can be dressed up or down",
+        "Choose pieces that define the waist for a polished silhouette",
+        "Layer strategically to create balanced proportions"
+      ],
+      signaturePieces: [
+        "Tailored blazers",
+        "Classic little black dress",
+        "Well-fitted jeans"
+      ],
+      imageSearchQuery: "Jennifer Aniston casual chic style"
+    },
+    {
+      name: "Lupita Nyong'o",
+      matchReason: "Celebrated for her bold color choices and flattering silhouettes that work across different body shapes and seasons.",
+      stylingTips: [
+        "Don't be afraid to experiment with vibrant colors",
+        "Look for pieces with interesting details that draw the eye",
+        "Balance structured pieces with flowing fabrics"
+      ],
+      signaturePieces: [
+        "Colorful statement dresses",
+        "Structured tops",
+        "Bold accessories"
+      ],
+      imageSearchQuery: "Lupita Nyongo red carpet fashion"
+    },
+    {
+      name: "Blake Lively",
+      matchReason: "Masters the art of dressing for any occasion with styles that flatter and enhance natural proportions.",
+      stylingTips: [
+        "Choose pieces that create vertical lines for an elongating effect",
+        "Mix textures and patterns for visual interest",
+        "Accessorize to draw attention to your best features"
+      ],
+      signaturePieces: [
+        "Fit-and-flare dresses",
+        "High-waisted bottoms",
+        "Statement coats"
+      ],
+      imageSearchQuery: "Blake Lively street style fashion"
+    }
+  ];
+
+  return {
+    summary,
+    celebrities,
+    userProfile: {
+      bodyShape,
+      colorSeason,
+      styles: stylesList
+    }
+  };
 }
