@@ -91,12 +91,12 @@ export async function getGeminiProductRecommendations(
 
     if (!geminiSettings.enabled) {
       console.log("⚠ Gemini AI is disabled, using fallback algorithm");
-      return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock);
+      return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     }
 
     // STEP 1: Fetch cached analyzed products from database
     console.log(`📊 Fetching cached analyzed products from database...`);
-    const cachedProducts = await fetchCachedProducts(shop, onlyInStock, maxProductsToScan);
+    const cachedProducts = await fetchCachedProducts(shop, onlyInStock, maxProductsToScan, measurements?.gender);
 
     if (cachedProducts.length === 0) {
       console.log("⚠ No analyzed products found in cache. Admin needs to run refresh first.");
@@ -190,7 +190,7 @@ export async function getGeminiProductRecommendations(
 
     if (recommendations.length === 0) {
       console.error(`❌ Gemini returned 0 recommendations after parsing`);
-      return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock);
+      return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     }
 
     console.log(`✅ Gemini returned ${recommendations.length} recommendations`);
@@ -204,7 +204,7 @@ export async function getGeminiProductRecommendations(
     // Fallback to basic algorithm
     try {
       console.log("⚠ Attempting fallback to basic algorithm...");
-      return await applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock);
+      return await applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     } catch (fallbackError) {
       console.error("❌ Fallback also failed:", fallbackError);
       return [];
@@ -244,13 +244,58 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 }
 
 /**
+ * Helper function to filter products by gender based on tags, productType, title, and description
+ */
+function filterProductsByGender(products: CachedProduct[], gender: string | undefined): CachedProduct[] {
+  if (!gender) return products;
+
+  const genderLower = gender.toLowerCase();
+
+  // Skip filtering for non-binary or unspecified
+  if (genderLower !== 'man' && genderLower !== 'woman') {
+    return products;
+  }
+
+  return products.filter(product => {
+    const text = `${product.title} ${product.description} ${product.productType} ${(product.tags || []).join(' ')}`.toLowerCase();
+
+    if (genderLower === 'man') {
+      // For men: exclude obvious women's items
+      const womenKeywords = ['women', 'womens', 'woman', 'ladies', 'dress', 'skirt', 'blouse', 'bra', 'maternity', 'feminine'];
+      const hasWomenKeyword = womenKeywords.some(kw => text.includes(kw));
+
+      // Also check if it explicitly mentions men's or is unisex
+      const menKeywords = ['men', 'mens', 'man', 'male', 'unisex', 'neutral'];
+      const hasMenKeyword = menKeywords.some(kw => text.includes(kw));
+
+      // Keep product if it has men keywords OR doesn't have women keywords
+      return hasMenKeyword || !hasWomenKeyword;
+    } else if (genderLower === 'woman') {
+      // For women: exclude obvious men's items
+      const menKeywords = ['men\'s', 'mens', 'man\'s', 'male'];
+      const hasMenKeyword = menKeywords.some(kw => text.includes(kw));
+
+      // Also check if it explicitly mentions women's or is unisex
+      const womenKeywords = ['women', 'womens', 'woman', 'ladies', 'female', 'unisex', 'neutral'];
+      const hasWomenKeyword = womenKeywords.some(kw => text.includes(kw));
+
+      // Keep product if it has women keywords OR doesn't have men keywords
+      return hasWomenKeyword || !hasMenKeyword;
+    }
+
+    return true;
+  });
+}
+
+/**
  * Fetch cached analyzed products from database with priority ordering
  * HYBRID APPROACH: Uses pre-calculated cached priority scores from database
  */
 async function fetchCachedProducts(
   shop: string,
   onlyInStock: boolean,
-  maxProductsToScan: number
+  maxProductsToScan: number,
+  gender?: string
 ): Promise<CachedProduct[]> {
   try {
     const where: any = {
@@ -293,7 +338,7 @@ async function fetchCachedProducts(
     console.log(`✅ Fetched ${products.length} products, pre-sorted by cached priority scores`);
 
     // Map to CachedProduct format
-    return products.map(p => ({
+    let cachedProducts = products.map(p => ({
       id: p.id,
       shopifyProductId: p.shopifyProductId,
       title: p.title,
@@ -315,6 +360,15 @@ async function fetchCachedProducts(
       designDetails: (p as any).designDetails || [],
       patternType: (p as any).patternType || undefined,
     }));
+
+    // Apply gender filter if specified
+    if (gender) {
+      const beforeGenderFilter = cachedProducts.length;
+      cachedProducts = filterProductsByGender(cachedProducts, gender);
+      console.log(`✓ Gender filter (${gender}): ${beforeGenderFilter} → ${cachedProducts.length} products`);
+    }
+
+    return cachedProducts;
   } catch (error) {
     console.error("❌ Error fetching cached products:", error);
     return [];
@@ -593,10 +647,11 @@ async function applyBasicAlgorithm(
   bodyShape: string,
   limit: number,
   minimumMatchScore: number,
-  onlyInStock: boolean
+  onlyInStock: boolean,
+  gender?: string
 ): Promise<ProductRecommendation[]> {
   try {
-    const products = await fetchCachedProducts(shop, onlyInStock, 0);
+    const products = await fetchCachedProducts(shop, onlyInStock, 0, gender);
     const minScoreDecimal = minimumMatchScore / 100;
 
     const recommendations = products
