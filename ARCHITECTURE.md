@@ -18,7 +18,7 @@
 ## ⚡ LATEST UPDATE: HYBRID PRIORITY SCORE CACHING
 
 **Date:** 2025-10-21
-**Build:** app-84
+**Build:** app-85
 **Change:** Implemented hybrid caching approach for priority scores
 **What:** Priority scores are now pre-calculated during admin refresh and cached in the database, then used during customer recommendation requests for fast performance
 **Why:** Eliminates performance bottleneck of calculating priority scores dynamically on every customer request while maintaining accuracy with current settings
@@ -90,7 +90,7 @@
   - `app/utils/geminiRecommendations.ts` - Updated fetchCachedProducts() to use cached scores
 
 ### Deployment:
-- **Build:** app-84
+- **Build:** app-85
 - **Migration:** `npx prisma generate` completed
 - **Status:** ✅ Deployed to production
 
@@ -98,7 +98,7 @@
 - ~~Score calculation happens at fetch time (not cached)~~ ✅ **FIXED**
 
 ### Future Enhancements:
-- ~~Cache priority scores for better performance~~ ✅ **COMPLETED (app-84)**
+- ~~Cache priority scores for better performance~~ ✅ **COMPLETED (app-85)**
 - Add cache refresh logic when settings change (optional: currently refreshes on next admin refresh)
 - Add A/B testing for different priority strategies
 - Add priority score visibility in admin analysis results
