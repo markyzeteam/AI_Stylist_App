@@ -12,7 +12,18 @@ import { retryWithBackoff } from "../utils/geminiAnalysis";
  * - Shopping preferences
  */
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400",
+};
+
 export async function loader({ request }: ActionFunctionArgs) {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
   // Declare variables outside try block so they're accessible in catch
   let bodyShape: string | null = null;
   let colorSeason: string | null = null;
@@ -27,12 +38,12 @@ export async function loader({ request }: ActionFunctionArgs) {
     console.log(`🎬 Celebrity recommendations request: bodyShape=${bodyShape}, colorSeason=${colorSeason}, styles=${styles}`);
 
     if (!bodyShape) {
-      return json({ error: "Body shape is required" }, { status: 400 });
+      return json({ error: "Body shape is required" }, { status: 400, headers: corsHeaders });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return json({ error: "Gemini API key not configured" }, { status: 500 });
+      return json({ error: "Gemini API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -95,7 +106,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
       data = JSON.parse(text);
     } catch (parseError) {
       console.error("Failed to parse Gemini response:", text);
-      return json({ error: "Invalid response from AI" }, { status: 500 });
+      return json({ error: "Invalid response from AI" }, { status: 500, headers: corsHeaders });
     }
 
     console.log(`✅ Got ${data.celebrities?.length || 0} celebrity recommendations`);
@@ -111,7 +122,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
           styles: styles ? styles.split(',') : []
         }
       }
-    });
+    }, { headers: corsHeaders });
 
   } catch (error: any) {
     console.error("❌ Error getting celebrity recommendations:", error);
@@ -135,14 +146,14 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
         success: true,
         fallback: true,
         data: fallbackData
-      });
+      }, { headers: corsHeaders });
     }
 
     // For other errors, return error response
     return json({
       error: "Failed to get celebrity recommendations",
       message: error.message
-    }, { status: 500 });
+    }, { status: 500, headers: corsHeaders });
   }
 }
 
