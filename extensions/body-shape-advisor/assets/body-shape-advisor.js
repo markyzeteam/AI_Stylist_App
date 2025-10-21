@@ -1849,16 +1849,47 @@ class BodyShapeAdvisor {
       if (!container) return;
 
       try {
-        // Search Wikipedia for the celebrity
-        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(celeb.name)}&prop=pageimages&pithumbsize=300`;
-        const response = await fetch(searchUrl);
-        const data = await response.json();
+        console.log(`🖼️ Loading image for: ${celeb.name}`);
 
-        const pages = data.query.pages;
-        const pageId = Object.keys(pages)[0];
-        const imageUrl = pages[pageId]?.thumbnail?.source;
+        // First, try direct title lookup
+        let searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(celeb.name)}&prop=pageimages&pithumbsize=300`;
+        let response = await fetch(searchUrl);
+        let data = await response.json();
+
+        let pages = data.query.pages;
+        let pageId = Object.keys(pages)[0];
+        let imageUrl = pages[pageId]?.thumbnail?.source;
+
+        console.log(`📄 Direct lookup result for ${celeb.name}:`, { pageId, hasImage: !!imageUrl });
+
+        // If no image found, try Wikipedia search as fallback
+        if (!imageUrl || pageId === '-1') {
+          console.log(`🔍 Trying search fallback for: ${celeb.name}`);
+
+          // Use Wikipedia search to find the correct article
+          const searchApiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(celeb.name)}&srlimit=1`;
+          const searchResponse = await fetch(searchApiUrl);
+          const searchData = await searchResponse.json();
+
+          if (searchData.query.search.length > 0) {
+            const correctTitle = searchData.query.search[0].title;
+            console.log(`✓ Found Wikipedia article: "${correctTitle}"`);
+
+            // Now fetch the image using the correct title
+            const imageApiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(correctTitle)}&prop=pageimages&pithumbsize=300`;
+            const imageResponse = await fetch(imageApiUrl);
+            const imageData = await imageResponse.json();
+
+            const imagePages = imageData.query.pages;
+            const imagePageId = Object.keys(imagePages)[0];
+            imageUrl = imagePages[imagePageId]?.thumbnail?.source;
+
+            console.log(`📸 Search fallback result:`, { pageId: imagePageId, hasImage: !!imageUrl });
+          }
+        }
 
         if (imageUrl) {
+          console.log(`✅ Successfully loaded image for ${celeb.name}`);
           // Replace placeholder with actual image
           container.innerHTML = `
             <img src="${imageUrl}"
@@ -1867,6 +1898,7 @@ class BodyShapeAdvisor {
                  onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'>⭐</div><div style=\\'font-size: 14px; font-weight: 600; color: white;\\'>${celeb.name}</div></div>'">
           `;
         } else {
+          console.log(`⚠️ No image found for ${celeb.name}, showing placeholder`);
           // No image found, show nice placeholder
           container.innerHTML = `
             <div style="text-align: center; padding: 1rem;">
@@ -1876,7 +1908,7 @@ class BodyShapeAdvisor {
           `;
         }
       } catch (error) {
-        console.error(`Failed to load image for ${celeb.name}:`, error);
+        console.error(`❌ Failed to load image for ${celeb.name}:`, error);
         // Show placeholder on error
         container.innerHTML = `
           <div style="text-align: center; padding: 1rem;">
