@@ -10,6 +10,7 @@ import {
   Button,
   BlockStack,
   Banner,
+  Badge,
   Divider,
   List,
   InlineStack,
