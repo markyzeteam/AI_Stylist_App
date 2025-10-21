@@ -1762,6 +1762,13 @@ class BodyShapeAdvisor {
                         `).join('')}
                       </div>
                     </div>
+
+                    ${celeb.sizeAdvice ? `
+                      <div style="margin-top: 1rem; padding: 0.75rem; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 6px;">
+                        <div style="font-weight: 600; color: #065f46; margin-bottom: 0.25rem; font-size: 14px;">📏 Size Advice:</div>
+                        <p style="margin: 0; color: #047857; font-size: 13px; line-height: 1.5;">${celeb.sizeAdvice}</p>
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -1786,6 +1793,32 @@ class BodyShapeAdvisor {
         bodyShape: this.bodyShapeResult.shape,
         shop: this.config.shopDomain
       });
+
+      // Add all measurements for personalized recommendations and size advice
+      if (this.measurements.gender) {
+        params.append('gender', this.measurements.gender);
+      }
+      if (this.measurements.age) {
+        params.append('age', this.measurements.age);
+      }
+      if (this.measurements.height) {
+        params.append('height', this.measurements.height);
+      }
+      if (this.measurements.weight) {
+        params.append('weight', this.measurements.weight);
+      }
+      if (this.measurements.bust) {
+        params.append('bust', this.measurements.bust);
+      }
+      if (this.measurements.waist) {
+        params.append('waist', this.measurements.waist);
+      }
+      if (this.measurements.hips) {
+        params.append('hips', this.measurements.hips);
+      }
+      if (this.measurements.shoulders) {
+        params.append('shoulders', this.measurements.shoulders);
+      }
 
       if (this.colorSeasonResult) {
         params.append('colorSeason', this.colorSeasonResult);
@@ -1815,7 +1848,8 @@ class BodyShapeAdvisor {
               'Experiment with different styles to find what makes you feel confident',
               'Focus on fit and quality over trends'
             ],
-            signaturePieces: this.bodyShapeResult.keyPieces || []
+            signaturePieces: this.bodyShapeResult.keyPieces || [],
+            sizeAdvice: 'Focus on proper fit and proportions for your body type'
           }]
         };
         this.render();
@@ -1833,7 +1867,8 @@ class BodyShapeAdvisor {
             'Experiment with different styles to find what makes you feel confident',
             'Focus on fit and quality over trends'
           ],
-          signaturePieces: this.bodyShapeResult.keyPieces || []
+          signaturePieces: this.bodyShapeResult.keyPieces || [],
+          sizeAdvice: 'Focus on proper fit and proportions for your body type'
         }]
       };
       this.render();
