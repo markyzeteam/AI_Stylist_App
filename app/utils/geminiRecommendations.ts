@@ -244,77 +244,8 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 }
 
 /**
- * Calculate priority score for a product based on recommendation settings
- * Performs business analysis at request time using raw Shopify data
- */
-function calculatePriorityScore(
-  product: any,
-  settings: {
-    newArrivalBoost: number;
-    lowInventoryBoost: number;
-    lowSalesBoost: number;
-    highMarginBoost: number;
-    onSaleBoost: number;
-    newArrivalDays: number;
-    lowInventoryThreshold: number;
-    lowSalesThreshold: number;
-  }
-): number {
-  let score = 0;
-  const now = new Date();
-
-  // New Arrival Score (0-100 based on how recently published)
-  if (product.publishedAt && settings.newArrivalBoost > 0) {
-    const daysSincePublished = Math.floor(
-      (now.getTime() - new Date(product.publishedAt).getTime()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysSincePublished <= settings.newArrivalDays) {
-      const freshnessFactor = 1 - (daysSincePublished / settings.newArrivalDays);
-      score += freshnessFactor * settings.newArrivalBoost;
-    }
-  }
-
-  // Overstocked Score (boost for high inventory)
-  if (product.inventoryQuantity != null && settings.lowInventoryBoost > 0) {
-    if (product.inventoryQuantity > settings.lowInventoryThreshold) {
-      const overstockFactor = Math.min(
-        product.inventoryQuantity / (settings.lowInventoryThreshold * 3),
-        1
-      );
-      score += overstockFactor * settings.lowInventoryBoost;
-    }
-  }
-
-  // Slow-Moving Score (boost for low sales)
-  if (product.totalSold != null && settings.lowSalesBoost > 0) {
-    if (product.totalSold < settings.lowSalesThreshold) {
-      const slowMovingFactor = 1 - (product.totalSold / settings.lowSalesThreshold);
-      score += slowMovingFactor * settings.lowSalesBoost;
-    }
-  }
-
-  // High Margin Score
-  if (product.profitMargin != null && settings.highMarginBoost > 0) {
-    const marginFactor = Math.min(parseFloat(product.profitMargin.toString()) / 100, 1);
-    score += marginFactor * settings.highMarginBoost;
-  }
-
-  // On Sale Score (calculated dynamically from raw price data)
-  if (settings.onSaleBoost > 0) {
-    const price = parseFloat(product.price?.toString() || '0');
-    const compareAtPrice = parseFloat(product.compareAtPrice?.toString() || '0');
-    const isOnSale = compareAtPrice > 0 && compareAtPrice > price;
-
-    if (isOnSale) {
-      score += settings.onSaleBoost;
-    }
-  }
-
-  return score;
-}
-
-/**
  * Fetch cached analyzed products from database with priority ordering
+ * HYBRID APPROACH: Uses pre-calculated cached priority scores from database
  */
 async function fetchCachedProducts(
   shop: string,
@@ -337,66 +268,32 @@ async function fetchCachedProducts(
     });
     const useImageAnalysis = geminiSettings?.useImageAnalysis ?? true;
 
-    // Fetch priority settings
-    let prioritySettings = await db.recommendationPrioritySettings.findUnique({
-      where: { shop },
-    });
-
-    // Use defaults if not found
-    if (!prioritySettings) {
-      prioritySettings = {
-        id: '',
-        shop,
-        strategy: 'balanced',
-        newArrivalBoost: 50,
-        lowInventoryBoost: 50,
-        lowSalesBoost: 50,
-        highMarginBoost: 50,
-        onSaleBoost: 50,
-        newArrivalDays: 30,
-        lowInventoryThreshold: 10,
-        lowSalesThreshold: 5,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    }
-
     // Fetch products from appropriate table based on image analysis setting
-    let productsWithScores: Array<{ product: any; priorityScore: number }>;
+    // HYBRID CACHING: Use cached priorityScore from database, sorted at DB level for performance
+    let products: any[];
 
     if (useImageAnalysis) {
       // Use FilteredSelectionWithImgAnalyzed (has AI analysis data)
       console.log(`📊 Fetching from FilteredSelectionWithImgAnalyzed (image analysis enabled)`);
-      const products = await db.filteredSelectionWithImgAnalyzed.findMany({
+      products = await db.filteredSelectionWithImgAnalyzed.findMany({
         where,
+        orderBy: { priorityScore: 'desc' }, // Use cached priority score from database
         take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
       });
-
-      productsWithScores = products.map(p => ({
-        product: p,
-        priorityScore: calculatePriorityScore(p, prioritySettings!),
-      }));
     } else {
       // Use FilteredSelection (basic mode, no AI analysis)
       console.log(`📊 Fetching from FilteredSelection (image analysis disabled)`);
-      const products = await db.filteredSelection.findMany({
+      products = await db.filteredSelection.findMany({
         where,
+        orderBy: { priorityScore: 'desc' }, // Use cached priority score from database
         take: maxProductsToScan > 0 ? maxProductsToScan : undefined,
       });
-
-      productsWithScores = products.map(p => ({
-        product: p,
-        priorityScore: calculatePriorityScore(p, prioritySettings!),
-      }));
     }
 
-    // Sort by priority score (highest first)
-    productsWithScores.sort((a, b) => b.priorityScore - a.priorityScore);
-
-    console.log(`✅ Fetched ${productsWithScores.length} products, sorted by priority score`);
+    console.log(`✅ Fetched ${products.length} products, pre-sorted by cached priority scores`);
 
     // Map to CachedProduct format
-    return productsWithScores.map(({ product: p }) => ({
+    return products.map(p => ({
       id: p.id,
       shopifyProductId: p.shopifyProductId,
       title: p.title,

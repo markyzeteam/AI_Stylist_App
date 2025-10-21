@@ -618,8 +618,110 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
 }
 
 /**
+ * Calculate priority score for caching during product save
+ * Uses current priority settings to pre-calculate score
+ */
+async function calculateAndCachePriorityScore(
+  shop: string,
+  productData: {
+    price: number;
+    compareAtPrice: number | null;
+    inventoryQuantity: number | null;
+    publishedAt: Date | null;
+    totalSold: number | null;
+    profitMargin: number | null;
+  }
+): Promise<{ priorityScore: number; priorityCalculatedAt: Date }> {
+  try {
+    // Load priority settings
+    let settings = await db.recommendationPrioritySettings.findUnique({
+      where: { shop },
+    });
+
+    // Use defaults if not found
+    if (!settings) {
+      settings = {
+        id: '',
+        shop,
+        strategy: 'balanced',
+        newArrivalBoost: 50,
+        lowInventoryBoost: 50,
+        lowSalesBoost: 50,
+        highMarginBoost: 50,
+        onSaleBoost: 50,
+        newArrivalDays: 30,
+        lowInventoryThreshold: 10,
+        lowSalesThreshold: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    let score = 0;
+    const now = new Date();
+
+    // New Arrival Score
+    if (productData.publishedAt && settings.newArrivalBoost > 0) {
+      const daysSincePublished = Math.floor(
+        (now.getTime() - productData.publishedAt.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSincePublished <= settings.newArrivalDays) {
+        const freshnessFactor = 1 - (daysSincePublished / settings.newArrivalDays);
+        score += freshnessFactor * settings.newArrivalBoost;
+      }
+    }
+
+    // Overstocked Score
+    if (productData.inventoryQuantity != null && settings.lowInventoryBoost > 0) {
+      if (productData.inventoryQuantity > settings.lowInventoryThreshold) {
+        const overstockFactor = Math.min(
+          productData.inventoryQuantity / (settings.lowInventoryThreshold * 3),
+          1
+        );
+        score += overstockFactor * settings.lowInventoryBoost;
+      }
+    }
+
+    // Slow-Moving Score
+    if (productData.totalSold != null && settings.lowSalesBoost > 0) {
+      if (productData.totalSold < settings.lowSalesThreshold) {
+        const slowMovingFactor = 1 - (productData.totalSold / settings.lowSalesThreshold);
+        score += slowMovingFactor * settings.lowSalesBoost;
+      }
+    }
+
+    // High Margin Score
+    if (productData.profitMargin != null && settings.highMarginBoost > 0) {
+      const marginFactor = Math.min(productData.profitMargin / 100, 1);
+      score += marginFactor * settings.highMarginBoost;
+    }
+
+    // On Sale Score
+    if (settings.onSaleBoost > 0) {
+      const isOnSale = productData.compareAtPrice != null &&
+                       productData.compareAtPrice > 0 &&
+                       productData.compareAtPrice > productData.price;
+      if (isOnSale) {
+        score += settings.onSaleBoost;
+      }
+    }
+
+    return {
+      priorityScore: score,
+      priorityCalculatedAt: now,
+    };
+  } catch (error) {
+    console.error('Error calculating priority score:', error);
+    return {
+      priorityScore: 0,
+      priorityCalculatedAt: new Date(),
+    };
+  }
+}
+
+/**
  * Save product without image analysis to database (FilteredSelection)
- * Stores RAW Shopify data only - business analysis happens at request time
+ * Stores RAW Shopify data + CACHED priority score (hybrid approach)
  */
 export async function saveBasicProduct(
   shop: string,
@@ -628,6 +730,16 @@ export async function saveBasicProduct(
   try {
     const price = parseFloat(product.price) || 0;
     const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
+
+    // Calculate and cache priority score
+    const cachedPriority = await calculateAndCachePriorityScore(shop, {
+      price,
+      compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
+      inventoryQuantity: product.inventoryQuantity || 0,
+      publishedAt: product.publishedAt || null,
+      totalSold: null, // Not available from Shopify
+      profitMargin: null, // Not available from Shopify
+    });
 
     await db.filteredSelection.upsert({
       where: {
@@ -649,10 +761,13 @@ export async function saveBasicProduct(
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
         lastUpdated: new Date(),
-        // Raw Shopify business data (NO calculations)
+        // Raw Shopify business data
         inventoryQuantity: product.inventoryQuantity || 0,
         compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
+        // Cached priority score (for performance)
+        priorityScore: cachedPriority.priorityScore,
+        priorityCalculatedAt: cachedPriority.priorityCalculatedAt,
       },
       create: {
         shop,
@@ -668,10 +783,13 @@ export async function saveBasicProduct(
         inStock: product.inStock || false,
         availableSizes: product.availableSizes || [],
         categories: [product.productType || 'general'],
-        // Raw Shopify business data (NO calculations)
+        // Raw Shopify business data
         inventoryQuantity: product.inventoryQuantity || 0,
         compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
+        // Cached priority score (for performance)
+        priorityScore: cachedPriority.priorityScore,
+        priorityCalculatedAt: cachedPriority.priorityCalculatedAt,
       },
     });
 
@@ -684,7 +802,7 @@ export async function saveBasicProduct(
 
 /**
  * Save analyzed product to database (FilteredSelectionWithImgAnalyzed)
- * Stores RAW Shopify data + Gemini analysis - business analysis happens at request time
+ * Stores RAW Shopify data + Gemini analysis + CACHED priority score (hybrid approach)
  */
 export async function saveAnalyzedProduct(
   shop: string,
@@ -694,6 +812,16 @@ export async function saveAnalyzedProduct(
   try {
     const price = parseFloat(product.price) || 0;
     const compareAtPrice = parseFloat(product.compareAtPrice || '0') || 0;
+
+    // Calculate and cache priority score
+    const cachedPriority = await calculateAndCachePriorityScore(shop, {
+      price,
+      compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
+      inventoryQuantity: product.inventoryQuantity || 0,
+      publishedAt: product.publishedAt || null,
+      totalSold: null, // Not available from Shopify
+      profitMargin: null, // Not available from Shopify
+    });
 
     // Note: totalSold and profitMargin are not available from Shopify GraphQL API
     // They would require additional queries or integrations
@@ -729,10 +857,13 @@ export async function saveAnalyzedProduct(
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
         lastUpdated: new Date(),
-        // Raw Shopify business data (NO calculations)
+        // Raw Shopify business data
         inventoryQuantity: product.inventoryQuantity || 0,
         compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
+        // Cached priority score (for performance)
+        priorityScore: cachedPriority.priorityScore,
+        priorityCalculatedAt: cachedPriority.priorityCalculatedAt,
       },
       create: {
         shop,
@@ -758,10 +889,13 @@ export async function saveAnalyzedProduct(
         patternType: analysis.patternType,
         additionalNotes: analysis.additionalNotes,
         geminiModelVersion: "gemini-2.0-flash-exp",
-        // Raw Shopify business data (NO calculations)
+        // Raw Shopify business data
         inventoryQuantity: product.inventoryQuantity || 0,
         compareAtPrice: compareAtPrice > 0 ? compareAtPrice : null,
         publishedAt: product.publishedAt || null,
+        // Cached priority score (for performance)
+        priorityScore: cachedPriority.priorityScore,
+        priorityCalculatedAt: cachedPriority.priorityCalculatedAt,
       },
     });
 

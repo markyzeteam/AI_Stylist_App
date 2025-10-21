@@ -106,12 +106,16 @@ model FilteredSelection {
   availableSizes    String[]
   categories        String[]
 
-  // Raw Shopify business data (for priority calculations at request time)
+  // Raw Shopify business data (for priority calculations)
   inventoryQuantity Int?      @default(0)
   totalSold         Int?      @default(0)
   profitMargin      Decimal?  @db.Decimal(5, 2)
   compareAtPrice    Decimal?  @db.Decimal(10, 2)  // For calculating isOnSale dynamically
   publishedAt       DateTime?
+
+  // Cached priority calculations (hybrid approach for performance)
+  priorityScore        Float?    @default(0)
+  priorityCalculatedAt DateTime?
 
   // Timestamps
   fetchedAt         DateTime  @default(now())
@@ -122,6 +126,7 @@ model FilteredSelection {
   @@index([shop, inventoryQuantity])
   @@index([shop, totalSold])
   @@index([shop, publishedAt])
+  @@index([shop, priorityScore])
 }
 
 // Products with Gemini image analysis
@@ -163,12 +168,16 @@ model FilteredSelectionWithImgAnalyzed {
   budgetCategory    String?
   styleScores       Json?
 
-  // Raw Shopify business data (for priority calculations at request time)
+  // Raw Shopify business data (for priority calculations)
   inventoryQuantity Int?      @default(0)
   totalSold         Int?      @default(0)
   profitMargin      Decimal?  @db.Decimal(5, 2)
   compareAtPrice    Decimal?  @db.Decimal(10, 2)  // For calculating isOnSale dynamically
   publishedAt       DateTime?
+
+  // Cached priority calculations (hybrid approach for performance)
+  priorityScore        Float?    @default(0)
+  priorityCalculatedAt DateTime?
 
   // Timestamps
   analyzedAt        DateTime  @default(now())
@@ -182,6 +191,7 @@ model FilteredSelectionWithImgAnalyzed {
   @@index([shop, inventoryQuantity])
   @@index([shop, totalSold])
   @@index([shop, publishedAt])
+  @@index([shop, priorityScore])
 }
 
 // Refresh tracking (3x/day limit)
