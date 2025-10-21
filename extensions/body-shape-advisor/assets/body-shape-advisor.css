@@ -607,3 +607,255 @@
 .bsa-color-season {
   padding: 2rem;
 }
+
+/* Style Summary Section */
+.bsa-style-summary {
+  padding: 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.bsa-profile-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.bsa-profile-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.bsa-profile-card p {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.95;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.bsa-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-stat-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.bsa-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.bsa-stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bsa-stat-value {
+  display: block;
+  font-size: 1.125rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.bsa-celebrities {
+  margin: 2rem 0;
+}
+
+.bsa-celebrities h4 {
+  font-size: 1.5rem;
+  color: #1e293b;
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.bsa-celebrity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.bsa-celebrity-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.bsa-celebrity-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e1;
+}
+
+.bsa-celebrity-photo {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+
+.bsa-celebrity-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bsa-celebrity-info {
+  padding: 1.5rem;
+}
+
+.bsa-celebrity-info h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.bsa-celebrity-info p {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1.25rem 0;
+}
+
+.bsa-styling-tips,
+.bsa-signature-pieces {
+  margin: 1.25rem 0;
+}
+
+.bsa-styling-tips h6,
+.bsa-signature-pieces h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bsa-styling-tips ul,
+.bsa-signature-pieces ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: none;
+}
+
+.bsa-styling-tips li,
+.bsa-signature-pieces li {
+  margin-bottom: 0.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+.bsa-styling-tips li:before {
+  content: "✨";
+  position: absolute;
+  left: -1rem;
+}
+
+.bsa-signature-pieces li:before {
+  content: "👗";
+  position: absolute;
+  left: -1rem;
+}
+
+.bsa-style-summary .bsa-btn-primary {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 2rem auto 0;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+}
+
+/* Shopping Preferences Form */
+.bsa-values-preferences {
+  padding: 2rem;
+}
+
+.bsa-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.bsa-checkbox-option {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bsa-checkbox-option:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.bsa-checkbox-option input[type="checkbox"] {
+  margin-right: 0.75rem;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.bsa-checkbox-option:has(input[type="checkbox"]:checked) {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+/* Responsive design for new components */
+@media (max-width: 768px) {
+  .bsa-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bsa-celebrity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bsa-profile-card {
+    padding: 1.5rem;
+  }
+
+  .bsa-profile-card h3 {
+    font-size: 1.5rem;
+  }
+
+  .bsa-profile-card p {
+    font-size: 1rem;
+  }
+}

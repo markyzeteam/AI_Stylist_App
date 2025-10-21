@@ -41,6 +41,7 @@ class BodyShapeAdvisor {
       styles: [], // Will be populated when user fills questionnaire
       completed: false // Track if questionnaire was completed
     };
+    this.celebrityRecommendations = null; // Will be loaded from Gemini API
 
     this.init();
   }
@@ -118,6 +119,7 @@ class BodyShapeAdvisor {
       colorSeasonAnalysisLoading: this.renderColorSeasonAnalysisLoading.bind(this),
       colorSeasonResults: this.renderColorSeasonResults.bind(this),
       valuesQuestionnaire: this.renderValuesQuestionnaire.bind(this),
+      styleSummary: this.renderStyleSummary.bind(this),
       products: this.renderProducts.bind(this)
     };
 
@@ -1663,6 +1665,192 @@ class BodyShapeAdvisor {
     `;
   }
 
+  renderStyleSummary() {
+    // Load celebrity recommendations if not already loaded
+    if (!this.celebrityRecommendations) {
+      this.loadCelebrityRecommendations();
+      return `
+        <div class="bsa-loading">
+          <div class="bsa-spinner"></div>
+          <p>Creating your personalized style profile...</p>
+        </div>
+      `;
+    }
+
+    const budgetLabels = {
+      low: `Budget-Friendly (Under $${this.budgetSettings.budgetLowMax})`,
+      medium: `Mid-Range ($${this.budgetSettings.budgetLowMax}-$${this.budgetSettings.budgetMediumMax})`,
+      high: `Premium ($${this.budgetSettings.budgetMediumMax}-$${this.budgetSettings.budgetHighMax})`,
+      luxury: `Luxury ($${this.budgetSettings.budgetHighMax}+)`
+    };
+
+    return `
+      <div class="bsa-style-summary">
+        <div class="bsa-header">
+          <h3>✨ Your Personal Style Profile</h3>
+        </div>
+
+        <!-- Profile Summary -->
+        <div class="bsa-profile-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+          <h4 style="color: white; margin-bottom: 1rem; font-size: 1.25rem;">Your Unique Style Identity</h4>
+          <p style="font-size: 1.05rem; line-height: 1.6; opacity: 0.95;">
+            ${this.celebrityRecommendations.summary}
+          </p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+          <div class="bsa-stat-card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👗</div>
+            <div style="font-weight: 600; margin-bottom: 0.25rem;">${this.bodyShapeResult.shape}</div>
+            <div style="color: #6b7280; font-size: 14px;">Body Shape</div>
+          </div>
+          ${this.colorSeasonResult ? `
+            <div class="bsa-stat-card">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎨</div>
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">${this.colorSeasonResult}</div>
+              <div style="color: #6b7280; font-size: 14px;">Color Season</div>
+            </div>
+          ` : ''}
+          <div class="bsa-stat-card">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">💰</div>
+            <div style="font-weight: 600; margin-bottom: 0.25rem;">${budgetLabels[this.valuesPreferences.budgetRange] || 'Not Set'}</div>
+            <div style="color: #6b7280; font-size: 14px;">Budget Range</div>
+          </div>
+          ${this.valuesPreferences.styles.length > 0 ? `
+            <div class="bsa-stat-card">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">✨</div>
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">${this.valuesPreferences.styles.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}</div>
+              <div style="color: #6b7280; font-size: 14px;">Style Preferences</div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Celebrity Style Icons -->
+        <div class="bsa-celebrities-section" style="margin-bottom: 2rem;">
+          <h4 style="margin-bottom: 1.5rem; font-size: 1.5rem; text-align: center;">🌟 Your Celebrity Style Icons</h4>
+          <p style="color: #6b7280; text-align: center; margin-bottom: 2rem;">These celebrities share your body shape${this.colorSeasonResult ? ' and color season' : ''}, making them perfect style inspiration!</p>
+
+          <div style="display: grid; gap: 2rem;">
+            ${this.celebrityRecommendations.celebrities.map((celeb, index) => `
+              <div class="bsa-celebrity-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; gap: 1.5rem; align-items: start; flex-wrap: wrap;">
+                  <div style="flex-shrink: 0;">
+                    <div class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); display: flex; align-items: center; justify-content: center;">
+                      <img src="https://source.unsplash.com/150x150/?celebrity,fashion,${encodeURIComponent(celeb.name)}"
+                           alt="${celeb.name}"
+                           style="width: 100%; height: 100%; object-fit: cover;"
+                           onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'>⭐</div><div style=\\'font-size: 12px; color: #6b7280;\\'>${celeb.name}</div></div>'">
+                    </div>
+                  </div>
+                  <div style="flex: 1; min-width: 250px;">
+                    <h5 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #1f2937;">${celeb.name}</h5>
+                    <p style="color: #4b5563; margin-bottom: 1rem; line-height: 1.6;">${celeb.matchReason}</p>
+
+                    <div style="margin-bottom: 1rem;">
+                      <div style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; font-size: 14px;">💡 Styling Tips:</div>
+                      <ul style="margin: 0; padding-left: 1.5rem; color: #6b7280;">
+                        ${celeb.stylingTips.map(tip => `<li style="margin-bottom: 0.25rem;">${tip}</li>`).join('')}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <div style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; font-size: 14px;">🛍️ Signature Pieces:</div>
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${celeb.signaturePieces.map(piece => `
+                          <span style="background: #f3f4f6; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 13px; color: #4b5563;">
+                            ${piece}
+                          </span>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="text-align: center; padding: 2rem 0;">
+          <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.continueToProducts()" style="padding: 1rem 3rem; font-size: 1.1rem; font-weight: 600;">
+            Browse Products Curated For You →
+          </button>
+          <p style="color: #6b7280; margin-top: 1rem; font-size: 14px;">Ready to find clothes that match your unique style profile</p>
+        </div>
+      </div>
+    `;
+  }
+
+  async loadCelebrityRecommendations() {
+    try {
+      const params = new URLSearchParams({
+        bodyShape: this.bodyShapeResult.shape
+      });
+
+      if (this.colorSeasonResult) {
+        params.append('colorSeason', this.colorSeasonResult);
+      }
+
+      if (this.valuesPreferences.styles.length > 0) {
+        params.append('styles', this.valuesPreferences.styles.join(','));
+      }
+
+      const response = await fetch(`${this.config.apiEndpoint}/api/celebrity-recommendations?${params}`);
+      const result = await response.json();
+
+      if (result.success) {
+        this.celebrityRecommendations = result.data;
+        this.render(); // Re-render with the data
+      } else {
+        console.error('Failed to load celebrity recommendations:', result.error);
+        // Provide fallback
+        this.celebrityRecommendations = {
+          summary: `You have a ${this.bodyShapeResult.shape} body shape${this.colorSeasonResult ? ` with ${this.colorSeasonResult} coloring` : ''}. This unique combination makes you perfect for a variety of stylish looks!`,
+          celebrities: [{
+            name: 'Style Icon',
+            matchReason: 'Fashion experts recommend focusing on pieces that complement your body shape.',
+            stylingTips: [
+              'Choose clothing that flatters your natural proportions',
+              'Experiment with different styles to find what makes you feel confident',
+              'Focus on fit and quality over trends'
+            ],
+            signaturePieces: this.bodyShapeResult.keyPieces || []
+          }]
+        };
+        this.render();
+      }
+    } catch (error) {
+      console.error('Error loading celebrity recommendations:', error);
+      // Provide fallback
+      this.celebrityRecommendations = {
+        summary: `You have a ${this.bodyShapeResult.shape} body shape${this.colorSeasonResult ? ` with ${this.colorSeasonResult} coloring` : ''}. This unique combination makes you perfect for a variety of stylish looks!`,
+        celebrities: [{
+          name: 'Style Icon',
+          matchReason: 'Fashion experts recommend focusing on pieces that complement your body shape.',
+          stylingTips: [
+            'Choose clothing that flatters your natural proportions',
+            'Experiment with different styles to find what makes you feel confident',
+            'Focus on fit and quality over trends'
+          ],
+          signaturePieces: this.bodyShapeResult.keyPieces || []
+        }]
+      };
+      this.render();
+    }
+  }
+
+  continueToProducts() {
+    // Check if we have color season data
+    if (this.colorSeasonResult) {
+      // User went through color season analysis
+      this.getProductsAfterColorSeason();
+    } else {
+      // User skipped color season, just use body shape
+      this.browseProducts();
+    }
+  }
+
   handleValuesSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -1681,15 +1869,8 @@ class BodyShapeAdvisor {
 
     console.log('Values preferences:', this.valuesPreferences);
 
-    // Now get products with all preferences
-    // Check if we have color season data
-    if (this.colorSeasonResult) {
-      // User went through color season analysis
-      this.getProductsAfterColorSeason();
-    } else {
-      // User skipped color season, just use body shape
-      this.browseProducts();
-    }
+    // Go to style summary page with celebrity recommendations
+    this.goToStep('styleSummary');
   }
 
   attachEventListeners() {
