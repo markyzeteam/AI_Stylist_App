@@ -167,20 +167,6 @@ export default function Settings() {
                       max={50000}
                     />
 
-                    <input type="hidden" name="maxRefreshesPerDay" value={formData.maxRefreshesPerDay} />
-                    <TextField
-                      label="Maximum Refreshes Per Day"
-                      type="number"
-                      value={formData.maxRefreshesPerDay.toString()}
-                      onChange={(value) =>
-                        setFormData({ ...formData, maxRefreshesPerDay: parseInt(value) || 3 })
-                      }
-                      helpText="How many times you can run the admin product refresh per day (recommended: 3-5 to manage API costs)"
-                      autoComplete="off"
-                      min={1}
-                      max={24}
-                    />
-
                     <Checkbox
                       label="Only show in-stock products"
                       checked={formData.onlyInStockProducts}
@@ -215,9 +201,6 @@ export default function Settings() {
                   </Text>
                   <Text as="p" variant="bodyMd">
                     • <strong>Maximum Products to Scan:</strong> Limit how many products to analyze. Set to 0 to scan ALL products in your catalog (recommended). Higher limits = more thorough but slower.
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    • <strong>Maximum Refreshes Per Day:</strong> Control how many times you can run the admin product refresh each day to manage API costs and prevent rate limiting
                   </Text>
                   <Text as="p" variant="bodyMd">
                     • <strong>Only In-Stock Products:</strong> Filter recommendations to only show products that are currently available for purchase

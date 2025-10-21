@@ -11,7 +11,7 @@ import { db } from "../db.server";
 import { loadSettings } from "../utils/settings";
 
 /**
- * ADMIN REFRESH API ENDPOINT (v3 - Fixed maxRefreshesPerDay loading)
+ * ADMIN REFRESH API ENDPOINT
  *
  * This endpoint triggers Phase 1 of the Gemini-only architecture:
  * - Fetches all active products from Shopify
@@ -20,10 +20,8 @@ import { loadSettings } from "../utils/settings";
  *
  * Should be called:
  * - Manually by admin (via admin panel)
- * - Automatically via cron job (3x per day recommended)
+ * - Automatically via cron job (recommended for staying up-to-date)
  * - After new products are added to store
- *
- * Rate limiting: Loads maxRefreshesPerDay from Shopify metafields
  */
 
 export async function loader({ request }: ActionFunctionArgs) {
@@ -39,7 +37,6 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log(`\n${"=".repeat(60)}`);
     console.log(`🔄 ADMIN REFRESH STARTED for ${shop}`);
     console.log(`${"=".repeat(60)}`);
-    console.log(`⚙️  [BUILD: 2025-10-17-13:55 UTC] RATE LIMIT DISABLED`);
 
     const startTime = Date.now();
 
@@ -49,42 +46,9 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log(`${"=".repeat(60)}`);
 
     const settings = await loadSettings(admin);
-    const maxRefreshesPerDay = settings.maxRefreshesPerDay;
 
     console.log(`✅ Settings loaded:`, JSON.stringify(settings, null, 2));
-    console.log(`\n📊 FINAL: Max refreshes per day = ${maxRefreshesPerDay}`);
     console.log(`${"=".repeat(60)}\n`);
-
-    // STEP 2: Check rate limiting (TEMPORARILY DISABLED)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const refreshesToday = await db.productRefreshLog.count({
-      where: {
-        shop,
-        startedAt: {
-          gte: today,
-        },
-        status: "completed",
-      },
-    });
-
-    console.log(`📊 Refreshes today: ${refreshesToday}/${maxRefreshesPerDay} (RATE LIMIT DISABLED)`);
-
-    // RATE LIMIT TEMPORARILY DISABLED - Allow unlimited refreshes
-    // if (refreshesToday >= maxRefreshesPerDay) {
-    //   console.warn(`⚠ Rate limit reached: ${refreshesToday} refreshes today`);
-    //   return json(
-    //     {
-    //       error: "Rate limit reached",
-    //       message: `Product refresh can only be run ${maxRefreshesPerDay} times per day`,
-    //       refreshesToday,
-    //       maxRefreshesPerDay,
-    //       nextRefreshAvailable: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    //     },
-    //     { status: 429 }
-    //   );
-    // }
 
     // STEP 2: Fetch all active products from Shopify
     console.log(`\n📦 Fetching products from Shopify...`);
@@ -100,6 +64,7 @@ export async function action({ request }: ActionFunctionArgs) {
         0,
         0,
         "completed",
+        new Date(startTime),
         "No products found"
       );
       return json({
@@ -153,6 +118,7 @@ export async function action({ request }: ActionFunctionArgs) {
         0,
         0,
         "completed",
+        new Date(startTime),
         "All products up-to-date"
       );
       return json({
@@ -254,6 +220,7 @@ export async function action({ request }: ActionFunctionArgs) {
       geminiApiCalls,
       totalCost,
       "completed",
+      new Date(startTime),
       errors.length > 0 ? errors.join("; ") : undefined
     );
 
@@ -281,6 +248,7 @@ export async function action({ request }: ActionFunctionArgs) {
         0,
         0,
         "failed",
+        new Date(),
         error.message
       );
     } catch (logError) {

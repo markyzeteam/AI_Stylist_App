@@ -969,6 +969,7 @@ export async function logRefreshActivity(
   geminiApiCalls: number,
   totalCostUsd: number,
   status: string,
+  startedAt: Date,
   errorMessage?: string
 ): Promise<void> {
   try {
@@ -976,7 +977,7 @@ export async function logRefreshActivity(
       data: {
         shop,
         refreshType,
-        startedAt: new Date(),
+        startedAt,
         completedAt: new Date(),
         status,
         productsFetched,
