@@ -122,7 +122,8 @@ class BodyShapeAdvisor {
       combinedAnalysisLoading: this.renderCombinedAnalysisLoading.bind(this),
       combinedResults: this.renderCombinedResults.bind(this),
       styleSummary: this.renderStyleSummary.bind(this),
-      products: this.renderProducts.bind(this)
+      products: this.renderProducts.bind(this),
+      insufficientData: this.renderInsufficientData.bind(this)
     };
 
     this.container.innerHTML = steps[this.currentStep]();
@@ -161,6 +162,15 @@ class BodyShapeAdvisor {
             <p>Skip to recommendations if you already know your body shape</p>
             <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('knownShape')">
               Select My Shape
+            </button>
+          </div>
+
+          <div class="bsa-option">
+            <div class="bsa-option-icon">⏭️</div>
+            <h4>Skip Body Shape</h4>
+            <p>Continue without body shape analysis</p>
+            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipBodyShape()">
+              Skip This Step
             </button>
           </div>
         </div>
@@ -1303,6 +1313,15 @@ class BodyShapeAdvisor {
               Select My Season
             </button>
           </div>
+
+          <div class="bsa-option">
+            <div class="bsa-option-icon">⏭️</div>
+            <h4>Skip Color Season</h4>
+            <p>Continue without color season analysis</p>
+            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipColorSeason()">
+              Skip This Step
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1797,6 +1816,9 @@ class BodyShapeAdvisor {
 
           <button type="submit" class="bsa-btn bsa-btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 16px; font-weight: 600;">
             Get My Personalized Recommendations
+          </button>
+          <button type="button" class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipValues()" style="width: 100%; margin-top: 1rem;">
+            Skip This Step
           </button>
         </form>
       </div>
@@ -2319,6 +2341,86 @@ class BodyShapeAdvisor {
     } else {
       // User skipped color season, just use body shape
       this.browseProducts();
+    }
+  }
+
+  skipBodyShape() {
+    console.log('⏭️ User skipped body shape analysis');
+    this.bodyShapeResult = null;
+    this.measurements = {};
+    this.goToStep('colorSeasonPathSelection');
+  }
+
+  skipColorSeason() {
+    console.log('⏭️ User skipped color season analysis');
+    this.colorSeasonResult = null;
+    this.colorAnalysis = {};
+    this.goToStep('valuesQuestionnaire');
+  }
+
+  skipValues() {
+    console.log('⏭️ User skipped values questionnaire');
+    this.valuesPreferences = {
+      sustainability: false,
+      budgetRange: 'medium',
+      styles: [],
+      completed: false
+    };
+
+    // Check if user skipped everything
+    if (!this.bodyShapeResult && !this.colorSeasonResult) {
+      this.showInsufficientDataError();
+    } else {
+      this.proceedToRecommendations();
+    }
+  }
+
+  showInsufficientDataError() {
+    this.currentStep = 'insufficientData';
+    this.render();
+  }
+
+  renderInsufficientData() {
+    return `
+      <div style="text-align: center; padding: 3rem; max-width: 600px; margin: 0 auto;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">😔</div>
+        <h3 style="color: #1f2937; margin-bottom: 1rem;">We Need More Information</h3>
+        <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.6;">
+          Sorry! We can't provide personalized recommendations without any data.
+          Please complete at least one of the quizzes (Body Shape or Color Season)
+          to get tailored product suggestions.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('welcome')">
+            Start Over
+          </button>
+          <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('pathSelection')">
+            Take Body Shape Quiz
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  proceedToRecommendations() {
+    // If we have body shape or color season, proceed to combined analysis
+    if (this.bodyShapeResult || this.colorSeasonResult) {
+      this.currentStep = 'combinedAnalysisLoading';
+      this.render();
+
+      // Get combined analysis with whatever data we have
+      this.getCombinedAnalysis().then(success => {
+        if (success) {
+          this.goToStep('combinedResults');
+          this.loadCelebrityImages();
+        } else {
+          console.log('⚠️ Analysis failed, going to products directly');
+          this.goToStep('products');
+        }
+      });
+    } else {
+      // No data at all - show error
+      this.showInsufficientDataError();
     }
   }
 
