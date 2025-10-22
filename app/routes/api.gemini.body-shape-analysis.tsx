@@ -70,7 +70,18 @@ Customer measurements:
 - Shoulders: ${shoulders || "not specified"} cm`;
     }
 
-    const prompt = `You are an expert fashion stylist and personal shopper. A customer has been identified as having a "${bodyShape}" body shape.${measurementContext}
+    // Use custom systemPrompt from settings, or fall back to default
+    const systemPrompt = geminiSettings.systemPrompt || "You are an expert fashion stylist and personal shopper.";
+
+    console.log('🔍 BODY SHAPE ANALYSIS - Using prompt:', {
+      hasCustomPrompt: !!geminiSettings.systemPrompt,
+      promptLength: systemPrompt.length,
+      promptPreview: systemPrompt.substring(0, 80)
+    });
+
+    const prompt = `${systemPrompt}
+
+A customer has been identified as having a "${bodyShape}" body shape.${measurementContext}
 
 Please provide detailed, personalized style recommendations for this body shape. Your response should be comprehensive and insightful, helping the customer understand:
 
@@ -252,11 +263,11 @@ function getFallbackBodyShapeAnalysis(bodyShape: string): any {
       ]
     },
     "Hourglass": {
-      analysis: "The Hourglass body shape is characterized by balanced bust and hip measurements with a well-defined, smaller waist. This classic silhouette is naturally balanced and proportional. The key to dressing an hourglass figure is emphasizing the waist while showcasing your beautiful curves without overwhelming them.",
+      analysis: "Your hourglass shape is naturally beautiful and balanced — bust and hips in harmony, with that lovely defined waist. The secret to feeling your best? Simple pieces that celebrate your curves without fuss. Think effortless styles that make you feel confident and comfortable all day long, highlighting that gorgeous waistline while letting you move and live freely.",
       styleGoals: [
-        "Highlight and define the natural waistline",
-        "Showcase balanced proportions",
-        "Choose fitted styles that honor your curves"
+        "Show off your natural waistline with ease and confidence",
+        "Choose pieces that feel as good as they look",
+        "Embrace your curves with comfortable, flattering fits"
       ],
       recommendations: [
         {
