@@ -106,11 +106,18 @@
 
 **Why:** Users should never hit a dead-end error. The app should automatically recover from missing data or provide clear paths forward.
 
-**Files Changed:** `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 45, 324-373, 1625-1649)
+**Files Changed:** `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 45, 324-352, 1091, 1625-1649, 2096-2134)
 
 **User Experience:**
 - **Before:** Click back → "Analysis data not available" → stuck, no options
 - **After:** Click back → automatically re-fetches data → shows profile OR provides helpful recovery options
+
+**Technical Fix:**
+- Changed `goToStep()` from async back to sync (was causing onclick handler issues)
+- Created dedicated `backToCombinedResults()` method for back button that:
+  - Checks if data exists → navigates immediately
+  - If missing → shows loading screen → calls `getCombinedAnalysis()` → renders results
+- Updated onclick handler to call `backToCombinedResults()` instead of `goToStep('combinedResults')`
 
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 

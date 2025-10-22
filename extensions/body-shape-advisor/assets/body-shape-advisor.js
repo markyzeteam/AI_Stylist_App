@@ -321,28 +321,7 @@ class BodyShapeAdvisor {
     `;
   }
 
-  async goToStep(step) {
-    // Special handling for combinedResults - re-fetch if data missing
-    if (step === 'combinedResults' && !this.combinedAnalysis) {
-      console.log('⚠️ Combined analysis data missing, re-fetching...');
-      this.currentStep = 'combinedAnalysisLoading';
-      this.render();
-
-      const success = await this.getCombinedAnalysis();
-      if (success) {
-        this.currentStep = 'combinedResults';
-        this.render();
-        this.loadCelebrityImages();
-        return;
-      } else {
-        // If analysis fails, go to products directly
-        console.log('⚠️ Re-fetch failed, going to products directly');
-        this.currentStep = 'products';
-        this.render();
-        return;
-      }
-    }
-
+  goToStep(step) {
     this.currentStep = step;
 
     // Clear cached data when starting over
@@ -1088,7 +1067,7 @@ class BodyShapeAdvisor {
       <div class="bsa-products">
         <div class="bsa-header">
           <h3>🛍️ Recommended for ${this.bodyShapeResult.shape}${colorSeasonText}</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('combinedResults')">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.backToCombinedResults()">
             ← Back to Style Profile
           </button>
         </div>
@@ -2093,6 +2072,22 @@ class BodyShapeAdvisor {
     `;
   }
 
+  backToCombinedResults() {
+    console.log('🔙 Back button clicked, checking combined analysis...');
+
+    // If we already have the data, just go there
+    if (this.combinedAnalysis) {
+      console.log('✅ Analysis data found, navigating...');
+      this.currentStep = 'combinedResults';
+      this.render();
+      return;
+    }
+
+    // Data missing - re-fetch
+    console.log('⚠️ Analysis data missing, re-fetching...');
+    this.proceedToRecommendations();
+  }
+
   proceedToRecommendations() {
     // If we have body shape or color season, proceed to combined analysis
     if (this.bodyShapeResult || this.colorSeasonResult) {
@@ -2102,11 +2097,13 @@ class BodyShapeAdvisor {
       // Get combined analysis with whatever data we have
       this.getCombinedAnalysis().then(success => {
         if (success) {
-          this.goToStep('combinedResults');
+          this.currentStep = 'combinedResults';
+          this.render();
           this.loadCelebrityImages();
         } else {
           console.log('⚠️ Analysis failed, going to products directly');
-          this.goToStep('products');
+          this.currentStep = 'products';
+          this.render();
         }
       });
     } else {
