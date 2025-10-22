@@ -63,7 +63,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Handle reset to defaults
   if (actionType === "resetPrompts") {
-    const { DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT } = await import("../utils/geminiAnalysis");
+    const { DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT, DEFAULT_GEMINI_BODY_SHAPE_PROMPT } = await import("../utils/geminiAnalysis");
     const { db } = await import("../db.server");
 
     await db.geminiSettings.update({
@@ -71,6 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: {
         prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
         systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+        bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       },
     });
 
@@ -86,6 +87,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const enabled = formData.get("enabled") === "true";
   const prompt = formData.get("prompt") as string;
   const systemPrompt = formData.get("systemPrompt") as string;
+  const bodyShapePrompt = formData.get("bodyShapePrompt") as string;
 
   // Debug logging for prompts
   console.log('💾 SAVE DEBUG - Prompts being saved:', {
@@ -95,7 +97,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     promptPreview: prompt?.substring(0, 80) || 'empty',
     hasSystemPrompt: !!systemPrompt,
     systemPromptLength: systemPrompt?.length || 0,
-    systemPromptPreview: systemPrompt?.substring(0, 80) || 'empty'
+    systemPromptPreview: systemPrompt?.substring(0, 80) || 'empty',
+    hasBodyShapePrompt: !!bodyShapePrompt,
+    bodyShapePromptLength: bodyShapePrompt?.length || 0,
+    bodyShapePromptPreview: bodyShapePrompt?.substring(0, 80) || 'empty'
   });
   const requestsPerMinute = parseInt(formData.get("requestsPerMinute") as string) || 15;
   const requestsPerDay = parseInt(formData.get("requestsPerDay") as string) || 1500;
@@ -135,6 +140,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     enabled,
     prompt: prompt || existingSettings.prompt,
     systemPrompt: systemPrompt || existingSettings.systemPrompt,
+    bodyShapePrompt: bodyShapePrompt || existingSettings.bodyShapePrompt,
     requestsPerMinute,
     requestsPerDay,
     batchSize,
@@ -148,7 +154,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   console.log('💾 SAVE DEBUG - Final settings to save:', {
     hasPrompt: !!settingsToSave.prompt,
     hasSystemPrompt: !!settingsToSave.systemPrompt,
-    systemPromptFinal: settingsToSave.systemPrompt?.substring(0, 100)
+    hasBodyShapePrompt: !!settingsToSave.bodyShapePrompt,
+    systemPromptFinal: settingsToSave.systemPrompt?.substring(0, 100),
+    bodyShapePromptFinal: settingsToSave.bodyShapePrompt?.substring(0, 100)
   });
 
   const success = await saveGeminiSettings(shop, settingsToSave);
@@ -179,6 +187,7 @@ export default function GeminiSettings() {
   const [enabled, setEnabled] = useState(settings.enabled);
   const [prompt, setPrompt] = useState(settings.prompt || "");
   const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || "");
+  const [bodyShapePrompt, setBodyShapePrompt] = useState(settings.bodyShapePrompt || "");
   // Detect which API tier preset matches current settings
   const detectApiTier = () => {
     const rpm = settings.requestsPerMinute;
@@ -207,6 +216,7 @@ export default function GeminiSettings() {
     setApiKey(settings.apiKey);
     setPrompt(settings.prompt || "");
     setSystemPrompt(settings.systemPrompt || "");
+    setBodyShapePrompt(settings.bodyShapePrompt || "");
     setRequestsPerMinute(String(settings.requestsPerMinute));
     setRequestsPerDay(String(settings.requestsPerDay));
     setBatchSize(String(settings.batchSize));
@@ -655,6 +665,26 @@ export default function GeminiSettings() {
                         multiline={6}
                         autoComplete="off"
                         helpText="Define Gemini's role and expertise for product recommendations."
+                      />
+                    </BlockStack>
+
+                    <Divider />
+
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingSm" fontWeight="semibold">
+                        Phase 3: Body Shape Analysis Prompt
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        This prompt guides Gemini when analyzing customer body shapes and providing style recommendations
+                      </Text>
+                      <input type="hidden" name="bodyShapePrompt" value={bodyShapePrompt} />
+                      <TextField
+                        label="Body Shape Prompt"
+                        value={bodyShapePrompt}
+                        onChange={setBodyShapePrompt}
+                        multiline={6}
+                        autoComplete="off"
+                        helpText="Define Gemini's tone and approach for body shape analysis and style guidance."
                       />
                     </BlockStack>
 

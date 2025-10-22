@@ -14,6 +14,7 @@ export interface GeminiSettings {
   model: string;
   prompt?: string;
   systemPrompt?: string;
+  bodyShapePrompt?: string;
   enabled: boolean;
   requestsPerMinute?: number;
   requestsPerDay?: number;
@@ -72,6 +73,8 @@ export const DEFAULT_GEMINI_SYSTEM_PROMPT = `You are an expert fashion analyst w
 
 Your task is to analyze clothing product images with precision and consistency.`;
 
+export const DEFAULT_GEMINI_BODY_SHAPE_PROMPT = `You are a kind, thoughtful fashion expert who understands the heart behind effortless style. Help customers understand their body shape with warm, encouraging guidance that makes them feel confident and beautiful.`;
+
 export const DEFAULT_GEMINI_IMAGE_PROMPT = `Analyze this clothing product image and provide detailed visual analysis.
 
 Extract the following information:
@@ -129,6 +132,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         model: settings.model || "gemini-2.0-flash-exp",
         prompt: settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT,
         systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_SYSTEM_PROMPT,
+        bodyShapePrompt: settings.bodyShapePrompt || DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -147,6 +151,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+      bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
@@ -161,6 +166,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+      bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
@@ -193,6 +199,7 @@ export async function saveGeminiSettings(
         model: settings.model,
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
+        bodyShapePrompt: settings.bodyShapePrompt,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -210,6 +217,7 @@ export async function saveGeminiSettings(
         model: settings.model,
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
+        bodyShapePrompt: settings.bodyShapePrompt,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute || 15,
         requestsPerDay: settings.requestsPerDay || 1500,
