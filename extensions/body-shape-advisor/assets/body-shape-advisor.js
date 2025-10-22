@@ -1183,8 +1183,8 @@ class BodyShapeAdvisor {
       <div class="bsa-products">
         <div class="bsa-header">
           <h3>🛍️ Recommended for ${this.bodyShapeResult.shape}${colorSeasonText}</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
-            ← Back to Results
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('combinedResults')">
+            ← Back to Style Profile
           </button>
         </div>
 
@@ -1253,7 +1253,7 @@ class BodyShapeAdvisor {
       <div class="bsa-path-selection">
         <div class="bsa-header">
           <h3>🎨 Discover Your Skin Color Season</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">← Back to Results</button>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('pathSelection')">← Back
         </div>
 
         <p style="text-align: center; color: #64748b; margin-bottom: 2rem; font-size: 16px;">
@@ -1948,28 +1948,39 @@ class BodyShapeAdvisor {
             ` : ''}
 
             <div style="display: grid; gap: 1.5rem;">
-              ${celebrityRecommendations.celebrities.map(celeb => `
-                <div style="padding: 1.5rem; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                  <h4 style="color: #1f2937; margin-bottom: 0.5rem; font-size: 1.125rem;">${celeb.name}</h4>
-                  <p style="color: #6b7280; margin-bottom: 1rem; font-style: italic;">${celeb.matchReason}</p>
-
-                  ${celeb.stylingTips && celeb.stylingTips.length > 0 ? `
-                    <div style="margin-bottom: 1rem;">
-                      <strong style="color: #1f2937;">Styling Tips:</strong>
-                      <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
-                        ${celeb.stylingTips.map(tip => `<li style="margin: 0.25rem 0; color: #374151;">${tip}</li>`).join('')}
-                      </ul>
+              ${celebrityRecommendations.celebrities.map((celeb, index) => `
+                <div style="display: grid; grid-template-columns: 150px 1fr; gap: 1.5rem; padding: 1.5rem; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                  <!-- Celebrity Image -->
+                  <div id="celebrity-image-${index}" class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center;">
+                    <div style="text-align: center; padding: 1rem;">
+                      <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+                      <div style="font-size: 12px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
                     </div>
-                  ` : ''}
+                  </div>
 
-                  ${celeb.signaturePieces && celeb.signaturePieces.length > 0 ? `
-                    <div>
-                      <strong style="color: #1f2937;">Signature Pieces:</strong>
-                      <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
-                        ${celeb.signaturePieces.map(piece => `<li style="margin: 0.25rem 0; color: #374151;">${piece}</li>`).join('')}
-                      </ul>
-                    </div>
-                  ` : ''}
+                  <!-- Celebrity Details -->
+                  <div>
+                    <h4 style="color: #1f2937; margin-bottom: 0.5rem; font-size: 1.125rem;">${celeb.name}</h4>
+                    <p style="color: #6b7280; margin-bottom: 1rem; font-style: italic;">${celeb.matchReason}</p>
+
+                    ${celeb.stylingTips && celeb.stylingTips.length > 0 ? `
+                      <div style="margin-bottom: 1rem;">
+                        <strong style="color: #1f2937;">Styling Tips:</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                          ${celeb.stylingTips.map(tip => `<li style="margin: 0.25rem 0; color: #374151;">${tip}</li>`).join('')}
+                        </ul>
+                      </div>
+                    ` : ''}
+
+                    ${celeb.signaturePieces && celeb.signaturePieces.length > 0 ? `
+                      <div>
+                        <strong style="color: #1f2937;">Signature Pieces:</strong>
+                        <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                          ${celeb.signaturePieces.map(piece => `<li style="margin: 0.25rem 0; color: #374151;">${piece}</li>`).join('')}
+                        </ul>
+                      </div>
+                    ` : ''}
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -2190,11 +2201,17 @@ class BodyShapeAdvisor {
   }
 
   async loadCelebrityImages() {
-    if (!this.celebrityRecommendations || !this.celebrityRecommendations.celebrities) return;
+    if (!this.combinedAnalysis?.celebrityRecommendations?.celebrities) {
+      // Fallback to old property for backward compatibility
+      if (!this.celebrityRecommendations || !this.celebrityRecommendations.celebrities) return;
+    }
+
+    const celebrities = this.combinedAnalysis?.celebrityRecommendations?.celebrities || this.celebrityRecommendations.celebrities;
 
     // Load Wikipedia images for each celebrity
-    this.celebrityRecommendations.celebrities.forEach(async (celeb, index) => {
-      const container = document.getElementById(`celeb-img-${index}`);
+    celebrities.forEach(async (celeb, index) => {
+      // Support both old and new ID formats
+      const container = document.getElementById(`celebrity-image-${index}`) || document.getElementById(`celeb-img-${index}`);
       if (!container) return;
 
       try {
@@ -2310,6 +2327,8 @@ class BodyShapeAdvisor {
     if (success) {
       // Go to combined results page
       this.goToStep('combinedResults');
+      // Load celebrity images after rendering
+      this.loadCelebrityImages();
     } else {
       // If analysis fails, go to products directly
       console.log('⚠️ Analysis failed, going to products directly');
