@@ -1693,14 +1693,16 @@ class BodyShapeAdvisor {
   }
 
   renderValuesQuestionnaire() {
-    // Determine the back button destination based on what quizzes were completed
+    // Determine the back button destination - go back to quiz selection, not intermediate results
     let backStep;
     if (this.colorSeasonResult) {
-      backStep = 'colorSeasonResults';
+      // If they completed color season, go back to that path selection
+      backStep = 'colorSeasonPathSelection';
     } else if (this.bodyShapeResult) {
-      backStep = 'results';
+      // If they only completed body shape, go back to color season path selection
+      backStep = 'colorSeasonPathSelection';
     } else {
-      // Fallback - shouldn't happen due to validation, but just in case
+      // Fallback - if neither quiz completed, go to body shape path
       backStep = 'pathSelection';
     }
 
