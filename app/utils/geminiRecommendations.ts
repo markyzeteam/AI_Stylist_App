@@ -32,6 +32,9 @@ export interface CachedProduct {
   variants?: any[];
   inStock?: boolean;
   availableSizes?: string[];
+  // Size information
+  sizeChart?: any;
+  sizeFitNotes?: string;
   // Cached Gemini analysis
   detectedColors?: string[];
   colorSeasons?: string[];
@@ -141,12 +144,15 @@ export async function getGeminiProductRecommendations(
     const productsForAI = filteredProducts.map((p, index) => ({
       index,
       title: p.title,
-      description: (p.description || '').substring(0, 300),
+      description: p.description || '', // ← REMOVED .substring(0, 300) truncation so Gemini can see full description including size charts!
       productType: p.productType || '',
       tags: (p.tags || []).join(", "),
       price: p.price,
       inStock: p.inStock,
       availableSizes: (p.availableSizes || []).join(", "),
+      // Include size chart and fit notes for accurate size recommendations
+      sizeChart: p.sizeChart || null,
+      sizeFitNotes: p.sizeFitNotes || null,
       // Include CACHED visual analysis (no images!)
       visualAnalysis: {
         colors: p.detectedColors || [],
@@ -361,6 +367,9 @@ async function fetchCachedProducts(
       variants: p.variants as any[] || [],
       inStock: p.inStock,
       availableSizes: p.availableSizes || [],
+      // Size information fields (from FilteredSelectionWithImgAnalyzed)
+      sizeChart: (p as any).sizeChart || undefined,
+      sizeFitNotes: (p as any).sizeFitNotes || undefined,
       // Image analysis fields (will be empty arrays/undefined for FilteredSelection)
       detectedColors: (p as any).detectedColors || [],
       colorSeasons: (p as any).colorSeasons || [],
@@ -508,6 +517,8 @@ IMPORTANT NOTES:
 - You are NOT seeing images - use the cached visual data (colors, silhouette, fabric, etc.)
 - This cached data is HIGHLY ACCURATE and should be trusted
 - The visual analysis was done by Gemini 2.0 Flash analyzing product images
+- **SIZE CHARTS:** The "description" field often contains HTML tables with DETAILED SIZE MEASUREMENTS (LENGTH, WIDTH, INSEAM, RISE for each size). Parse these tables and use them for precise size recommendations by comparing product measurements with customer body measurements.
+- Each product may also include "sizeChart" (structured data) and "sizeFitNotes" (fit guidance like "runs small") - use these if available
 
 TASK: Select EXACTLY ${limit} DIFFERENT products that will flatter the ${bodyShape} body shape${colorSeason ? ` and match the ${colorSeason} color palette` : ''}.
 
@@ -517,7 +528,12 @@ For each recommendation, provide:
 - **index**: Product index from the list (0-based) - MUST be unique, NO DUPLICATES
 - **score**: Honest suitability score (0-100) where 100 = perfect match. Be realistic but inclusive - aim for scores of 65+ for decent matches.
 - **reasoning**: Explain WHY this specific product flatters their ${bodyShape} body shape using the visual analysis data (2-3 sentences with specific design details)
-- **sizeAdvice**: Look at the product's "description" and "availableSizes" fields to provide SPECIFIC size recommendations. If sizing info is in description (e.g., "fits true to size", "runs small", size charts), include that in your advice. Base size recommendations on customer's measurements.
+- **sizeAdvice**: Provide SPECIFIC size recommendations using:
+  1. **description** field - OFTEN contains HTML tables with detailed size charts showing LENGTH, WIDTH, INSEAM, RISE measurements for each size (Small/Medium/Large). Parse these tables and compare the measurements with customer's body measurements to recommend the best size.
+  2. **sizeChart** field (if available) - Structured size data
+  3. **sizeFitNotes** field (if available) - Fit info like "runs small", "fits true to size"
+  4. **availableSizes** field - Shows which sizes are available
+  IMPORTANT: If description contains size measurements in a table, REFERENCE the specific measurements in your advice (e.g., "Based on your waist measurement, I recommend the Medium (15\" wide, 40\" long)"). Always compare product measurements with customer's actual body measurements for precise recommendations.
 - **stylingTip**: A unique, actionable styling suggestion for THIS SPECIFIC product
 
 CRITICAL RULES:

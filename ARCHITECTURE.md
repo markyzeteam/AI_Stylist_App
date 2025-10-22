@@ -26,6 +26,20 @@
 - **3 PROMPTS TOTAL:** Image Analysis, Customer Analysis, Product Recommendations
 **Why:** 7% cost reduction, faster UX (no intermediate pages), complete personalized style profile in one call, and simplified admin configuration
 
+### 🔧 SUB-UPDATE: Size Chart Data Integration ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Change:** Enabled Gemini to read detailed size measurements from product descriptions
+**What:**
+- **REMOVED** description truncation (was cutting at 300 chars, now sends FULL description)
+- Size charts are embedded as HTML tables in product descriptions (LENGTH, WIDTH, INSEAM, RISE for each size)
+- Added `sizeChart` and `sizeFitNotes` fields to CachedProduct interface (for future structured data)
+- Updated recommendation prompt to explicitly instruct Gemini to parse size chart tables from descriptions
+**Why:** Enables Gemini to provide precise size recommendations based on actual product measurements (e.g., "Medium: 15\" wide, 40\" long") compared with customer body measurements, instead of just generic "fits true to size" advice
+**Files Changed:** `app/utils/geminiRecommendations.ts`
+**Example:** For cargo pants with waist measurements, Gemini can now say "Based on your 32\" waist, I recommend the Medium (15\" wide)" instead of just "The description mentions a slim fitted fit"
+
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 
 **BEFORE (5 Gemini Calls):**
