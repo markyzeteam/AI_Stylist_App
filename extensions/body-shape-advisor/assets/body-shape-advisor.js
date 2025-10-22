@@ -164,20 +164,16 @@ class BodyShapeAdvisor {
               Select My Shape
             </button>
           </div>
-
-          <div class="bsa-option">
-            <div class="bsa-option-icon">⏭️</div>
-            <h4>Skip Body Shape</h4>
-            <p>Continue without body shape analysis</p>
-            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipBodyShape()">
-              Skip This Step
-            </button>
-          </div>
         </div>
 
-        <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('welcome')">
-          ← Back
-        </button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('welcome')">
+            ← Back
+          </button>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipBodyShape()">
+            Skip →
+          </button>
+        </div>
       </div>
     `;
   }
@@ -1313,15 +1309,15 @@ class BodyShapeAdvisor {
               Select My Season
             </button>
           </div>
+        </div>
 
-          <div class="bsa-option">
-            <div class="bsa-option-icon">⏭️</div>
-            <h4>Skip Color Season</h4>
-            <p>Continue without color season analysis</p>
-            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipColorSeason()">
-              Skip This Step
-            </button>
-          </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('pathSelection')">
+            ← Back
+          </button>
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipColorSeason()">
+            Skip →
+          </button>
         </div>
       </div>
     `;
@@ -1817,10 +1813,13 @@ class BodyShapeAdvisor {
           <button type="submit" class="bsa-btn bsa-btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 16px; font-weight: 600;">
             Get My Personalized Recommendations
           </button>
-          <button type="button" class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipValues()" style="width: 100%; margin-top: 1rem;">
-            Skip This Step
-          </button>
         </form>
+
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1rem;">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipValues()">
+            Skip →
+          </button>
+        </div>
       </div>
     `;
   }
