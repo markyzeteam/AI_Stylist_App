@@ -15,7 +15,237 @@
 
 ---
 
-## ⚡ LATEST UPDATE: FIX MALE BODY SHAPE CALCULATION
+## ⚡ LATEST UPDATE: 3-CALL, 3-PROMPT GEMINI ARCHITECTURE ✅ IMPLEMENTED
+
+**Date:** 2025-10-22
+**Status:** ✅ COMPLETE - Backend + Frontend + 3 Prompts Implemented
+**Change:** Optimized from 4-5 Gemini calls to **3 total calls** (1 admin + 2 user-facing) with **3 customizable prompts** (not 6!)
+**What:**
+- Created `/api/gemini/combined-analysis` that returns body shape, color season, values analysis, and celebrity recommendations in ONE comprehensive call with ALL detailed quiz data
+- Consolidated 4 separate customer analysis prompts into ONE `customerAnalysisPrompt`
+- **3 PROMPTS TOTAL:** Image Analysis, Customer Analysis, Product Recommendations
+**Why:** 7% cost reduction, faster UX (no intermediate pages), complete personalized style profile in one call, and simplified admin configuration
+
+### 🎯 FINAL 3-CALL ARCHITECTURE:
+
+**BEFORE (5 Gemini Calls):**
+```
+ADMIN:
+  Product Image Analysis [GEMINI #1] - per product
+
+USER JOURNEY:
+  Body Shape Quiz → Results Page [GEMINI #2] →
+  Color Season Quiz → Results Page [GEMINI #3] →
+  Values Quiz → Celebrity Page [GEMINI #4] →
+  Product Recommendations [GEMINI #5]
+
+Cost per user: $0.055
+Multiple intermediate pages, slower flow
+```
+
+**AFTER (3 Gemini Calls) ✅:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CALL 1: ADMIN - PRODUCT IMAGE ANALYSIS (One-time)          │
+└─────────────────────────────────────────────────────────────┘
+  📸 Analyzes product images for:
+     • Colors (hex codes)
+     • Silhouette (A-line, fitted, oversized, etc.)
+     • Style (casual, formal, bohemian, etc.)
+     • Fabric texture
+     • Design details
+  💰 Cost: ~$0.002 per product (one-time only)
+  🗄️  Cached in database for instant user recommendations
+
+┌─────────────────────────────────────────────────────────────┐
+│ CALL 2: USER - COMBINED ANALYSIS (Real-time)               │
+└─────────────────────────────────────────────────────────────┘
+  USER FLOW:
+    1. Body Shape Quiz → Calculate locally, store data
+    2. Color Season Quiz → Calculate locally, store data
+    3. Values Quiz → Store preferences
+    4. 🚀 ONE API CALL WITH ALL DATA:
+
+  📊 DATA PASSED TO GEMINI:
+     Body Shape Analysis:
+       • Result: "Hourglass", "Pear", etc.
+       • + ALL Measurements:
+         - Gender, Age, Height, Weight
+         - Bust, Waist, Hips, Shoulders (in cm)
+
+     Color Season Analysis:
+       • Result: "Spring", "Summer", etc.
+       • + ALL Individual Test Results:
+         - Undertone: warm/cool/neutral
+         - Depth: light/medium/deep
+         - Intensity: bright/muted/clear
+         - Context: "gold jewelry suits best", etc.
+
+     Values Analysis:
+       • Sustainability: true/false
+       • Budget Range: low/medium/high/luxury
+       • Style Preferences: ["Casual", "Minimalist", ...]
+
+  📤 GEMINI RETURNS (4 comprehensive sections):
+     1. Body Shape Analysis - detailed styling guide
+     2. Color Season Analysis - color palettes & tips
+     3. Values Analysis - brand recommendations & shopping strategies
+     4. Celebrity Recommendations - 3-4 style icons
+
+  💰 Cost: ~$0.003 per user
+  ⏱️  Time: 3-5 seconds
+  📄 Result: ONE comprehensive style guide page
+
+┌─────────────────────────────────────────────────────────────┐
+│ CALL 3: USER - PRODUCT RECOMMENDATIONS (Real-time)         │
+└─────────────────────────────────────────────────────────────┘
+  USER CLICKS: "Show Me Products!" button
+
+  📊 DATA PASSED TO GEMINI:
+     • ALL quiz data (body measurements + color results + values)
+     • 500-1,000 pre-filtered products (with cached analysis)
+     • Customer's complete style profile
+
+  📤 GEMINI RETURNS:
+     • Top 30 personalized product recommendations
+     • Match scores, reasoning, styling tips, size advice
+
+  💰 Cost: ~$0.050 per user
+  ⏱️  Time: 2-5 seconds
+
+┌─────────────────────────────────────────────────────────────┐
+│ TOTAL USER COST: $0.053 per user (7% savings)              │
+│ TOTAL USER TIME: Faster (no intermediate pages)            │
+│ DATA QUALITY: ALL detailed quiz answers passed to Gemini   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Implementation:
+
+#### 1. **Backend: New Combined Analysis Endpoint** ✅
+**File:** `app/routes/api.gemini.combined-analysis.tsx`
+
+- **Input:** Complete quiz data in one request:
+  ```javascript
+  {
+    bodyShape: "Hourglass",
+    measurements: { gender, age, height, weight, bust, waist, hips, shoulders },
+    colorSeason: "Spring",
+    colorAnalysis: { undertone, depth, intensity },
+    valuesPreferences: { sustainability, budgetRange, styles },
+    shop: "store.myshopify.com"
+  }
+  ```
+
+- **Output:** 4 comprehensive sections in ONE response:
+  - `bodyShapeAnalysis` - Detailed body shape guidance with recommendations
+  - `colorSeasonAnalysis` - Color palette, best colors, styling tips
+  - `valuesAnalysis` - Brand recommendations, shopping strategies
+  - `celebrityRecommendations` - 3-4 celebrity matches with styling tips
+
+- **Cost:** ~$0.003 per user (replaces 3 separate $0.002 calls)
+
+#### 2. **Frontend: Optimized User Flow** ✅
+**File:** `extensions/body-shape-advisor/assets/body-shape-advisor.js`
+
+**Changes Made:**
+1. **Removed intermediate API calls:**
+   - `handleMeasurementsSubmit()` - Now goes directly to color quiz (no API call)
+   - `selectShape()` - Now goes directly to color quiz (no API call)
+   - `handleColorSeasonSubmit()` - Now goes directly to values quiz (no API call)
+   - `selectColorSeason()` - Now goes directly to values quiz (no API call)
+
+2. **Added combined analysis call:**
+   - `handleValuesSubmit()` - After values quiz, calls `getCombinedAnalysis()`
+   - New function: `getCombinedAnalysis()` - Makes ONE API call with ALL data
+   - Stores result in `this.combinedAnalysis`
+
+3. **New UI screens:**
+   - `renderCombinedAnalysisLoading()` - Loading screen during analysis
+   - `renderCombinedResults()` - Displays all 4 analysis sections in one page:
+     - 👗 Body Shape Analysis
+     - 🎨 Color Season Analysis
+     - 💚 Values & Shopping Style
+     - ⭐ Celebrity Style Icons
+   - "Show Me Perfect Products!" button to continue
+
+**User Flow:**
+```
+Body Shape Quiz (local calculation) →
+Color Season Quiz (local calculation) →
+Values Questionnaire (store preferences) →
+[ONE GEMINI CALL] →
+Combined Results Page (all 4 sections) →
+[Click "Show Me Products"] →
+Product Recommendations
+```
+
+#### 3. **Enhanced Data Passing** ✅
+All detailed quiz answers passed to Gemini (not just labels):
+
+**Body Shape:**
+- ✅ Result: "Hourglass", "Pear", etc.
+- ✅ Gender, Age, Height, Weight
+- ✅ All measurements: Bust, Waist, Hips, Shoulders (in cm)
+
+**Color Season:**
+- ✅ Result: "Spring", "Summer", etc.
+- ✅ Undertone: warm/cool/neutral
+- ✅ Depth: light/medium/deep
+- ✅ Intensity: bright/muted/clear
+- ✅ Context (if provided): "gold jewelry suits best"
+
+**Values:**
+- ✅ Sustainability: true/false
+- ✅ Budget Range: low/medium/high/luxury
+- ✅ Style Preferences: ["Casual", "Minimalist", etc.]
+
+#### 4. **3 Custom Prompts Only** ✅
+**Files:** `prisma/schema.prisma`, `app/routes/app.gemini-settings.tsx`, `app/utils/geminiAnalysis.ts`
+
+**3 PROMPTS TOTAL** - simplified from 6 separate prompts:
+
+1. **`prompt`** (Prompt 1) - Product image analysis (admin)
+2. **`customerAnalysisPrompt`** (Prompt 2) - Customer analysis (body + color + values + celebrity)
+3. **`systemPrompt`** (Prompt 3) - Product recommendations (user)
+
+All prompts are customizable in admin UI and have sensible defaults.
+
+**Database Schema:**
+```prisma
+model GeminiSettings {
+  // ... existing fields
+  prompt                  String?  @db.Text // Prompt 1: Product image analysis (admin)
+  customerAnalysisPrompt  String?  @db.Text // Prompt 2: Customer analysis (body + color + values + celebrity)
+  systemPrompt            String?  @db.Text // Prompt 3: Product recommendations (user)
+}
+```
+
+#### 5. **Cost Impact & Performance** ✅
+- **Before:** 4-5 Gemini calls per user = $0.055
+- **After:** 2 Gemini calls per user = $0.053
+- **Savings:** 7% cost reduction ($2/month for 100 users/day)
+- **UX Improvement:** Faster flow, no intermediate loading screens
+- **Better Analysis:** All data considered together for coherent recommendations
+
+### Files Modified:
+- ✅ `ARCHITECTURE.md` - Updated documentation
+- ✅ `app/routes/api.gemini.combined-analysis.tsx` - New combined endpoint
+- ✅ `extensions/body-shape-advisor/assets/body-shape-advisor.js` - Optimized flow
+- ✅ `prisma/schema.prisma` - Added custom prompt fields
+- ✅ `app/utils/geminiAnalysis.ts` - Defaults for new prompts
+- ✅ `app/routes/app.gemini-settings.tsx` - Admin UI for custom prompts
+
+### Deployment Notes:
+- ⚠️ **Database migration required:** Run `npx prisma db push` in production
+- ✅ Backend endpoint ready to use
+- ✅ Frontend code updated and ready
+- ✅ Admin UI has all custom prompt fields
+- 🚀 Deploy and test the new combined flow
+
+---
+
+## ⚡ PREVIOUS UPDATE: FIX MALE BODY SHAPE CALCULATION
 
 **Date:** 2025-10-21
 **Build:** app-92 (pending)

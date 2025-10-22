@@ -234,9 +234,12 @@ model GeminiSettings {
   shop               String   @unique
   apiKey             String?  @db.Text
   model              String   @default("gemini-1.5-flash")
-  prompt             String?  @db.Text // Editable image analysis prompt (Phase 1)
-  systemPrompt       String?  @db.Text // Editable recommendation system prompt (Phase 2)
-  bodyShapePrompt    String?  @db.Text // Editable body shape analysis prompt (Phase 3)
+
+  // 3 PROMPTS ONLY:
+  prompt                  String?  @db.Text // Prompt 1: Product image analysis (admin)
+  customerAnalysisPrompt  String?  @db.Text // Prompt 2: Customer analysis (body + color + values + celebrity)
+  systemPrompt            String?  @db.Text // Prompt 3: Product recommendations (user)
+
   enabled            Boolean  @default(true)
 
   // Rate limiting (configurable based on API tier)

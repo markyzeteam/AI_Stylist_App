@@ -18,7 +18,7 @@ import {
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { loadGeminiSettings, saveGeminiSettings } from "../utils/geminiAnalysis";
+import { loadGeminiSettings, saveGeminiSettings, DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT } from "../utils/geminiAnalysis";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -38,6 +38,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       model: settings.model,
       enabled: settings.enabled,
       prompt: settings.prompt,
+      customerAnalysisPrompt: settings.customerAnalysisPrompt,
       systemPrompt: settings.systemPrompt,
       requestsPerMinute: settings.requestsPerMinute || 15,
       requestsPerDay: settings.requestsPerDay || 1500,
@@ -63,21 +64,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Handle reset to defaults
   if (actionType === "resetPrompts") {
-    const { DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT, DEFAULT_GEMINI_BODY_SHAPE_PROMPT } = await import("../utils/geminiAnalysis");
+    const {
+      DEFAULT_GEMINI_IMAGE_PROMPT,
+      DEFAULT_GEMINI_SYSTEM_PROMPT,
+      DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
+      DEFAULT_GEMINI_COLOR_SEASON_PROMPT,
+      DEFAULT_GEMINI_CELEBRITY_PROMPT,
+      DEFAULT_GEMINI_VALUES_PROMPT
+    } = await import("../utils/geminiAnalysis");
     const { db } = await import("../db.server");
 
     await db.geminiSettings.update({
       where: { shop },
       data: {
         prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+        customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
         systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
-        bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       },
     });
 
     return json({
       success: true,
-      message: "Prompts reset to defaults successfully!"
+      message: "All prompts reset to defaults successfully!"
     });
   }
 
@@ -85,22 +93,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const apiKey = formData.get("apiKey") as string;
   const model = (formData.get("model") as string) || existingSettings.model || "gemini-2.0-flash-exp";
   const enabled = formData.get("enabled") === "true";
-  const prompt = formData.get("prompt") as string;
-  const systemPrompt = formData.get("systemPrompt") as string;
-  const bodyShapePrompt = formData.get("bodyShapePrompt") as string;
+  // 3 PROMPTS ONLY:
+  const prompt = formData.get("prompt") as string; // Prompt 1: Product image analysis
+  const customerAnalysisPrompt = formData.get("customerAnalysisPrompt") as string; // Prompt 2: Customer analysis
+  const systemPrompt = formData.get("systemPrompt") as string; // Prompt 3: Product recommendations
 
   // Debug logging for prompts
-  console.log('💾 SAVE DEBUG - Prompts being saved:', {
+  console.log('💾 SAVE DEBUG - 3 Prompts being saved:', {
     shop,
     hasPrompt: !!prompt,
     promptLength: prompt?.length || 0,
-    promptPreview: prompt?.substring(0, 80) || 'empty',
+    hasCustomerAnalysisPrompt: !!customerAnalysisPrompt,
+    customerAnalysisPromptLength: customerAnalysisPrompt?.length || 0,
     hasSystemPrompt: !!systemPrompt,
     systemPromptLength: systemPrompt?.length || 0,
-    systemPromptPreview: systemPrompt?.substring(0, 80) || 'empty',
-    hasBodyShapePrompt: !!bodyShapePrompt,
-    bodyShapePromptLength: bodyShapePrompt?.length || 0,
-    bodyShapePromptPreview: bodyShapePrompt?.substring(0, 80) || 'empty'
   });
   const requestsPerMinute = parseInt(formData.get("requestsPerMinute") as string) || 15;
   const requestsPerDay = parseInt(formData.get("requestsPerDay") as string) || 1500;
@@ -139,8 +145,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     model,
     enabled,
     prompt: prompt || existingSettings.prompt,
+    customerAnalysisPrompt: customerAnalysisPrompt || existingSettings.customerAnalysisPrompt,
     systemPrompt: systemPrompt || existingSettings.systemPrompt,
-    bodyShapePrompt: bodyShapePrompt || existingSettings.bodyShapePrompt,
     requestsPerMinute,
     requestsPerDay,
     batchSize,
@@ -185,9 +191,10 @@ export default function GeminiSettings() {
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [model, setModel] = useState(settings.model);
   const [enabled, setEnabled] = useState(settings.enabled);
-  const [prompt, setPrompt] = useState(settings.prompt || "");
-  const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || "");
-  const [bodyShapePrompt, setBodyShapePrompt] = useState(settings.bodyShapePrompt || "");
+  // 3 PROMPTS ONLY:
+  const [prompt, setPrompt] = useState(settings.prompt || ""); // Prompt 1: Product image analysis
+  const [customerAnalysisPrompt, setCustomerAnalysisPrompt] = useState(settings.customerAnalysisPrompt || ""); // Prompt 2: Customer analysis
+  const [systemPrompt, setSystemPrompt] = useState(settings.systemPrompt || ""); // Prompt 3: Product recommendations
   // Detect which API tier preset matches current settings
   const detectApiTier = () => {
     const rpm = settings.requestsPerMinute;
@@ -215,8 +222,8 @@ export default function GeminiSettings() {
   useEffect(() => {
     setApiKey(settings.apiKey);
     setPrompt(settings.prompt || "");
+    setCustomerAnalysisPrompt(settings.customerAnalysisPrompt || "");
     setSystemPrompt(settings.systemPrompt || "");
-    setBodyShapePrompt(settings.bodyShapePrompt || "");
     setRequestsPerMinute(String(settings.requestsPerMinute));
     setRequestsPerDay(String(settings.requestsPerDay));
     setBatchSize(String(settings.batchSize));
@@ -233,7 +240,7 @@ export default function GeminiSettings() {
     else if (rpm === 2000 && rpd === 50000) setApiTier("paid");
     else if (rpm === 10000 && rpd === 1000000) setApiTier("unlimited");
     else setApiTier("custom");
-  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
+  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.bodyShapePrompt, settings.colorSeasonPrompt, settings.celebrityPrompt, settings.valuesPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
 
   // Handle API tier selection
   const handleApiTierChange = (value: string) => {
@@ -627,7 +634,7 @@ export default function GeminiSettings() {
                   <BlockStack gap="400">
                     <BlockStack gap="200">
                       <Text as="h3" variant="headingSm" fontWeight="semibold">
-                        Phase 1: Image Analysis Prompt
+                        Prompt 1: Product Image Analysis
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
                         This prompt is used when analyzing product images to extract visual features (colors, style, silhouette, etc.)
@@ -652,7 +659,7 @@ export default function GeminiSettings() {
 
                     <BlockStack gap="200">
                       <Text as="h3" variant="headingSm" fontWeight="semibold">
-                        Phase 2: Recommendation System Prompt
+                        Prompt 3: Product Recommendations
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
                         This system prompt guides Gemini when generating personalized product recommendations
@@ -672,19 +679,19 @@ export default function GeminiSettings() {
 
                     <BlockStack gap="200">
                       <Text as="h3" variant="headingSm" fontWeight="semibold">
-                        Phase 3: Body Shape Analysis Prompt
+                        Prompt 2: Customer Analysis (Combined)
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
-                        This prompt guides Gemini when analyzing customer body shapes and providing style recommendations
+                        This prompt guides Gemini when analyzing the complete customer profile: body shape, color season, shopping values, and celebrity style inspiration. ONE prompt for all customer analysis!
                       </Text>
-                      <input type="hidden" name="bodyShapePrompt" value={bodyShapePrompt} />
+                      <input type="hidden" name="customerAnalysisPrompt" value={customerAnalysisPrompt} />
                       <TextField
-                        label="Body Shape Prompt"
-                        value={bodyShapePrompt}
-                        onChange={setBodyShapePrompt}
-                        multiline={6}
+                        label="Customer Analysis Prompt"
+                        value={customerAnalysisPrompt}
+                        onChange={setCustomerAnalysisPrompt}
+                        multiline={8}
                         autoComplete="off"
-                        helpText="Define Gemini's tone and approach for body shape analysis and style guidance."
+                        helpText="Define Gemini's tone and approach for comprehensive customer style analysis (body shape + color season + values + celebrity inspiration)."
                       />
                     </BlockStack>
 

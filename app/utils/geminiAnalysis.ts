@@ -15,6 +15,9 @@ export interface GeminiSettings {
   prompt?: string;
   systemPrompt?: string;
   bodyShapePrompt?: string;
+  colorSeasonPrompt?: string;
+  celebrityPrompt?: string;
+  valuesPrompt?: string;
   enabled: boolean;
   requestsPerMinute?: number;
   requestsPerDay?: number;
@@ -73,7 +76,20 @@ export const DEFAULT_GEMINI_SYSTEM_PROMPT = `You are an expert fashion analyst w
 
 Your task is to analyze clothing product images with precision and consistency.`;
 
-export const DEFAULT_GEMINI_BODY_SHAPE_PROMPT = `You are a kind, thoughtful fashion expert who understands the heart behind effortless style. Help customers understand their body shape with warm, encouraging guidance that makes them feel confident and beautiful.`;
+// PROMPT 2: Customer Analysis (combines body + color + values + celebrity)
+export const DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT = `You are a comprehensive fashion advisor with expertise in body shape analysis, color theory, personal values alignment, and celebrity style inspiration.
+
+Your role is to provide warm, encouraging, and highly personalized guidance that helps customers understand their unique style profile. You analyze their:
+
+1. **Body Shape & Proportions**: Provide kind, confidence-building advice about their body shape, what works well, and styling strategies that make them feel amazing.
+
+2. **Color Season & Flattering Colors**: Make color theory accessible and exciting. Explain their color season, best colors, and how to incorporate them into their wardrobe.
+
+3. **Shopping Values & Preferences**: Help them align their wardrobe with their values—whether sustainability, budget consciousness, or specific style aesthetics. Provide practical, actionable advice.
+
+4. **Celebrity Style Icons**: Connect them with celebrities who share their body shape, color season, and style preferences. Provide specific styling inspiration they can apply.
+
+Make every customer feel seen, understood, and excited about their personal style journey. Be specific, practical, and empowering in all recommendations.`;
 
 export const DEFAULT_GEMINI_IMAGE_PROMPT = `Analyze this clothing product image and provide detailed visual analysis.
 
@@ -131,8 +147,8 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         apiKey: settings.apiKey || undefined,
         model: settings.model || "gemini-2.0-flash-exp",
         prompt: settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT,
+        customerAnalysisPrompt: settings.customerAnalysisPrompt || DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
         systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_SYSTEM_PROMPT,
-        bodyShapePrompt: settings.bodyShapePrompt || DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -150,8 +166,8 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       apiKey: undefined,
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+      customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
-      bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
@@ -165,8 +181,8 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       apiKey: undefined,
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
+      customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
       systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
-      bodyShapePrompt: DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
@@ -200,6 +216,9 @@ export async function saveGeminiSettings(
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
         bodyShapePrompt: settings.bodyShapePrompt,
+        colorSeasonPrompt: settings.colorSeasonPrompt,
+        celebrityPrompt: settings.celebrityPrompt,
+        valuesPrompt: settings.valuesPrompt,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -218,6 +237,9 @@ export async function saveGeminiSettings(
         prompt: settings.prompt,
         systemPrompt: settings.systemPrompt,
         bodyShapePrompt: settings.bodyShapePrompt,
+        colorSeasonPrompt: settings.colorSeasonPrompt,
+        celebrityPrompt: settings.celebrityPrompt,
+        valuesPrompt: settings.valuesPrompt,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute || 15,
         requestsPerDay: settings.requestsPerDay || 1500,

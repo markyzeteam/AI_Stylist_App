@@ -119,6 +119,8 @@ class BodyShapeAdvisor {
       colorSeasonAnalysisLoading: this.renderColorSeasonAnalysisLoading.bind(this),
       colorSeasonResults: this.renderColorSeasonResults.bind(this),
       valuesQuestionnaire: this.renderValuesQuestionnaire.bind(this),
+      combinedAnalysisLoading: this.renderCombinedAnalysisLoading.bind(this),
+      combinedResults: this.renderCombinedResults.bind(this),
       styleSummary: this.renderStyleSummary.bind(this),
       products: this.renderProducts.bind(this)
     };
@@ -514,14 +516,9 @@ class BodyShapeAdvisor {
     // Simple body shape calculation (simplified version)
     this.bodyShapeResult = this.calculateShape(measurements);
 
-    // Show loading screen while getting Gemini AI analysis
-    this.currentStep = 'analysisLoading';
-    this.render();
-
-    // Get Gemini AI detailed analysis
-    await this.getClaudeStyleAnalysis(this.bodyShapeResult.shape, measurements);
-
-    this.goToStep('results');
+    // Skip intermediate API call - go directly to color season quiz
+    // Analysis will be done in combined call after all quizzes
+    this.goToStep('colorSeasonPathSelection');
   }
 
   async selectShape(shapeName) {
@@ -533,14 +530,9 @@ class BodyShapeAdvisor {
       recommendations: this.getShapeRecommendations(shapeName)
     };
 
-    // Show loading screen while getting Gemini AI analysis
-    this.currentStep = 'analysisLoading';
-    this.render();
-
-    // Get Gemini AI detailed analysis
-    await this.getClaudeStyleAnalysis(shapeName, null);
-
-    this.goToStep('results');
+    // Skip intermediate API call - go directly to color season quiz
+    // Analysis will be done in combined call after all quizzes
+    this.goToStep('colorSeasonPathSelection');
   }
 
   calculateShape(measurements) {
@@ -1433,18 +1425,13 @@ class BodyShapeAdvisor {
   async selectColorSeason(seasonName) {
     // User directly selected their color season
     this.colorSeasonResult = seasonName;
+    this.colorAnalysis = null; // No detailed analysis since user selected directly
 
     console.log(`User selected color season: ${seasonName}`);
 
-    // Show loading screen while getting Gemini AI analysis
-    this.currentStep = 'colorSeasonAnalysisLoading';
-    this.render();
-
-    // Get Gemini AI color season analysis for the selected season
-    await this.getClaudeColorSeasonAnalysis(seasonName, null);
-
-    // Go to color season results page
-    this.goToStep('colorSeasonResults');
+    // Skip intermediate API call - go directly to values questionnaire
+    // Analysis will be done in combined call after all quizzes
+    this.goToStep('valuesQuestionnaire');
   }
 
   async handleColorSeasonSubmit(event) {
@@ -1466,15 +1453,9 @@ class BodyShapeAdvisor {
 
     console.log(`Color Season Result: ${this.colorSeasonResult}`);
 
-    // Show loading screen while getting Gemini AI analysis
-    this.currentStep = 'colorSeasonAnalysisLoading';
-    this.render();
-
-    // Get Gemini AI color season analysis
-    await this.getClaudeColorSeasonAnalysis(this.colorSeasonResult, this.colorAnalysis);
-
-    // Go to color season results page
-    this.goToStep('colorSeasonResults');
+    // Skip intermediate API call - go directly to values questionnaire
+    // Analysis will be done in combined call after all quizzes
+    this.goToStep('valuesQuestionnaire');
   }
 
   calculateColorSeason(undertone, depth, intensity) {
@@ -1507,42 +1488,65 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeColorSeasonAnalysis(colorSeason, colorAnalysis) {
-    console.log(`🤖 Getting Gemini AI color season analysis for ${colorSeason}...`);
+    // DEPRECATED: This function is no longer used
+    // All analysis is now done in getCombinedAnalysis() after values questionnaire
+    console.log('⚠️ getClaudeColorSeasonAnalysis is deprecated - use getCombinedAnalysis instead');
+  }
+
+  async getCombinedAnalysis() {
+    console.log(`🤖 Getting combined Gemini AI analysis (body shape + color season + values + celebrity)...`);
 
     try {
-      const apiUrl = `${this.config.apiEndpoint}/api/gemini/color-season-analysis`;
+      const apiUrl = `${this.config.apiEndpoint}/api/gemini/combined-analysis`;
+
+      const requestBody = {
+        bodyShape: this.bodyShapeResult.shape,
+        measurements: this.measurements,
+        colorSeason: this.colorSeasonResult,
+        colorAnalysis: this.colorAnalysis || {},
+        valuesPreferences: this.valuesPreferences,
+        shop: this.config.shopDomain
+      };
+
+      console.log('📤 Sending combined analysis request:', requestBody);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          colorSeason: colorSeason,
-          colorAnalysis: colorAnalysis,
-          shop: this.config.shopDomain,
-          gender: this.measurements.gender  // Add gender for personalized recommendations
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
         console.error(`API error: ${response.status}`);
-        return;
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        return false;
       }
 
       const data = await response.json();
 
-      if (data.success && data.analysis) {
-        console.log('✓ Got Gemini AI color season analysis');
-        // Store analysis in a new object structure
-        if (!this.colorSeasonData) {
-          this.colorSeasonData = {};
-        }
-        this.colorSeasonData.claudeAnalysis = data.analysis;
+      if (data.success) {
+        console.log('✅ Got combined Gemini AI analysis');
+
+        // Store all analyses
+        this.combinedAnalysis = {
+          bodyShapeAnalysis: data.bodyShapeAnalysis,
+          colorSeasonAnalysis: data.colorSeasonAnalysis,
+          valuesAnalysis: data.valuesAnalysis,
+          celebrityRecommendations: data.celebrityRecommendations
+        };
+
+        console.log('📊 Combined analysis data:', this.combinedAnalysis);
+        return true;
+      } else {
+        console.error('❌ Combined analysis failed:', data);
+        return false;
       }
     } catch (error) {
-      console.error('Error getting Gemini AI color season analysis:', error);
-      // Continue without Gemini analysis if it fails
+      console.error('❌ Error getting combined analysis:', error);
+      return false;
     }
   }
 
@@ -1770,6 +1774,214 @@ class BodyShapeAdvisor {
             Get My Personalized Recommendations
           </button>
         </form>
+      </div>
+    `;
+  }
+
+  renderCombinedAnalysisLoading() {
+    return `
+      <div class="bsa-loading" style="text-align: center; padding: 3rem;">
+        <div class="bsa-spinner" style="margin: 0 auto 2rem;"></div>
+        <h3 style="margin-bottom: 1rem;">✨ Creating Your Complete Style Profile...</h3>
+        <p style="color: #6b7280; font-size: 14px; max-width: 500px; margin: 0 auto;">
+          Our AI is analyzing your body shape, color season, and personal values to create a comprehensive style guide just for you...
+        </p>
+      </div>
+    `;
+  }
+
+  renderCombinedResults() {
+    if (!this.combinedAnalysis) {
+      return '<div class="bsa-error">Analysis data not available</div>';
+    }
+
+    const { bodyShapeAnalysis, colorSeasonAnalysis, valuesAnalysis, celebrityRecommendations } = this.combinedAnalysis;
+
+    return `
+      <div class="bsa-combined-results">
+        <div class="bsa-header" style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">✨ Your Complete Style Profile</h2>
+          <p style="color: #6b7280;">A comprehensive guide based on your unique measurements, coloring, and values</p>
+        </div>
+
+        <!-- Body Shape Analysis Section -->
+        <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="color: #4f46e5; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">👗</span>
+            Your Body Shape: ${this.bodyShapeResult.shape}
+          </h3>
+
+          ${bodyShapeAnalysis.analysis ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <p style="line-height: 1.6; color: #374151; white-space: pre-line;">${bodyShapeAnalysis.analysis}</p>
+            </div>
+          ` : ''}
+
+          ${bodyShapeAnalysis.styleGoals && bodyShapeAnalysis.styleGoals.length > 0 ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Style Goals:</h4>
+              <ul style="padding-left: 1.5rem;">
+                ${bodyShapeAnalysis.styleGoals.map(goal => `<li style="margin: 0.5rem 0; line-height: 1.5;">${goal}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${bodyShapeAnalysis.recommendations && bodyShapeAnalysis.recommendations.length > 0 ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">What to Wear:</h4>
+              ${bodyShapeAnalysis.recommendations.map(rec => `
+                <div style="margin: 1rem 0; padding: 1rem; background: #f9fafb; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                  <h5 style="color: #1f2937; margin-bottom: 0.5rem;">${rec.category}</h5>
+                  <ul style="padding-left: 1.5rem; margin: 0.5rem 0;">
+                    ${rec.items.map(item => `<li style="margin: 0.25rem 0;">${item}</li>`).join('')}
+                  </ul>
+                  <p style="margin: 0.75rem 0 0 0; color: #6b7280; font-style: italic;"><strong>Why:</strong> ${rec.reasoning}</p>
+                  ${rec.stylingTips ? `<p style="margin: 0.5rem 0 0 0; color: #059669;"><strong>Tip:</strong> ${rec.stylingTips}</p>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${bodyShapeAnalysis.proTips && bodyShapeAnalysis.proTips.length > 0 ? `
+            <div class="bsa-section">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Pro Tips:</h4>
+              <ul style="padding-left: 1.5rem;">
+                ${bodyShapeAnalysis.proTips.map(tip => `<li style="margin: 0.5rem 0; line-height: 1.5; color: #059669;">${tip}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Color Season Analysis Section -->
+        <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <h3 style="color: #db2777; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">🎨</span>
+            Your Color Season: ${this.colorSeasonResult}
+          </h3>
+
+          ${colorSeasonAnalysis.analysis ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <p style="line-height: 1.6; color: #374151; white-space: pre-line;">${colorSeasonAnalysis.analysis}</p>
+            </div>
+          ` : ''}
+
+          ${colorSeasonAnalysis.bestColors && colorSeasonAnalysis.bestColors.length > 0 ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Your Best Colors:</h4>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                ${colorSeasonAnalysis.bestColors.map(color => `
+                  <span style="background: #fdf2f8; color: #db2777; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 500;">${color}</span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${colorSeasonAnalysis.colorPalette && colorSeasonAnalysis.colorPalette.length > 0 ? `
+            <div class="bsa-section" style="margin-bottom: 1.5rem;">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Color Palette by Category:</h4>
+              ${colorSeasonAnalysis.colorPalette.map(palette => `
+                <div style="margin: 1rem 0; padding: 1rem; background: #f9fafb; border-radius: 8px; border-left: 4px solid #db2777;">
+                  <h5 style="color: #1f2937; margin-bottom: 0.5rem;">${palette.category}</h5>
+                  <ul style="padding-left: 1.5rem; margin: 0.5rem 0;">
+                    ${palette.colors.map(color => `<li style="margin: 0.25rem 0;">${color}</li>`).join('')}
+                  </ul>
+                  <p style="margin: 0.75rem 0 0 0; color: #6b7280; font-style: italic;"><strong>Why:</strong> ${palette.reasoning}</p>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${colorSeasonAnalysis.stylingTips && colorSeasonAnalysis.stylingTips.length > 0 ? `
+            <div class="bsa-section">
+              <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Color Styling Tips:</h4>
+              <ul style="padding-left: 1.5rem;">
+                ${colorSeasonAnalysis.stylingTips.map(tip => `<li style="margin: 0.5rem 0; line-height: 1.5; color: #db2777;">${tip}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Values Analysis Section -->
+        ${valuesAnalysis ? `
+          <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="color: #059669; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.5rem;">💚</span>
+              Your Shopping Values & Style
+            </h3>
+
+            ${valuesAnalysis.analysis ? `
+              <div class="bsa-section" style="margin-bottom: 1.5rem;">
+                <p style="line-height: 1.6; color: #374151; white-space: pre-line;">${valuesAnalysis.analysis}</p>
+              </div>
+            ` : ''}
+
+            ${valuesAnalysis.recommendedBrands && valuesAnalysis.recommendedBrands.length > 0 ? `
+              <div class="bsa-section" style="margin-bottom: 1.5rem;">
+                <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Brands & Strategies for You:</h4>
+                <ul style="padding-left: 1.5rem;">
+                  ${valuesAnalysis.recommendedBrands.map(brand => `<li style="margin: 0.5rem 0; line-height: 1.5;">${brand}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${valuesAnalysis.balancingTips && valuesAnalysis.balancingTips.length > 0 ? `
+              <div class="bsa-section">
+                <h4 style="color: #1f2937; margin-bottom: 0.75rem;">Smart Shopping Tips:</h4>
+                <ul style="padding-left: 1.5rem;">
+                  ${valuesAnalysis.balancingTips.map(tip => `<li style="margin: 0.5rem 0; line-height: 1.5; color: #059669;">${tip}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <!-- Celebrity Recommendations Section -->
+        ${celebrityRecommendations && celebrityRecommendations.celebrities && celebrityRecommendations.celebrities.length > 0 ? `
+          <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="color: #f59e0b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.5rem;">⭐</span>
+              Your Celebrity Style Icons
+            </h3>
+
+            ${celebrityRecommendations.summary ? `
+              <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6;">${celebrityRecommendations.summary}</p>
+            ` : ''}
+
+            <div style="display: grid; gap: 1.5rem;">
+              ${celebrityRecommendations.celebrities.map(celeb => `
+                <div style="padding: 1.5rem; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                  <h4 style="color: #1f2937; margin-bottom: 0.5rem; font-size: 1.125rem;">${celeb.name}</h4>
+                  <p style="color: #6b7280; margin-bottom: 1rem; font-style: italic;">${celeb.matchReason}</p>
+
+                  ${celeb.stylingTips && celeb.stylingTips.length > 0 ? `
+                    <div style="margin-bottom: 1rem;">
+                      <strong style="color: #1f2937;">Styling Tips:</strong>
+                      <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        ${celeb.stylingTips.map(tip => `<li style="margin: 0.25rem 0; color: #374151;">${tip}</li>`).join('')}
+                      </ul>
+                    </div>
+                  ` : ''}
+
+                  ${celeb.signaturePieces && celeb.signaturePieces.length > 0 ? `
+                    <div>
+                      <strong style="color: #1f2937;">Signature Pieces:</strong>
+                      <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
+                        ${celeb.signaturePieces.map(piece => `<li style="margin: 0.25rem 0; color: #374151;">${piece}</li>`).join('')}
+                      </ul>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Call to Action -->
+        <div style="text-align: center; margin-top: 2rem;">
+          <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.browseProducts()" style="padding: 1rem 2rem; font-size: 1.125rem; font-weight: 600;">
+            🛍️ Show Me Perfect Products!
+          </button>
+        </div>
       </div>
     `;
   }
@@ -2068,7 +2280,7 @@ class BodyShapeAdvisor {
     }
   }
 
-  handleValuesSubmit(event) {
+  async handleValuesSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
 
@@ -2084,10 +2296,25 @@ class BodyShapeAdvisor {
     // Mark questionnaire as completed
     this.valuesPreferences.completed = true;
 
-    console.log('Values preferences:', this.valuesPreferences);
+    console.log('✅ Values preferences:', this.valuesPreferences);
+    console.log('📊 Body shape:', this.bodyShapeResult.shape);
+    console.log('🎨 Color season:', this.colorSeasonResult);
 
-    // Go to style summary page with celebrity recommendations
-    this.goToStep('styleSummary');
+    // Show loading screen while getting combined Gemini AI analysis
+    this.currentStep = 'combinedAnalysisLoading';
+    this.render();
+
+    // Get combined analysis (body shape + color season + values + celebrity)
+    const success = await this.getCombinedAnalysis();
+
+    if (success) {
+      // Go to combined results page
+      this.goToStep('combinedResults');
+    } else {
+      // If analysis fails, go to products directly
+      console.log('⚠️ Analysis failed, going to products directly');
+      this.goToStep('products');
+    }
   }
 
   attachEventListeners() {
