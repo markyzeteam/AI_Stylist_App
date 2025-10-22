@@ -38,8 +38,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders });
   }
 
+  // Define body outside try block so it's accessible in catch block for fallback
+  let body: any;
+
   try {
-    const body = await request.json();
+    body = await request.json();
     const {
       bodyShape,
       measurements,
