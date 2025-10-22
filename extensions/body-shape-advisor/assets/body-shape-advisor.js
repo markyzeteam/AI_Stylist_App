@@ -1684,7 +1684,8 @@ class BodyShapeAdvisor {
           ` : ''}
         </div>
 
-        <!-- Color Season Analysis Section -->
+        <!-- Color Season Analysis Section - Only show if user completed color season quiz -->
+        ${colorSeasonAnalysis && this.colorSeasonResult ? `
         <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h3 style="color: #db2777; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
             <span style="font-size: 1.5rem;">🎨</span>
@@ -1732,9 +1733,10 @@ class BodyShapeAdvisor {
             </div>
           ` : ''}
         </div>
+        ` : ''}
 
-        <!-- Values Analysis Section -->
-        ${valuesAnalysis ? `
+        <!-- Values Analysis Section - Only show if user completed the questionnaire -->
+        ${valuesAnalysis && this.valuesPreferences.completed ? `
           <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="color: #059669; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 1.5rem;">💚</span>

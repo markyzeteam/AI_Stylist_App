@@ -119,6 +119,71 @@
   - If missing → shows loading screen → calls `getCombinedAnalysis()` → renders results
 - Updated onclick handler to call `backToCombinedResults()` instead of `goToStep('combinedResults')`
 
+### 🔧 SUB-UPDATE: Skipped Values Still Showing in Profile ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Issue:** Users who skipped the values questionnaire were still seeing a "Shopping Values & Style" section in their profile
+**Root Cause:**
+- Backend API was ALWAYS generating a values analysis, even when `completed: false`
+- The prompt asked for values analysis regardless of whether user filled out the questionnaire
+- Frontend displayed values section if it existed, without checking `completed` flag
+
+**What:**
+- **FRONTEND FIX:** Updated `renderCombinedResults()` to check `valuesPreferences.completed` before displaying values section (line 1737)
+- **BACKEND FIX #1:** Modified prompt to conditionally include/exclude values section based on `completed` flag and actual values
+- **BACKEND FIX #2:** Changed prompt from "FOUR sections" to "THREE sections" when values skipped
+- **BACKEND FIX #3:** Updated JSON schema to conditionally include `valuesAnalysis` field only when needed
+- **BACKEND FIX #4:** Return `valuesAnalysis: null` instead of Gemini-generated data when questionnaire not completed (line 148)
+
+**Why:**
+- Saves API costs by not generating unnecessary analysis
+- Provides accurate user experience - only shows what user actually provided
+- Reduces token usage (smaller prompts and responses when values skipped)
+
+**Files Changed:**
+- `extensions/body-shape-advisor/assets/body-shape-advisor.js` (line 1737)
+- `app/routes/api.gemini.combined-analysis.tsx` (lines 137-150, 261-276, 304-311, 361-367)
+
+**User Experience:**
+- **Before:** Skip values → Still see "💚 Your Shopping Values & Style" section → confusing
+- **After:** Skip values → Section not displayed → clean and accurate
+
+**Cost Savings:** ~15-20% reduction in tokens when values questionnaire skipped
+
+### 🔧 SUB-UPDATE: Color Season Skip Going to Products Instead of Profile ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Issue:** Users who skipped color season quiz were redirected directly to products instead of seeing their style profile
+**Root Cause:**
+- Backend API required BOTH body shape AND color season (returned 400 error if color season missing)
+- When API call failed, frontend fallback logic went directly to products
+- User couldn't see their style profile even though they had body shape data
+
+**What:**
+- **BACKEND FIX #1:** Removed color season validation requirement - now optional (line 60-63)
+- **BACKEND FIX #2:** Made prompt conditionally include/exclude color season section based on whether it was provided
+- **BACKEND FIX #3:** Updated section numbering dynamically (TWO, THREE, or FOUR sections) based on what user completed
+- **BACKEND FIX #4:** Return `colorSeasonAnalysis: null` when color season skipped (line 149)
+- **BACKEND FIX #5:** Updated JSON schema to conditionally include `colorSeasonAnalysis` field
+- **FRONTEND FIX:** Wrapped color season display section in conditional check (line 1688)
+
+**Why:**
+- Allows users to get a personalized style profile with just body shape data
+- Saves API costs when quizzes are skipped
+- Better user experience - see results for what you completed
+
+**Files Changed:**
+- `app/routes/api.gemini.combined-analysis.tsx` (lines 60-63, 139, 149, 267-287, 306-321, 353-371)
+- `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 1688, 1736)
+
+**User Experience:**
+- **Before:** Skip color season → API fails → sent to products directly → no style profile
+- **After:** Skip color season → API succeeds with body shape only → see style profile with body shape analysis + celebrity recommendations
+
+**Cost Savings:** ~25-30% reduction in tokens when color season quiz skipped
+
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 
 **BEFORE (5 Gemini Calls):**

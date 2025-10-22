@@ -57,9 +57,10 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: "Body shape required" }, { status: 400, headers: corsHeaders });
     }
 
-    if (!colorSeason) {
-      return json({ error: "Color season required" }, { status: 400, headers: corsHeaders });
-    }
+    // Color season is now optional (users can skip this quiz)
+    // if (!colorSeason) {
+    //   return json({ error: "Color season required" }, { status: 400, headers: corsHeaders });
+    // }
 
     if (!shop) {
       return json({ error: "Shop parameter required" }, { status: 400, headers: corsHeaders });
@@ -134,13 +135,19 @@ Make every customer feel seen, understood, and excited about their personal styl
 
     console.log("✅ Got combined analysis from Gemini");
 
+    // Only include analyses that user actually completed
+    const hasColorSeason = !!colorSeason;
+    const valuesCompleted = valuesPreferences?.completed === true;
+    const hasActualValues = valuesPreferences?.sustainability || valuesPreferences?.budgetRange || (valuesPreferences?.styles && valuesPreferences.styles.length > 0);
+    const includeValues = valuesCompleted && hasActualValues;
+
     return json({
       success: true,
       bodyShape,
       colorSeason,
       bodyShapeAnalysis: analysis.bodyShapeAnalysis,
-      colorSeasonAnalysis: analysis.colorSeasonAnalysis,
-      valuesAnalysis: analysis.valuesAnalysis,
+      colorSeasonAnalysis: hasColorSeason ? analysis.colorSeasonAnalysis : null,
+      valuesAnalysis: includeValues ? analysis.valuesAnalysis : null,
       celebrityRecommendations: analysis.celebrityRecommendations,
     }, { headers: corsHeaders });
 
@@ -258,20 +265,36 @@ function buildCombinedPrompt(config: any): string {
     }
   }
 
-  return `${customerAnalysisPrompt}
+  // Check if user completed color season and values questionnaires
+  const hasColorSeason = !!colorSeason;
+  const valuesCompleted = valuesPreferences?.completed === true;
+  const hasActualValues = valuesPreferences?.sustainability || valuesPreferences?.budgetRange || (valuesPreferences?.styles && valuesPreferences.styles.length > 0);
+  const includeValuesAnalysis = valuesCompleted && hasActualValues;
 
-**CUSTOMER PROFILE:**
-- Body Shape: ${bodyShape}
-- Color Season: ${colorSeason}${customerProfile}${genderGuidance}
+  let valuesSection = "";
+  if (includeValuesAnalysis) {
+    valuesSection = `
 
 **CUSTOMER'S VALUES & PREFERENCES:**
 - Sustainability: ${valuesPreferences?.sustainability ? 'Important' : 'Not a priority'}
 - Budget: ${valuesPreferences?.budgetRange || 'Not specified'}
-- Style Preferences: ${valuesPreferences?.styles?.join(', ') || 'Not specified'}
+- Style Preferences: ${valuesPreferences?.styles?.join(', ') || 'Not specified'}`;
+  }
+
+  // Count how many sections to request
+  let sectionCount = 2; // Body shape + Celebrity (always included)
+  if (hasColorSeason) sectionCount++;
+  if (includeValuesAnalysis) sectionCount++;
+  const numberOfSections = sectionCount === 2 ? "TWO" : sectionCount === 3 ? "THREE" : "FOUR";
+
+  return `${customerAnalysisPrompt}
+
+**CUSTOMER PROFILE:**
+- Body Shape: ${bodyShape}${hasColorSeason ? `\n- Color Season: ${colorSeason}` : ''}${customerProfile}${genderGuidance}${valuesSection}
 
 ---
 
-Please provide a comprehensive analysis covering FOUR sections:
+Please provide a comprehensive analysis covering ${numberOfSections} sections:
 
 ## 1. BODY SHAPE ANALYSIS
 Analyze the "${bodyShape}" body shape and provide:
@@ -281,7 +304,7 @@ Analyze the "${bodyShape}" body shape and provide:
 - Items to avoid and why
 - Professional styling tips
 
-## 2. COLOR SEASON ANALYSIS
+${hasColorSeason ? `## 2. COLOR SEASON ANALYSIS
 Analyze the "${colorSeason}" color season and provide:
 - Detailed explanation of this color season's characteristics (2-3 paragraphs)
 - Best colors for this season
@@ -289,14 +312,14 @@ Analyze the "${colorSeason}" color season and provide:
 - Colors to avoid and why
 - Styling tips for incorporating these colors
 
-## 3. VALUES ANALYSIS
+` : ''}${includeValuesAnalysis ? `## ${hasColorSeason ? '3' : '2'}. VALUES ANALYSIS
 Analyze the customer's shopping values and preferences:
 - Thoughtful analysis of how their values shape their ideal wardrobe (2-3 paragraphs)
 - Brands or shopping strategies that align with their values
-- How to balance their preferences with their body shape and color season
+- How to balance their preferences with their body shape${hasColorSeason ? ' and color season' : ''}
 - Practical tips for shopping within their parameters
 
-## 4. CELEBRITY STYLE INSPIRATION
+## ${hasColorSeason ? '4' : '3'}. CELEBRITY STYLE INSPIRATION` : `## ${hasColorSeason ? '3' : '2'}. CELEBRITY STYLE INSPIRATION`}
 Recommend 3-4 celebrities who match this customer's profile (body shape, color season, and style preferences).${measurements?.gender ? ` MUST recommend ${measurements.gender === 'man' ? 'MALE' : measurements.gender === 'woman' ? 'FEMALE' : 'DIVERSE'} celebrities only.` : ''}
 
 For each celebrity provide:
@@ -328,7 +351,7 @@ Return your response as a JSON object with this EXACT structure:
       }
     ],
     "proTips": ["Tip 1", "Tip 2", "Tip 3"]
-  },
+  },${hasColorSeason ? `
   "colorSeasonAnalysis": {
     "analysis": "Detailed explanation (2-3 paragraphs)",
     "bestColors": ["Color 1", "Color 2", "Color 3", "Color 4", "Color 5"],
@@ -346,13 +369,13 @@ Return your response as a JSON object with this EXACT structure:
       }
     ],
     "stylingTips": ["Tip 1", "Tip 2", "Tip 3", "Tip 4"]
-  },
+  },` : ''}${includeValuesAnalysis ? `
   "valuesAnalysis": {
     "analysis": "Thoughtful analysis of their shopping values (2-3 paragraphs)",
     "recommendedBrands": ["Brand/strategy 1", "Brand/strategy 2", "Brand/strategy 3"],
     "balancingTips": ["How to balance values with style", "Practical shopping advice", "Budget-conscious tips"],
     "sustainabilityTips": ["Sustainability tip 1", "Tip 2"] // Only if sustainability is important
-  },
+  },` : ''}
   "celebrityRecommendations": {
     "summary": "Brief overview of the customer's unique style profile (2-3 sentences)",
     "celebrities": [
