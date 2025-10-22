@@ -1280,12 +1280,12 @@ class BodyShapeAdvisor {
   }
 
   renderColorSeasonPathSelection() {
+    // Determine where the back button should go
+    const backStep = this.bodyShapeResult ? 'results' : 'pathSelection';
+
     return `
       <div class="bsa-path-selection">
-        <div class="bsa-header">
-          <h3>🎨 Discover Your Skin Color Season</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('pathSelection')">← Back
-        </div>
+        <h3>🎨 Discover Your Skin Color Season</h3>
 
         <p style="text-align: center; color: #64748b; margin-bottom: 2rem; font-size: 16px;">
           How would you like to find your color season?
@@ -1312,7 +1312,7 @@ class BodyShapeAdvisor {
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('pathSelection')">
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('${backStep}')">
             ← Back
           </button>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.skipColorSeason()">
@@ -1594,13 +1594,16 @@ class BodyShapeAdvisor {
     if (!this.colorSeasonResult) return '';
 
     const claudeAnalysis = this.colorSeasonData?.claudeAnalysis;
+    // Determine back button destination - go to results if body shape was done, otherwise go back to color season selection
+    const backStep = this.bodyShapeResult ? 'results' : 'colorSeasonPathSelection';
+    const backText = this.bodyShapeResult ? '← Back to Body Shape' : '← Back';
 
     return `
       <div class="bsa-results">
         <div class="bsa-header">
           <h3>Your Skin Color Season Results</h3>
-          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('results')">
-            ← Back to Body Shape
+          <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('${backStep}')">
+            ${backText}
           </button>
         </div>
 
@@ -1675,7 +1678,7 @@ class BodyShapeAdvisor {
 
         <div class="bsa-next-steps">
           <h4>🛍️ Ready to Shop?</h4>
-          <p>Browse products that match both your ${this.bodyShapeResult.shape} body shape and ${this.colorSeasonResult} skin color season!</p>
+          <p>Browse products that match ${this.bodyShapeResult ? `both your ${this.bodyShapeResult.shape} body shape and ` : ''}your ${this.colorSeasonResult} skin color season!</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
             <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('valuesQuestionnaire')" style="flex: 1; min-width: 200px;">
               Continue to Shopping Preferences
