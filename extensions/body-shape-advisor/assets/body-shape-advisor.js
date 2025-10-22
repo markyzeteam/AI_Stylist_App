@@ -223,6 +223,15 @@ class BodyShapeAdvisor {
           <div class="bsa-form-section">
             <h4>Body Measurements</h4>
 
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+              <p style="margin-bottom: 0.5rem; font-weight: 500;">📏 How to Measure</p>
+              <img
+                src="https://www.carlyjeanlosangeles.com/cdn/shop/files/CJLA-Measuring-Guide-FINAL_96976614-70e1-4eaa-8cf6-b6cd5f4491f9_2048x.jpg?v=1727893667"
+                alt="Measuring Guide - How to take body measurements"
+                style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+              />
+            </div>
+
             <div class="bsa-form-row">
               <div class="bsa-form-field">
                 <label>Height (<span class="unit-label">cm</span>)</label>
@@ -510,7 +519,23 @@ class BodyShapeAdvisor {
       }
     });
 
-    // Store measurements for later use
+    // Convert imperial to metric if needed
+    if (measurements.unit === 'imperial') {
+      // Convert inches to cm (1 inch = 2.54 cm)
+      if (measurements.height) measurements.height = measurements.height * 2.54;
+      if (measurements.bust) measurements.bust = measurements.bust * 2.54;
+      if (measurements.waist) measurements.waist = measurements.waist * 2.54;
+      if (measurements.hips) measurements.hips = measurements.hips * 2.54;
+      if (measurements.shoulders) measurements.shoulders = measurements.shoulders * 2.54;
+
+      // Convert lbs to kg (1 lb = 0.453592 kg)
+      if (measurements.weight) measurements.weight = measurements.weight * 0.453592;
+
+      // Mark that we've converted to metric
+      measurements.unit = 'metric';
+    }
+
+    // Store measurements for later use (always in metric/cm)
     this.measurements = measurements;
 
     // Simple body shape calculation (simplified version)

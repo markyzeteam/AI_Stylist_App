@@ -40,6 +40,25 @@
 **Files Changed:** `app/utils/geminiRecommendations.ts`
 **Example:** For cargo pants with waist measurements, Gemini can now say "Based on your 32\" waist, I recommend the Medium (15\" wide)" instead of just "The description mentions a slim fitted fit"
 
+### 🔧 SUB-UPDATE: Imperial to Metric Unit Conversion ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Issue:** User entered "31 inches" for waist measurement, but Gemini interpreted it as "31cm" (12.2 inches), causing incorrect size recommendations
+**Root Cause:** The storefront form had a unit selector (metric/imperial), but the `calculateBodyShape()` function didn't convert imperial measurements to metric before storing them
+**What:**
+- Added automatic conversion of imperial measurements to metric in `calculateBodyShape()` function
+- Inches → Centimeters (multiply by 2.54)
+- Pounds → Kilograms (multiply by 0.453592)
+- All measurements now stored consistently in metric (cm) regardless of input unit
+- Added sizing help instruction image from Carly Jean Los Angeles to help users take accurate measurements
+**Why:** Backend API expects all measurements in cm (hardcoded in prompt), so imperial units must be converted client-side for accurate size recommendations
+**Files Changed:** `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 513-527, 226-233)
+**User Experience:**
+- **Before:** User enters 31 inches → stored as 31 → backend treats as 31cm → recommends Small (waist 12.5")
+- **After:** User enters 31 inches → converted to 78.74cm → backend correctly processes → recommends correct size based on 31" waist
+**Added:** Sizing help image (https://www.carlyjeanlosangeles.com/cdn/shop/files/CJLA-Measuring-Guide-FINAL...) displayed in the form to guide users on proper measurement techniques
+
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 
 **BEFORE (5 Gemini Calls):**
