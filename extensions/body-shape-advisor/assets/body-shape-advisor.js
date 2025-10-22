@@ -42,6 +42,7 @@ class BodyShapeAdvisor {
       completed: false // Track if questionnaire was completed
     };
     this.celebrityRecommendations = null; // Will be loaded from Gemini API
+    this.combinedAnalysis = null; // Will be loaded from combined analysis API
 
     this.init();
   }
@@ -320,7 +321,28 @@ class BodyShapeAdvisor {
     `;
   }
 
-  goToStep(step) {
+  async goToStep(step) {
+    // Special handling for combinedResults - re-fetch if data missing
+    if (step === 'combinedResults' && !this.combinedAnalysis) {
+      console.log('⚠️ Combined analysis data missing, re-fetching...');
+      this.currentStep = 'combinedAnalysisLoading';
+      this.render();
+
+      const success = await this.getCombinedAnalysis();
+      if (success) {
+        this.currentStep = 'combinedResults';
+        this.render();
+        this.loadCelebrityImages();
+        return;
+      } else {
+        // If analysis fails, go to products directly
+        console.log('⚠️ Re-fetch failed, going to products directly');
+        this.currentStep = 'products';
+        this.render();
+        return;
+      }
+    }
+
     this.currentStep = step;
 
     // Clear cached data when starting over
@@ -328,6 +350,7 @@ class BodyShapeAdvisor {
       this.bodyShapeResult = null;
       this.colorSeasonResult = null;
       this.productRecommendations = [];
+      this.combinedAnalysis = null;
       this.measurements = {
         gender: '',
         age: '',
@@ -1601,7 +1624,28 @@ class BodyShapeAdvisor {
 
   renderCombinedResults() {
     if (!this.combinedAnalysis) {
-      return '<div class="bsa-error">Analysis data not available</div>';
+      return `
+        <div style="text-align: center; padding: 3rem; max-width: 600px; margin: 0 auto;">
+          <div style="font-size: 4rem; margin-bottom: 1rem;">😔</div>
+          <h3 style="color: #1f2937; margin-bottom: 1rem;">Style Profile Not Available</h3>
+          <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.6;">
+            Your style profile data is not available. This might happen if the page was refreshed or if there was an error during analysis.
+          </p>
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.proceedToRecommendations()">
+              Retry Analysis
+            </button>
+            ${this.bodyShapeResult ? `
+              <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.browseProducts()">
+                Skip to Products
+              </button>
+            ` : ''}
+            <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('welcome')">
+              Start Over
+            </button>
+          </div>
+        </div>
+      `;
     }
 
     const { bodyShapeAnalysis, colorSeasonAnalysis, valuesAnalysis, celebrityRecommendations } = this.combinedAnalysis;

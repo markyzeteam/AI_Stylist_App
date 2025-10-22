@@ -84,6 +84,34 @@
 - **Before:** User skips values → profile shows "💰 medium" → confusing/misleading
 - **After:** User skips values → profile shows only body shape/color season → accurate
 
+### 🔧 SUB-UPDATE: Back Button "Analysis Data Not Available" Bug ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Issue:** Users clicking "Back to Style Profile" button from products page were seeing "Analysis data not available" error
+**Root Cause:**
+- `combinedAnalysis` was not initialized in the constructor (started as `undefined`)
+- When navigating back to `combinedResults` page, the app didn't check if the data was available
+- If data was missing (page refresh, API failure, etc.), user would see a generic error with no recovery options
+
+**What:**
+- **INITIALIZED** `this.combinedAnalysis = null` in constructor for proper state management
+- **UPDATED** `goToStep()` function to automatically re-fetch combined analysis if missing when navigating to results page
+- **IMPROVED** error message in `renderCombinedResults()` with helpful recovery options:
+  - "Retry Analysis" button to re-fetch the data
+  - "Skip to Products" button to bypass the profile page
+  - "Start Over" button to restart the quiz
+- **ADDED** loading screen while re-fetching data
+- **ADDED** graceful fallback to products page if re-fetch fails
+
+**Why:** Users should never hit a dead-end error. The app should automatically recover from missing data or provide clear paths forward.
+
+**Files Changed:** `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 45, 324-373, 1625-1649)
+
+**User Experience:**
+- **Before:** Click back → "Analysis data not available" → stuck, no options
+- **After:** Click back → automatically re-fetches data → shows profile OR provides helpful recovery options
+
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 
 **BEFORE (5 Gemini Calls):**
