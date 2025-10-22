@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "../db.server";
-import { loadGeminiSettings, retryWithBackoff } from "./geminiAnalysis";
+import { loadGeminiSettings, retryWithBackoff, DEFAULT_GEMINI_RECOMMENDATION_PROMPT } from "./geminiAnalysis";
 
 /**
  * PHASE 2: Gemini Recommendations Utility
@@ -44,19 +44,6 @@ export interface CachedProduct {
   designDetails?: string[];
   patternType?: string;
 }
-
-// Default recommendation prompt for Gemini
-export const DEFAULT_GEMINI_RECOMMENDATION_PROMPT = `You are an expert fashion stylist and personal shopper with deep knowledge of body proportions and style optimization. Your goal is to select products that will genuinely flatter the customer's body shape and color season preferences.
-
-You analyze clothing based on:
-- Silhouette and how it interacts with different body shapes
-- Color harmony with seasonal color analysis
-- Fabric, drape, and structure
-- Necklines, waistlines, and hem styles
-- Design details and pattern placement
-- Fit and proportion principles
-
-You provide honest, specific recommendations that help customers look and feel their best.`;
 
 /**
  * Get product recommendations using Gemini AI with CACHED image analysis

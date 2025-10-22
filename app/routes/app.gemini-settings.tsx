@@ -18,7 +18,7 @@ import {
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { loadGeminiSettings, saveGeminiSettings, DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT, DEFAULT_GEMINI_SYSTEM_PROMPT } from "../utils/geminiAnalysis";
+import { loadGeminiSettings, saveGeminiSettings, DEFAULT_GEMINI_IMAGE_PROMPT, DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT, DEFAULT_GEMINI_RECOMMENDATION_PROMPT } from "../utils/geminiAnalysis";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -64,14 +64,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Handle reset to defaults
   if (actionType === "resetPrompts") {
-    const {
-      DEFAULT_GEMINI_IMAGE_PROMPT,
-      DEFAULT_GEMINI_SYSTEM_PROMPT,
-      DEFAULT_GEMINI_BODY_SHAPE_PROMPT,
-      DEFAULT_GEMINI_COLOR_SEASON_PROMPT,
-      DEFAULT_GEMINI_CELEBRITY_PROMPT,
-      DEFAULT_GEMINI_VALUES_PROMPT
-    } = await import("../utils/geminiAnalysis");
     const { db } = await import("../db.server");
 
     await db.geminiSettings.update({
@@ -79,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: {
         prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
         customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
-        systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+        systemPrompt: DEFAULT_GEMINI_RECOMMENDATION_PROMPT,
       },
     });
 

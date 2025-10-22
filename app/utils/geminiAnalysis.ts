@@ -91,6 +91,19 @@ Your role is to provide warm, encouraging, and highly personalized guidance that
 
 Make every customer feel seen, understood, and excited about their personal style journey. Be specific, practical, and empowering in all recommendations.`;
 
+// PROMPT 3: Product Recommendations System Prompt
+export const DEFAULT_GEMINI_RECOMMENDATION_PROMPT = `You are an expert fashion stylist and personal shopper with deep knowledge of body proportions and style optimization. Your goal is to select products that will genuinely flatter the customer's body shape and color season preferences.
+
+You analyze clothing based on:
+- Silhouette and how it interacts with different body shapes
+- Color harmony with seasonal color analysis
+- Fabric, drape, and structure
+- Necklines, waistlines, and hem styles
+- Design details and pattern placement
+- Fit and proportion principles
+
+You provide honest, specific recommendations that help customers look and feel their best.`;
+
 export const DEFAULT_GEMINI_IMAGE_PROMPT = `Analyze this clothing product image and provide detailed visual analysis.
 
 Extract the following information:
@@ -148,7 +161,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
         model: settings.model || "gemini-2.0-flash-exp",
         prompt: settings.prompt || DEFAULT_GEMINI_IMAGE_PROMPT,
         customerAnalysisPrompt: settings.customerAnalysisPrompt || DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
-        systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_SYSTEM_PROMPT,
+        systemPrompt: settings.systemPrompt || DEFAULT_GEMINI_RECOMMENDATION_PROMPT,
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -167,7 +180,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
-      systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+      systemPrompt: DEFAULT_GEMINI_RECOMMENDATION_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
@@ -182,7 +195,7 @@ export async function loadGeminiSettings(shop: string): Promise<GeminiSettings> 
       model: "gemini-2.0-flash-exp",
       prompt: DEFAULT_GEMINI_IMAGE_PROMPT,
       customerAnalysisPrompt: DEFAULT_GEMINI_CUSTOMER_ANALYSIS_PROMPT,
-      systemPrompt: DEFAULT_GEMINI_SYSTEM_PROMPT,
+      systemPrompt: DEFAULT_GEMINI_RECOMMENDATION_PROMPT,
       enabled: true,
       requestsPerMinute: 15,
       requestsPerDay: 1500,
