@@ -86,6 +86,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const enabled = formData.get("enabled") === "true";
   const prompt = formData.get("prompt") as string;
   const systemPrompt = formData.get("systemPrompt") as string;
+
+  // Debug logging for prompts
+  console.log('💾 SAVE DEBUG - Prompts being saved:', {
+    shop,
+    hasPrompt: !!prompt,
+    promptLength: prompt?.length || 0,
+    promptPreview: prompt?.substring(0, 80) || 'empty',
+    hasSystemPrompt: !!systemPrompt,
+    systemPromptLength: systemPrompt?.length || 0,
+    systemPromptPreview: systemPrompt?.substring(0, 80) || 'empty'
+  });
   const requestsPerMinute = parseInt(formData.get("requestsPerMinute") as string) || 15;
   const requestsPerDay = parseInt(formData.get("requestsPerDay") as string) || 1500;
   const batchSize = parseInt(formData.get("batchSize") as string) || 10;
@@ -118,7 +129,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const finalApiKey = apiKey && apiKey.startsWith("••••") ? existingSettings.apiKey : apiKey;
 
   // Save settings
-  const success = await saveGeminiSettings(shop, {
+  const settingsToSave = {
     apiKey: finalApiKey,
     model,
     enabled,
@@ -132,7 +143,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     budgetLowMax,
     budgetMediumMax,
     budgetHighMax,
+  };
+
+  console.log('💾 SAVE DEBUG - Final settings to save:', {
+    hasPrompt: !!settingsToSave.prompt,
+    hasSystemPrompt: !!settingsToSave.systemPrompt,
+    systemPromptFinal: settingsToSave.systemPrompt?.substring(0, 100)
   });
+
+  const success = await saveGeminiSettings(shop, settingsToSave);
+
+  console.log('💾 SAVE DEBUG - Save result:', { success });
 
   if (success) {
     return json({

@@ -89,6 +89,16 @@ export async function getGeminiProductRecommendations(
     // Load Gemini settings
     const geminiSettings = await loadGeminiSettings(shop);
 
+    // Debug logging for settings
+    console.log('⚙️ SETTINGS DEBUG - Loaded Gemini Settings:', {
+      shop,
+      hasSystemPrompt: !!geminiSettings.systemPrompt,
+      systemPromptLength: geminiSettings.systemPrompt?.length || 0,
+      systemPromptPreview: geminiSettings.systemPrompt?.substring(0, 100) || 'none',
+      model: geminiSettings.model,
+      enabled: geminiSettings.enabled
+    });
+
     if (!geminiSettings.enabled) {
       console.log("⚠ Gemini AI is disabled, using fallback algorithm");
       return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
@@ -473,6 +483,15 @@ Customer Measurements:
 
   // Use custom systemPrompt from settings, or fall back to default
   const systemPrompt = geminiSettings?.systemPrompt || DEFAULT_GEMINI_RECOMMENDATION_PROMPT;
+
+  // Debug logging to verify which prompt is being used
+  console.log('🔍 PROMPT DEBUG - systemPrompt source:', {
+    hasGeminiSettings: !!geminiSettings,
+    hasCustomPrompt: !!geminiSettings?.systemPrompt,
+    promptLength: systemPrompt.length,
+    promptPreview: systemPrompt.substring(0, 100) + '...',
+    usingDefault: systemPrompt === DEFAULT_GEMINI_RECOMMENDATION_PROMPT
+  });
 
   return `${systemPrompt}
 

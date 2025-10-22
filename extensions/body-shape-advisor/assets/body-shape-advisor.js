@@ -609,7 +609,7 @@ class BodyShapeAdvisor {
         };
       }
 
-      // V-Shape/Athletic (significantly broad shoulders, narrow waist)
+      // V-Shape/Athletic (very broad shoulders & chest, narrow waist)
       // Both conditions must be true (AND logic) to ensure truly athletic build
       if (shoulderWaistRatio > 1.3 && chestWaistRatio > 1.25) {
         console.log('✅ Matched V-Shape/Athletic');
@@ -622,11 +622,22 @@ class BodyShapeAdvisor {
         };
       }
 
+      // Inverted Triangle/Trapezoid (broader shoulders than waist, but not dramatically)
+      if ((shoulderWaistRatio > 1.15 || chestWaistRatio > 1.15) && shoulderWaistRatio <= 1.3) {
+        console.log('✅ Matched Inverted Triangle');
+        return {
+          shape: "Inverted Triangle",
+          description: "Broader shoulders than waist, athletic frame",
+          confidence: 0.85,
+          characteristics: ["Broader shoulders", "Defined upper body", "Narrower waist"],
+          recommendations: this.getShapeRecommendations("Inverted Triangle")
+        };
+      }
+
       // Rectangle/Straight (balanced proportions)
-      // More inclusive threshold: most men fall into this category
-      if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.3 &&
-          chestWaistRatio >= 0.9 && chestWaistRatio <= 1.25 &&
-          Math.abs(chest - waistNum) < 25 && Math.abs(shouldersNum - waistNum) < 25) {
+      // Most men with average proportions fall here
+      if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.15 &&
+          chestWaistRatio >= 0.9 && chestWaistRatio <= 1.15) {
         console.log('✅ Matched Rectangle/Straight');
         return {
           shape: "Rectangle/Straight",
@@ -637,9 +648,21 @@ class BodyShapeAdvisor {
         };
       }
 
+      // Triangle/Pear (narrow shoulders, wider hips - less common in men)
+      if (shoulderWaistRatio < 0.9 && shouldersNum < waistNum) {
+        console.log('✅ Matched Triangle/Pear');
+        return {
+          shape: "Triangle/Pear",
+          description: "Narrower shoulders, fuller lower body",
+          confidence: 0.8,
+          characteristics: ["Narrower shoulders", "Fuller midsection and hips"],
+          recommendations: this.getShapeRecommendations("Triangle/Pear")
+        };
+      }
+
       console.log('⬇️ Falling through to Oval/Apple');
 
-      // Oval/Apple (fuller midsection)
+      // Oval/Apple (fuller midsection, default catch-all)
       return {
         shape: "Oval/Apple",
         description: "Fuller midsection with broader waist",
@@ -653,10 +676,11 @@ class BodyShapeAdvisor {
   getShapeDescription(shape) {
     const descriptions = {
       "Pear/Triangle": "Hips wider than bust and shoulders",
+      "Triangle/Pear": "Narrower shoulders, fuller lower body",
       "Apple/Round": "Fuller midsection with less defined waist",
       "Oval/Apple": "Fuller midsection with broader waist",
       "Hourglass": "Balanced bust and hips with defined waist",
-      "Inverted Triangle": "Broader shoulders and bust than hips",
+      "Inverted Triangle": "Broader shoulders than waist, athletic frame",
       "Rectangle/Straight": "Similar measurements throughout",
       "V-Shape/Athletic": "Broad shoulders with narrow waist"
     };
@@ -666,10 +690,11 @@ class BodyShapeAdvisor {
   getShapeCharacteristics(shape) {
     const characteristics = {
       "Pear/Triangle": "Fuller hips and thighs, narrower shoulders",
+      "Triangle/Pear": "Narrower shoulders, fuller midsection and hips",
       "Apple/Round": "Fuller bust and midsection, slimmer legs",
       "Oval/Apple": "Fuller midsection, less defined waist, broader torso",
       "Hourglass": "Curved silhouette, well-defined waist",
-      "Inverted Triangle": "Broader shoulders, narrower hips",
+      "Inverted Triangle": "Broader shoulders, defined upper body, narrower waist",
       "Rectangle/Straight": "Balanced proportions, minimal waist definition",
       "V-Shape/Athletic": "Athletic build, muscular shoulders"
     };
@@ -684,6 +709,13 @@ class BodyShapeAdvisor {
         "Tops with interesting necklines",
         "Structured blazers to balance shoulders"
       ],
+      "Triangle/Pear": [
+        "Structured jackets to broaden shoulders",
+        "Horizontal stripes on upper body",
+        "Darker colors on lower body",
+        "Straight-leg or bootcut pants",
+        "Avoid skinny jeans"
+      ],
       "Apple/Round": [
         "Empire waist dresses",
         "V-neck and scoop neck tops",
@@ -695,6 +727,7 @@ class BodyShapeAdvisor {
         "Open jackets and cardigans",
         "Darker colors on torso",
         "V-neck and scoop neck tops",
+        "Straight-cut shirts",
         "Avoid tight-fitting clothes around midsection"
       ],
       "Hourglass": [
@@ -704,22 +737,26 @@ class BodyShapeAdvisor {
         "Belted garments to emphasize waist"
       ],
       "Inverted Triangle": [
-        "A-line skirts and dresses",
-        "Wide-leg pants",
-        "Scoop and V-necklines",
-        "Minimize shoulder details"
+        "Balance broad shoulders with fitted waist",
+        "Straight-leg or slim-fit pants",
+        "V-neck shirts to elongate torso",
+        "Avoid shoulder pads or epaulettes",
+        "Fitted shirts that taper at waist",
+        "Darker colors on top, lighter on bottom"
       ],
       "Rectangle/Straight": [
-        "Create curves with belts and fitted styles",
         "Layering to add dimension",
-        "Peplum tops and dresses",
-        "Cropped jackets and structured pieces"
+        "Fitted cuts to create shape",
+        "Horizontal stripes",
+        "Structured jackets",
+        "Textured fabrics"
       ],
       "V-Shape/Athletic": [
         "Fitted shirts that show your shape",
         "Straight-leg pants",
         "Minimal shoulder padding",
-        "V-necks and open collars"
+        "V-necks and open collars",
+        "Tapered fits at the waist"
       ]
     };
     return recommendations[shape] || [];
