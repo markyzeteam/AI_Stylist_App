@@ -1056,8 +1056,9 @@ class BodyShapeAdvisor {
 
     const colorSeasonText = this.colorSeasonResult ? ` & ${this.colorSeasonResult} Skin Color Season` : '';
 
-    // Build profile summary - only show values if questionnaire was completed
-    const hasValues = this.valuesPreferences && this.valuesPreferences.completed;
+    // Build profile summary - only show values if questionnaire was completed AND has actual values
+    const hasValues = this.valuesPreferences && this.valuesPreferences.completed &&
+      (this.valuesPreferences.sustainability || this.valuesPreferences.budgetRange || this.valuesPreferences.styles.length > 0);
     const valuesText = hasValues ? ` + Your Shopping Values` : '';
 
     return `
@@ -1490,12 +1491,13 @@ class BodyShapeAdvisor {
           <div class="bsa-form-section">
             <h4>💰 Budget Range</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
-              What's your typical spending range per item?
+              What's your typical spending range per item? (optional)
             </p>
             <div class="bsa-form-field">
-              <select name="budgetRange" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;">
+              <select name="budgetRange" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;">
+                <option value="" ${!this.valuesPreferences.budgetRange ? 'selected' : ''}>Select budget range (optional)</option>
                 <option value="low" ${this.valuesPreferences.budgetRange === 'low' ? 'selected' : ''}>Budget-Friendly (Under $${this.budgetSettings.budgetLowMax})</option>
-                <option value="medium" ${!this.valuesPreferences.budgetRange || this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($${this.budgetSettings.budgetLowMax}-$${this.budgetSettings.budgetMediumMax})</option>
+                <option value="medium" ${this.valuesPreferences.budgetRange === 'medium' ? 'selected' : ''}>Mid-Range ($${this.budgetSettings.budgetLowMax}-$${this.budgetSettings.budgetMediumMax})</option>
                 <option value="high" ${this.valuesPreferences.budgetRange === 'high' ? 'selected' : ''}>Premium ($${this.budgetSettings.budgetMediumMax}-$${this.budgetSettings.budgetHighMax})</option>
                 <option value="luxury" ${this.valuesPreferences.budgetRange === 'luxury' ? 'selected' : ''}>Luxury ($${this.budgetSettings.budgetHighMax}+)</option>
               </select>
@@ -2007,7 +2009,7 @@ class BodyShapeAdvisor {
     console.log('⏭️ User skipped values questionnaire');
     this.valuesPreferences = {
       sustainability: false,
-      budgetRange: 'medium',
+      budgetRange: null,
       styles: [],
       completed: false
     };
@@ -2076,8 +2078,9 @@ class BodyShapeAdvisor {
     // Get sustainability preference
     this.valuesPreferences.sustainability = formData.get('sustainability') === 'true';
 
-    // Get budget range
-    this.valuesPreferences.budgetRange = formData.get('budgetRange');
+    // Get budget range (convert empty string to null)
+    const budgetRange = formData.get('budgetRange');
+    this.valuesPreferences.budgetRange = budgetRange && budgetRange !== '' ? budgetRange : null;
 
     // Get style preferences (multiple checkboxes)
     this.valuesPreferences.styles = formData.getAll('styles');

@@ -59,6 +59,31 @@
 - **After:** User enters 31 inches → converted to 78.74cm → backend correctly processes → recommends correct size based on 31" waist
 **Added:** Sizing help image (https://www.carlyjeanlosangeles.com/cdn/shop/files/CJLA-Measuring-Guide-FINAL...) displayed in the form to guide users on proper measurement techniques
 
+### 🔧 SUB-UPDATE: Shopping Values Default "Medium" Bug ✅ FIXED
+
+**Date:** 2025-10-22
+**Status:** ✅ IMPLEMENTED & FIXED
+**Issue:** Users who skipped or didn't complete the shopping values questionnaire were seeing "medium" displayed in their profile, even though they never selected it
+**Root Cause:**
+- The budget range select field had "medium" as the default selected option when no choice was made (line 1498)
+- The `skipValues()` function explicitly set `budgetRange: 'medium'` as a default (line 2010)
+- The profile header displayed "+ Your Shopping Values" even when no actual values were provided
+
+**What:**
+- **FIXED** budget range select to show a placeholder "Select budget range (optional)" with empty value as default
+- **REMOVED** the `required` attribute from budget range select (now optional)
+- **CHANGED** `skipValues()` to set `budgetRange: null` instead of `'medium'`
+- **UPDATED** `handleValuesSubmit()` to convert empty string budget values to `null`
+- **IMPROVED** profile header logic to only show "+ Your Shopping Values" when user has actually provided values (sustainability=true OR budgetRange set OR styles selected)
+
+**Why:** Users should not see shopping values in their profile unless they explicitly provided them. "Medium" was appearing as a false positive.
+
+**Files Changed:** `extensions/body-shape-advisor/assets/body-shape-advisor.js` (lines 1496-1502, 2010, 2080-2082, 1060-1062)
+
+**User Experience:**
+- **Before:** User skips values → profile shows "💰 medium" → confusing/misleading
+- **After:** User skips values → profile shows only body shape/color season → accurate
+
 ### 🎯 FINAL 3-CALL ARCHITECTURE:
 
 **BEFORE (5 Gemini Calls):**
