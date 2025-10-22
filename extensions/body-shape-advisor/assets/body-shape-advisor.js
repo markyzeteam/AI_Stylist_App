@@ -1693,8 +1693,16 @@ class BodyShapeAdvisor {
   }
 
   renderValuesQuestionnaire() {
-    // Determine the back button destination
-    const backStep = this.colorSeasonResult ? 'colorSeasonResults' : 'results';
+    // Determine the back button destination based on what quizzes were completed
+    let backStep;
+    if (this.colorSeasonResult) {
+      backStep = 'colorSeasonResults';
+    } else if (this.bodyShapeResult) {
+      backStep = 'results';
+    } else {
+      // Fallback - shouldn't happen due to validation, but just in case
+      backStep = 'pathSelection';
+    }
 
     return `
       <div class="bsa-values-questionnaire">
