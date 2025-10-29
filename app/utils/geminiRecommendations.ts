@@ -533,14 +533,12 @@ CRITICAL RULES:
 - Prioritize variety across different product types (tops, bottoms, dresses, accessories)
 - STRICTLY follow gender-specific requirements above - do NOT recommend products for the wrong gender
 
-IMPORTANT - FOLLOW SYSTEM PROMPT INSTRUCTIONS:
-Review the system prompt at the beginning of this message and follow ALL formatting and style instructions specified there, especially for:
-- How to format the "reasoning" field
-- How to format the "sizeAdvice" field
-- How to format the "stylingTip" field
-Any specific formatting requirements in the system prompt MUST be followed exactly.
+====================
+REMINDER - YOUR ROLE AND INSTRUCTIONS:
+${systemPrompt}
+====================
 
-Format your response as valid JSON (no markdown):
+Now, applying ALL the instructions above, format your response as valid JSON (no markdown):
 {
   "recommendations": [
     {
