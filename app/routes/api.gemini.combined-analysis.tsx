@@ -294,7 +294,12 @@ function buildCombinedPrompt(config: any): string {
 
 ---
 
-Please provide a comprehensive analysis covering ${numberOfSections} sections:
+====================
+REMINDER - YOUR ROLE AND INSTRUCTIONS:
+${customerAnalysisPrompt}
+====================
+
+Now, applying ALL the instructions above, please provide a comprehensive analysis covering ${numberOfSections} sections:
 
 ## 1. BODY SHAPE ANALYSIS
 Analyze the "${bodyShape}" body shape and provide:

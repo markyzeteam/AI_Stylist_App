@@ -373,6 +373,13 @@ ${customPrompt}
 
 Product Title: ${productTitle}
 
+====================
+REMINDER - YOUR ANALYSIS INSTRUCTIONS:
+${customPrompt}
+====================
+
+Now, applying ALL the instructions above:
+
 ${FIXED_JSON_FORMAT_INSTRUCTION}`;
 
     // Add small delay before API call to avoid overwhelming the service
