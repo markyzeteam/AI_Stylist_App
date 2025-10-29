@@ -70,16 +70,16 @@ Customer measurements:
 - Shoulders: ${shoulders || "not specified"} cm`;
     }
 
-    // Use custom bodyShapePrompt from settings, or fall back to default
-    const bodyShapePrompt = geminiSettings.bodyShapePrompt || "You are an expert fashion stylist and personal shopper.";
+    // Use custom customerAnalysisPrompt from settings, or fall back to default
+    const customerAnalysisPrompt = geminiSettings.customerAnalysisPrompt || "You are an expert fashion stylist and personal shopper.";
 
     console.log('INFO: BODY SHAPE ANALYSIS - Using prompt:', {
-      hasCustomPrompt: !!geminiSettings.bodyShapePrompt,
-      promptLength: bodyShapePrompt.length,
-      promptPreview: bodyShapePrompt.substring(0, 80)
+      hasCustomPrompt: !!geminiSettings.customerAnalysisPrompt,
+      promptLength: customerAnalysisPrompt.length,
+      promptPreview: customerAnalysisPrompt.substring(0, 80)
     });
 
-    const prompt = `${bodyShapePrompt}
+    const prompt = `${customerAnalysisPrompt}
 
 A customer has been identified as having a "${bodyShape}" body shape.${measurementContext}
 

@@ -15,7 +15,33 @@
 
 ---
 
-## ⚡ LATEST UPDATE: 3-CALL, 3-PROMPT GEMINI ARCHITECTURE ✅ IMPLEMENTED
+## ⚡ LATEST UPDATE: FIXED CUSTOMER ANALYSIS PROMPT NOT SAVING ✅ FIXED
+
+**Date:** 2025-10-29
+**Status:** ✅ FIXED - customerAnalysisPrompt now saves correctly
+**Issue:** The `customerAnalysisPrompt` (Prompt 2) was not being saved to the database when users customized it in the admin settings
+**Root Cause:**
+- The `saveGeminiSettings()` function in `geminiAnalysis.ts` was saving old deprecated prompts (`bodyShapePrompt`, `colorSeasonPrompt`, `celebrityPrompt`, `valuesPrompt`) instead of the new consolidated `customerAnalysisPrompt`
+- This meant only 2 out of 3 prompts were actually being saved (image analysis and product recommendations)
+**What:**
+- Updated `GeminiSettings` interface to only include 3 prompts: `prompt`, `customerAnalysisPrompt`, `systemPrompt`
+- Fixed `saveGeminiSettings()` to save `customerAnalysisPrompt` instead of old deprecated prompts
+- Updated `api.gemini.body-shape-analysis.tsx` to use `customerAnalysisPrompt` instead of `bodyShapePrompt`
+- Cleaned up debug logging and useEffect dependencies in `app.gemini-settings.tsx`
+**Why:** All 3 customizable prompts must be saved correctly so admin customizations take effect
+**Files Changed:**
+- `app/utils/geminiAnalysis.ts` (interface + save function)
+- `app/routes/api.gemini.body-shape-analysis.tsx` (prompt usage)
+- `app/routes/app.gemini-settings.tsx` (debug logging + dependencies)
+
+**Result:** All 3 prompts now save and load correctly:
+1. ✅ `prompt` - Product image analysis
+2. ✅ `customerAnalysisPrompt` - Customer analysis (body + color + values + celebrity)
+3. ✅ `systemPrompt` - Product recommendations
+
+---
+
+## ⚡ PREVIOUS UPDATE: 3-CALL, 3-PROMPT GEMINI ARCHITECTURE ✅ IMPLEMENTED
 
 **Date:** 2025-10-22
 **Status:** ✅ COMPLETE - Backend + Frontend + 3 Prompts Implemented

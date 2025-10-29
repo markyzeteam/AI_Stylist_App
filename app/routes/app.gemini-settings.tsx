@@ -151,10 +151,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log('💾 SAVE DEBUG - Final settings to save:', {
     hasPrompt: !!settingsToSave.prompt,
+    hasCustomerAnalysisPrompt: !!settingsToSave.customerAnalysisPrompt,
     hasSystemPrompt: !!settingsToSave.systemPrompt,
-    hasBodyShapePrompt: !!settingsToSave.bodyShapePrompt,
-    systemPromptFinal: settingsToSave.systemPrompt?.substring(0, 100),
-    bodyShapePromptFinal: settingsToSave.bodyShapePrompt?.substring(0, 100)
+    customerAnalysisPromptFinal: settingsToSave.customerAnalysisPrompt?.substring(0, 100),
   });
 
   const success = await saveGeminiSettings(shop, settingsToSave);
@@ -232,7 +231,7 @@ export default function GeminiSettings() {
     else if (rpm === 2000 && rpd === 50000) setApiTier("paid");
     else if (rpm === 10000 && rpd === 1000000) setApiTier("unlimited");
     else setApiTier("custom");
-  }, [settings.apiKey, settings.prompt, settings.systemPrompt, settings.bodyShapePrompt, settings.colorSeasonPrompt, settings.celebrityPrompt, settings.valuesPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
+  }, [settings.apiKey, settings.prompt, settings.customerAnalysisPrompt, settings.systemPrompt, settings.requestsPerMinute, settings.requestsPerDay, settings.batchSize, settings.enableRateLimiting, settings.useImageAnalysis, settings.budgetLowMax, settings.budgetMediumMax, settings.budgetHighMax]);
 
   // Handle API tier selection
   const handleApiTierChange = (value: string) => {

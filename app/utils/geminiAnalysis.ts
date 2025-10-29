@@ -12,12 +12,10 @@ import prisma from "../db.server";
 export interface GeminiSettings {
   apiKey?: string;
   model: string;
-  prompt?: string;
-  systemPrompt?: string;
-  bodyShapePrompt?: string;
-  colorSeasonPrompt?: string;
-  celebrityPrompt?: string;
-  valuesPrompt?: string;
+  // 3 PROMPTS ONLY:
+  prompt?: string;  // Prompt 1: Product image analysis
+  customerAnalysisPrompt?: string;  // Prompt 2: Customer analysis (body + color + values + celebrity)
+  systemPrompt?: string;  // Prompt 3: Product recommendations
   enabled: boolean;
   requestsPerMinute?: number;
   requestsPerDay?: number;
@@ -226,12 +224,10 @@ export async function saveGeminiSettings(
       update: {
         apiKey: settings.apiKey,
         model: settings.model,
-        prompt: settings.prompt,
-        systemPrompt: settings.systemPrompt,
-        bodyShapePrompt: settings.bodyShapePrompt,
-        colorSeasonPrompt: settings.colorSeasonPrompt,
-        celebrityPrompt: settings.celebrityPrompt,
-        valuesPrompt: settings.valuesPrompt,
+        // 3 PROMPTS ONLY:
+        prompt: settings.prompt,  // Prompt 1: Product image analysis
+        customerAnalysisPrompt: settings.customerAnalysisPrompt,  // Prompt 2: Customer analysis
+        systemPrompt: settings.systemPrompt,  // Prompt 3: Product recommendations
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute,
         requestsPerDay: settings.requestsPerDay,
@@ -247,12 +243,10 @@ export async function saveGeminiSettings(
         shop,
         apiKey: settings.apiKey,
         model: settings.model,
-        prompt: settings.prompt,
-        systemPrompt: settings.systemPrompt,
-        bodyShapePrompt: settings.bodyShapePrompt,
-        colorSeasonPrompt: settings.colorSeasonPrompt,
-        celebrityPrompt: settings.celebrityPrompt,
-        valuesPrompt: settings.valuesPrompt,
+        // 3 PROMPTS ONLY:
+        prompt: settings.prompt,  // Prompt 1: Product image analysis
+        customerAnalysisPrompt: settings.customerAnalysisPrompt,  // Prompt 2: Customer analysis
+        systemPrompt: settings.systemPrompt,  // Prompt 3: Product recommendations
         enabled: settings.enabled,
         requestsPerMinute: settings.requestsPerMinute || 15,
         requestsPerDay: settings.requestsPerDay || 1500,
