@@ -73,14 +73,14 @@ export async function getGeminiProductRecommendations(
   }
 ): Promise<ProductRecommendation[]> {
   try {
-    console.log(`🤖 Getting Gemini recommendations for ${bodyShape} (${shop})`);
-    console.log(`📋 Values Preferences:`, valuesPreferences);
+    console.log(`INFO: Getting Gemini recommendations for ${bodyShape} (${shop})`);
+    console.log(`INFO: Values Preferences:`, valuesPreferences);
 
     // Load Gemini settings
     const geminiSettings = await loadGeminiSettings(shop);
 
     // Debug logging for settings
-    console.log('⚙️ SETTINGS DEBUG - Loaded Gemini Settings:', {
+    console.log('INFO: SETTINGS DEBUG - Loaded Gemini Settings:', {
       shop,
       hasSystemPrompt: !!geminiSettings.systemPrompt,
       systemPromptLength: geminiSettings.systemPrompt?.length || 0,
@@ -90,20 +90,20 @@ export async function getGeminiProductRecommendations(
     });
 
     if (!geminiSettings.enabled) {
-      console.log("⚠ Gemini AI is disabled, using fallback algorithm");
+      console.log("WARNING: Gemini AI is disabled, using fallback algorithm");
       return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     }
 
     // STEP 1: Fetch cached analyzed products from database
-    console.log(`📊 Fetching cached analyzed products from database...`);
+    console.log(`INFO: Fetching cached analyzed products from database...`);
     const cachedProducts = await fetchCachedProducts(shop, onlyInStock, maxProductsToScan, measurements?.gender);
 
     if (cachedProducts.length === 0) {
-      console.log("⚠ No analyzed products found in cache. Admin needs to run refresh first.");
+      console.log("WARNING: No analyzed products found in cache. Admin needs to run refresh first.");
       return [];
     }
 
-    console.log(`✓ Found ${cachedProducts.length} cached products`);
+    console.log(`INFO: Found ${cachedProducts.length} cached products`);
 
     // STEP 2: Filter by color season if provided
     let filteredProducts = cachedProducts;
@@ -112,18 +112,18 @@ export async function getGeminiProductRecommendations(
       filteredProducts = cachedProducts.filter(p =>
         p.colorSeasons && p.colorSeasons.includes(colorSeason)
       );
-      console.log(`✓ Color season filter (${colorSeason}): ${cachedProducts.length} → ${filteredProducts.length} products`);
+      console.log(`INFO: Color season filter (${colorSeason}): ${cachedProducts.length} → ${filteredProducts.length} products`);
     }
 
     // STEP 2.5: Filter by budget range if provided
     if (valuesPreferences?.budgetRange) {
       const beforeBudgetFilter = filteredProducts.length;
       filteredProducts = filterByBudget(filteredProducts, valuesPreferences.budgetRange, geminiSettings);
-      console.log(`✓ Budget filter (${valuesPreferences.budgetRange}): ${beforeBudgetFilter} → ${filteredProducts.length} products`);
+      console.log(`INFO: Budget filter (${valuesPreferences.budgetRange}): ${beforeBudgetFilter} → ${filteredProducts.length} products`);
     }
 
     if (filteredProducts.length === 0) {
-      console.log("⚠ No products match filters (color season / budget)");
+      console.log("WARNING: No products match filters (color season / budget)");
       return [];
     }
 
@@ -152,7 +152,7 @@ export async function getGeminiProductRecommendations(
       },
     }));
 
-    console.log(`✓ Prepared ${productsForAI.length} products for Gemini (text-only, NO images)`);
+    console.log(`INFO: Prepared ${productsForAI.length} products for Gemini (text-only, NO images)`);
 
     // STEP 4: Build prompt for Gemini
     const prompt = buildGeminiRecommendationPrompt(
@@ -170,14 +170,14 @@ export async function getGeminiProductRecommendations(
     const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("⚠ No Gemini API key configured, falling back to basic algorithm");
+      console.error("WARNING: No Gemini API key configured, falling back to basic algorithm");
       return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock);
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: geminiSettings.model });
 
-    console.log(`🤖 Calling Gemini API (${geminiSettings.model})...`);
+    console.log(`INFO: Calling Gemini API (${geminiSettings.model})...`);
     const startTime = Date.now();
 
     const result = await retryWithBackoff(() => model.generateContent(prompt));
@@ -185,31 +185,31 @@ export async function getGeminiProductRecommendations(
     const text = response.text();
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✅ Gemini API responded in ${elapsedTime}s`);
-    console.log(`📝 Response length: ${text.length} chars`);
+    console.log(`INFO: Gemini API responded in ${elapsedTime}s`);
+    console.log(`INFO: Response length: ${text.length} chars`);
 
     // STEP 6: Parse Gemini's response
     const recommendations = parseGeminiRecommendationResponse(text, filteredProducts, minimumMatchScore);
 
     if (recommendations.length === 0) {
-      console.error(`❌ Gemini returned 0 recommendations after parsing`);
+      console.error(`ERROR: Gemini returned 0 recommendations after parsing`);
       return applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     }
 
-    console.log(`✅ Gemini returned ${recommendations.length} recommendations`);
+    console.log(`INFO: Gemini returned ${recommendations.length} recommendations`);
 
     const finalRecommendations = recommendations.slice(0, numberOfSuggestions);
-    console.log(`✅ Returning ${finalRecommendations.length} final recommendations`);
+    console.log(`INFO: Returning ${finalRecommendations.length} final recommendations`);
 
     return finalRecommendations;
   } catch (error) {
-    console.error("❌ Error getting Gemini recommendations:", error);
+    console.error("ERROR: Error getting Gemini recommendations:", error);
     // Fallback to basic algorithm
     try {
-      console.log("⚠ Attempting fallback to basic algorithm...");
+      console.log("WARNING: Attempting fallback to basic algorithm...");
       return await applyBasicAlgorithm(shop, bodyShape, numberOfSuggestions, minimumMatchScore, onlyInStock, measurements?.gender);
     } catch (fallbackError) {
-      console.error("❌ Fallback also failed:", fallbackError);
+      console.error("ERROR: Fallback also failed:", fallbackError);
       return [];
     }
   }
@@ -233,11 +233,11 @@ function filterByBudget(products: CachedProduct[], budgetRange: string, geminiSe
 
   const range = budgetRanges[budgetRange];
   if (!range) {
-    console.warn(`⚠ Unknown budget range: ${budgetRange}, skipping budget filter`);
+    console.warn(`WARNING: Unknown budget range: ${budgetRange}, skipping budget filter`);
     return products;
   }
 
-  console.log(`💰 Budget range "${budgetRange}": ${range.label} (${range.min} - ${range.max === Infinity ? '∞' : range.max})`);
+  console.log(`INFO: Budget range "${budgetRange}": ${range.label} (${range.min} - ${range.max === Infinity ? 'Infinity' : range.max})`);
 
   return products.filter(p => {
     const price = parseFloat(p.price);
@@ -322,7 +322,7 @@ async function fetchCachedProducts(
 
     if (useImageAnalysis) {
       // Use FilteredSelectionWithImgAnalyzed (has AI analysis data)
-      console.log(`📊 Fetching from FilteredSelectionWithImgAnalyzed (image analysis enabled)`);
+      console.log(`INFO: Fetching from FilteredSelectionWithImgAnalyzed (image analysis enabled)`);
       products = await db.filteredSelectionWithImgAnalyzed.findMany({
         where,
         orderBy: { priorityScore: 'desc' }, // Use cached priority score from database
@@ -330,7 +330,7 @@ async function fetchCachedProducts(
       });
     } else {
       // Use FilteredSelection (basic mode, no AI analysis)
-      console.log(`📊 Fetching from FilteredSelection (image analysis disabled)`);
+      console.log(`INFO: Fetching from FilteredSelection (image analysis disabled)`);
       products = await db.filteredSelection.findMany({
         where,
         orderBy: { priorityScore: 'desc' }, // Use cached priority score from database
@@ -338,7 +338,7 @@ async function fetchCachedProducts(
       });
     }
 
-    console.log(`✅ Fetched ${products.length} products, pre-sorted by cached priority scores`);
+    console.log(`INFO: Fetched ${products.length} products, pre-sorted by cached priority scores`);
 
     // Map to CachedProduct format
     let cachedProducts = products.map(p => ({
@@ -371,12 +371,12 @@ async function fetchCachedProducts(
     if (gender) {
       const beforeGenderFilter = cachedProducts.length;
       cachedProducts = filterProductsByGender(cachedProducts, gender);
-      console.log(`✓ Gender filter (${gender}): ${beforeGenderFilter} → ${cachedProducts.length} products`);
+      console.log(`INFO: Gender filter (${gender}): ${beforeGenderFilter} → ${cachedProducts.length} products`);
     }
 
     return cachedProducts;
   } catch (error) {
-    console.error("❌ Error fetching cached products:", error);
+    console.error("ERROR: Error fetching cached products:", error);
     return [];
   }
 }
@@ -481,7 +481,7 @@ Customer Measurements:
   const systemPrompt = geminiSettings?.systemPrompt || DEFAULT_GEMINI_RECOMMENDATION_PROMPT;
 
   // Debug logging to verify which prompt is being used
-  console.log('🔍 PROMPT DEBUG - systemPrompt source:', {
+  console.log('INFO: PROMPT DEBUG - systemPrompt source:', {
     hasGeminiSettings: !!geminiSettings,
     hasCustomPrompt: !!geminiSettings?.systemPrompt,
     promptLength: systemPrompt.length,
@@ -533,6 +533,13 @@ CRITICAL RULES:
 - Prioritize variety across different product types (tops, bottoms, dresses, accessories)
 - STRICTLY follow gender-specific requirements above - do NOT recommend products for the wrong gender
 
+IMPORTANT - FOLLOW SYSTEM PROMPT INSTRUCTIONS:
+Review the system prompt at the beginning of this message and follow ALL formatting and style instructions specified there, especially for:
+- How to format the "reasoning" field
+- How to format the "sizeAdvice" field
+- How to format the "stylingTip" field
+Any specific formatting requirements in the system prompt MUST be followed exactly.
+
 Format your response as valid JSON (no markdown):
 {
   "recommendations": [
@@ -558,24 +565,24 @@ function parseGeminiRecommendationResponse(
   minimumMatchScore: number
 ): ProductRecommendation[] {
   try {
-    console.log(`🔍 Parsing Gemini response (${text.length} chars, minScore: ${minimumMatchScore})`);
+    console.log(`INFO: Parsing Gemini response (${text.length} chars, minScore: ${minimumMatchScore})`);
 
     // Remove markdown code blocks if present
     let jsonText = text.trim();
     if (jsonText.startsWith("```json")) {
       jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-      console.log('✓ Removed ```json markdown wrapper');
+      console.log('INFO: Removed ```json markdown wrapper');
     } else if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/```\n?/g, "");
-      console.log('✓ Removed ``` markdown wrapper');
+      console.log('INFO: Removed ``` markdown wrapper');
     }
 
     let parsed;
     try {
       parsed = JSON.parse(jsonText);
     } catch (parseError: any) {
-      console.warn(`⚠️ Initial JSON parse failed: ${parseError.message}`);
-      console.log(`🔧 Attempting to repair JSON...`);
+      console.warn(`WARNING: Initial JSON parse failed: ${parseError.message}`);
+      console.log(`INFO: Attempting to repair JSON...`);
 
       // Try to fix common JSON errors
       // 1. Remove trailing commas before } or ]
@@ -585,16 +592,16 @@ function parseGeminiRecommendationResponse(
       const recommendationsMatch = jsonText.match(/"recommendations"\s*:\s*\[([\s\S]*)\]/);
       if (recommendationsMatch) {
         jsonText = `{"recommendations": [${recommendationsMatch[1]}]}`;
-        console.log(`✓ Extracted recommendations array`);
+        console.log(`INFO: Extracted recommendations array`);
       }
 
       // 3. Try parsing again
       try {
         parsed = JSON.parse(jsonText);
-        console.log(`✅ Successfully repaired and parsed JSON`);
+        console.log(`INFO: Successfully repaired and parsed JSON`);
       } catch (secondError: any) {
         // Last resort: try to salvage what we can
-        console.error(`❌ JSON repair failed: ${secondError.message}`);
+        console.error(`ERROR: JSON repair failed: ${secondError.message}`);
         console.error(`   Position: ${secondError.message.match(/position (\d+)/)?.[1] || 'unknown'}`);
         console.error(`   JSON excerpt near error:`, jsonText.substring(Math.max(0, (parseInt(secondError.message.match(/position (\d+)/)?.[1] || '0') - 100)), Math.min(jsonText.length, (parseInt(secondError.message.match(/position (\d+)/)?.[1] || '0') + 100))));
         throw secondError;
@@ -602,14 +609,14 @@ function parseGeminiRecommendationResponse(
     }
 
     if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
-      console.error("❌ No 'recommendations' array in parsed JSON");
+      console.error("ERROR: No 'recommendations' array in parsed JSON");
       return [];
     }
 
-    console.log(`📋 Found ${parsed.recommendations.length} recommendations in JSON`);
+    console.log(`INFO: Found ${parsed.recommendations.length} recommendations in JSON`);
 
     const allScores = parsed.recommendations.map((r: any) => r.score);
-    console.log(`📊 Score distribution:`, {
+    console.log(`INFO: Score distribution:`, {
       min: Math.min(...allScores),
       max: Math.max(...allScores),
       avg: (allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length).toFixed(1),
@@ -641,21 +648,21 @@ function parseGeminiRecommendationResponse(
         });
       } else {
         skippedInvalidIndex++;
-        console.warn(`⚠ Invalid product index ${productIndex} (products array length: ${products.length})`);
+        console.warn(`WARNING: Invalid product index ${productIndex} (products array length: ${products.length})`);
       }
     }
 
-    console.log(`✅ Successfully parsed ${recommendations.length} recommendations`);
+    console.log(`INFO: Successfully parsed ${recommendations.length} recommendations`);
     if (skippedLowScore > 0) {
-      console.log(`⏭ Skipped ${skippedLowScore} products below minimum score ${minimumMatchScore}`);
+      console.log(`INFO: Skipped ${skippedLowScore} products below minimum score ${minimumMatchScore}`);
     }
     if (skippedInvalidIndex > 0) {
-      console.warn(`⚠ Skipped ${skippedInvalidIndex} products with invalid indices`);
+      console.warn(`WARNING: Skipped ${skippedInvalidIndex} products with invalid indices`);
     }
 
     return recommendations;
   } catch (error: any) {
-    console.error("❌ Error parsing Gemini response:", error.message);
+    console.error("ERROR: Error parsing Gemini response:", error.message);
     console.error("   Raw response (first 500 chars):", text.substring(0, 500));
     return [];
   }
@@ -694,10 +701,10 @@ async function applyBasicAlgorithm(
       .sort((a, b) => b.suitabilityScore - a.suitabilityScore)
       .slice(0, limit);
 
-    console.log(`✓ Basic algorithm filtered ${products.length} → ${recommendations.length} products`);
+    console.log(`INFO: Basic algorithm filtered ${products.length} → ${recommendations.length} products`);
     return recommendations;
   } catch (error) {
-    console.error("❌ Error in basic algorithm:", error);
+    console.error("ERROR: Error in basic algorithm:", error);
     return [];
   }
 }
