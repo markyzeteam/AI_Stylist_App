@@ -144,7 +144,7 @@ class BodyShapeAdvisor {
 
         <div class="bsa-options">
           <div class="bsa-option">
-            <div class="bsa-option-icon">📏</div>
+            <div class="bsa-option-icon"></div>
             <h4>Take Measurements</h4>
             <p>Answer a few questions and take simple measurements</p>
             <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('calculator')">
@@ -153,7 +153,7 @@ class BodyShapeAdvisor {
           </div>
 
           <div class="bsa-option">
-            <div class="bsa-option-icon">✨</div>
+            <div class="bsa-option-icon"></div>
             <h4>I Know My Shape</h4>
             <p>Skip to recommendations if you already know your body shape</p>
             <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('knownShape')">
@@ -226,7 +226,7 @@ class BodyShapeAdvisor {
             <h4>Body Measurements</h4>
 
             <div style="text-align: center; margin-bottom: 1.5rem;">
-              <p style="margin-bottom: 0.5rem; font-weight: 500;">📏 How to Measure</p>
+              <p style="margin-bottom: 0.5rem; font-weight: 500;">How to Measure</p>
               <img
                 src="https://www.carlyjeanlosangeles.com/cdn/shop/files/CJLA-Measuring-Guide-FINAL_96976614-70e1-4eaa-8cf6-b6cd5f4491f9_2048x.jpg?v=1727893667"
                 alt="Measuring Guide - How to take body measurements"
@@ -285,12 +285,12 @@ class BodyShapeAdvisor {
 
   renderKnownShape() {
     const shapes = [
-      { name: "Pear/Triangle", icon: "🍐", desc: "Hips wider than bust and shoulders" },
-      { name: "Apple/Round", icon: "🍎", desc: "Fuller midsection with less defined waist" },
-      { name: "Hourglass", icon: "⏳", desc: "Balanced bust and hips with defined waist" },
-      { name: "Inverted Triangle", icon: "🔺", desc: "Broader shoulders and bust than hips" },
-      { name: "Rectangle/Straight", icon: "📱", desc: "Similar measurements throughout" },
-      { name: "V-Shape/Athletic", icon: "💪", desc: "Broad shoulders with narrow waist" }
+      { name: "Pear/Triangle", icon: "", desc: "Hips wider than bust and shoulders" },
+      { name: "Apple/Round", icon: "", desc: "Fuller midsection with less defined waist" },
+      { name: "Hourglass", icon: "", desc: "Balanced bust and hips with defined waist" },
+      { name: "Inverted Triangle", icon: "", desc: "Broader shoulders and bust than hips" },
+      { name: "Rectangle/Straight", icon: "", desc: "Similar measurements throughout" },
+      { name: "V-Shape/Athletic", icon: "", desc: "Broad shoulders with narrow waist" }
     ];
 
     return `
@@ -462,7 +462,7 @@ class BodyShapeAdvisor {
       const shoulderWaistRatio = shouldersNum / waistNum;
       const chestWaistRatio = chest / waistNum;
 
-      console.log('🔍 Male body shape calculation:', {
+      console.log('Male body shape calculation:', {
         chest,
         waist: waistNum,
         shoulders: shouldersNum,
@@ -474,7 +474,7 @@ class BodyShapeAdvisor {
 
       // Handle invalid/missing data
       if (waistNum === 0 || isNaN(shoulderWaistRatio) || isNaN(chestWaistRatio)) {
-        console.warn('⚠️ Invalid measurements detected, defaulting to Rectangle');
+        console.warn('WARNING: Invalid measurements detected, defaulting to Rectangle');
         return {
           shape: "Rectangle/Straight",
           description: "Balanced proportions throughout torso",
@@ -487,7 +487,7 @@ class BodyShapeAdvisor {
       // V-Shape/Athletic (very broad shoulders & chest, narrow waist)
       // Both conditions must be true (AND logic) to ensure truly athletic build
       if (shoulderWaistRatio > 1.3 && chestWaistRatio > 1.25) {
-        console.log('✅ Matched V-Shape/Athletic');
+        console.log('Matched V-Shape/Athletic');
         return {
           shape: "V-Shape/Athletic",
           description: "Broad shoulders and chest with narrow waist",
@@ -499,7 +499,7 @@ class BodyShapeAdvisor {
 
       // Inverted Triangle/Trapezoid (broader shoulders than waist, but not dramatically)
       if ((shoulderWaistRatio > 1.15 || chestWaistRatio > 1.15) && shoulderWaistRatio <= 1.3) {
-        console.log('✅ Matched Inverted Triangle');
+        console.log('Matched Inverted Triangle');
         return {
           shape: "Inverted Triangle",
           description: "Broader shoulders than waist, athletic frame",
@@ -513,7 +513,7 @@ class BodyShapeAdvisor {
       // Most men with average proportions fall here
       if (shoulderWaistRatio >= 0.9 && shoulderWaistRatio <= 1.15 &&
           chestWaistRatio >= 0.9 && chestWaistRatio <= 1.15) {
-        console.log('✅ Matched Rectangle/Straight');
+        console.log('Matched Rectangle/Straight');
         return {
           shape: "Rectangle/Straight",
           description: "Balanced proportions throughout torso",
@@ -525,7 +525,7 @@ class BodyShapeAdvisor {
 
       // Triangle/Pear (narrow shoulders, wider hips - less common in men)
       if (shoulderWaistRatio < 0.9 && shouldersNum < waistNum) {
-        console.log('✅ Matched Triangle/Pear');
+        console.log('Matched Triangle/Pear');
         return {
           shape: "Triangle/Pear",
           description: "Narrower shoulders, fuller lower body",
@@ -535,7 +535,7 @@ class BodyShapeAdvisor {
         };
       }
 
-      console.log('⬇️ Falling through to Oval/Apple');
+      console.log('Falling through to Oval/Apple');
 
       // Oval/Apple (fuller midsection, default catch-all)
       return {
@@ -638,7 +638,7 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeStyleAnalysis(bodyShape, measurements) {
-    console.log(`🤖 Getting Gemini AI style analysis for ${bodyShape}...`);
+    console.log(`Getting Gemini AI style analysis for ${bodyShape}...`);
 
     try {
       const apiUrl = `${this.config.apiEndpoint}/api/gemini/body-shape-analysis`;
@@ -663,7 +663,7 @@ class BodyShapeAdvisor {
       const data = await response.json();
 
       if (data.success && data.analysis) {
-        console.log('✓ Got Gemini AI style analysis');
+        console.log('Got Gemini AI style analysis');
         this.bodyShapeResult.claudeAnalysis = data.analysis;
       }
     } catch (error) {
@@ -688,11 +688,11 @@ class BodyShapeAdvisor {
       const recommendations = await this.getClaudeRecommendations(bodyShape, null);
 
       if (recommendations && recommendations.length > 0) {
-        console.log(`✓ Got ${recommendations.length} Gemini AI recommendations`);
+        console.log(`Got ${recommendations.length} Gemini AI recommendations`);
         this.productRecommendations = recommendations;
       } else {
         // Fallback to basic algorithm
-        console.log('⚠ No Gemini recommendations, using fallback');
+        console.log('WARNING: No Gemini recommendations, using fallback');
         await this.loadProducts();
         const settings = this.config.settings || {
           numberOfSuggestions: 30,
@@ -741,11 +741,11 @@ class BodyShapeAdvisor {
       const recommendations = await this.getClaudeRecommendations(bodyShape, colorSeason);
 
       if (recommendations && recommendations.length > 0) {
-        console.log(`✓ Got ${recommendations.length} Gemini AI recommendations`);
+        console.log(`Got ${recommendations.length} Gemini AI recommendations`);
         this.productRecommendations = recommendations;
       } else {
         // Fallback to basic algorithm
-        console.log('⚠ No Gemini recommendations, using fallback');
+        console.log('WARNING: No Gemini recommendations, using fallback');
         await this.loadProducts();
         const settings = this.config.settings || {
           numberOfSuggestions: 30,
@@ -778,9 +778,9 @@ class BodyShapeAdvisor {
   }
 
   async getClaudeRecommendations(bodyShape, colorSeason = null) {
-    console.log(`🤖 Calling Gemini API for ${bodyShape} recommendations...`);
+    console.log(`Calling Gemini API for ${bodyShape} recommendations...`);
     if (colorSeason) {
-      console.log(`🎨 Color Season: ${colorSeason}`);
+      console.log(`Color Season: ${colorSeason}`);
     }
     console.log(`API Endpoint: ${this.config.apiEndpoint}`);
     console.log(`Shop Domain: ${this.config.shopDomain}`);
@@ -866,7 +866,7 @@ class BodyShapeAdvisor {
     console.log(`Gemini API response:`, data);
 
     if (data.recommendations) {
-      console.log(`✓ Transforming ${data.recommendations.length} Gemini recommendations`);
+      console.log(`Transforming ${data.recommendations.length} Gemini recommendations`);
       // Transform Gemini API response to match expected format
       return data.recommendations.map(rec => ({
         title: rec.product.title,
@@ -882,7 +882,7 @@ class BodyShapeAdvisor {
       }));
     }
 
-    console.log('⚠ No recommendations in API response');
+    console.log('WARNING: No recommendations in API response');
     return [];
   }
 
@@ -1066,7 +1066,7 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-products">
         <div class="bsa-header">
-          <h3>🛍️ Recommended for ${this.bodyShapeResult.shape}${colorSeasonText}</h3>
+          <h3>Recommended for ${this.bodyShapeResult.shape}${colorSeasonText}</h3>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.backToCombinedResults()">
             ← Back to Style Profile
           </button>
@@ -1079,9 +1079,9 @@ class BodyShapeAdvisor {
             </p>
             ${hasValues ? `
               <p style="margin: 0.5rem 0 0 0; font-size: 14px; opacity: 0.9;">
-                ${this.valuesPreferences.sustainability ? '🌱 Sustainable' : ''}
-                ${this.valuesPreferences.budgetRange ? `💰 ${this.valuesPreferences.budgetRange}` : ''}
-                ${this.valuesPreferences.styles.length > 0 ? `✨ ${this.valuesPreferences.styles.join(', ')}` : ''}
+                ${this.valuesPreferences.sustainability ? 'Sustainable' : ''}
+                ${this.valuesPreferences.budgetRange ? `${this.valuesPreferences.budgetRange}` : ''}
+                ${this.valuesPreferences.styles.length > 0 ? `${this.valuesPreferences.styles.join(', ')}` : ''}
               </p>
             ` : ''}
           </div>
@@ -1090,14 +1090,14 @@ class BodyShapeAdvisor {
         ${products.length === 0 ? `
           <div class="bsa-loading">
             <div class="bsa-loading-spinner"></div>
-            <h4>🤖 AI Fashion Stylist at Work...</h4>
+            <h4>AI Fashion Stylist at Work...</h4>
             <p class="bsa-loading-message">Analyzing your ${this.bodyShapeResult.shape} body shape${colorSeasonText}${valuesText}</p>
             <p class="bsa-loading-submessage">Our AI is reviewing products to find your perfect match. This may take 10-30 seconds.</p>
             <div class="bsa-loading-steps">
-              <div class="bsa-loading-step bsa-step-active">✓ Fetching products from catalog</div>
-              <div class="bsa-loading-step bsa-step-active">✓ Filtering by body shape preferences</div>
-              <div class="bsa-loading-step bsa-step-processing">⏳ Gemini AI analyzing matches...</div>
-              <div class="bsa-loading-step">○ Preparing recommendations</div>
+              <div class="bsa-loading-step bsa-step-active">Fetching products from catalog</div>
+              <div class="bsa-loading-step bsa-step-active">Filtering by body shape preferences</div>
+              <div class="bsa-loading-step bsa-step-processing">Gemini AI analyzing matches...</div>
+              <div class="bsa-loading-step">Preparing recommendations</div>
             </div>
           </div>
         ` : `
@@ -1114,13 +1114,13 @@ class BodyShapeAdvisor {
                     <span class="bsa-product-match">${product.match}% match</span>
                   ` : ''}
                   ${product.reasoning ? `
-                    <p class="bsa-product-reasoning">✨ ${product.reasoning}</p>
+                    <p class="bsa-product-reasoning">${product.reasoning}</p>
                   ` : ''}
                   ${product.sizeAdvice ? `
-                    <p class="bsa-product-size-advice">📏 <strong>Size advice:</strong> ${product.sizeAdvice}</p>
+                    <p class="bsa-product-size-advice"><strong>Size advice:</strong> ${product.sizeAdvice}</p>
                   ` : ''}
                   ${product.stylingTip ? `
-                    <p class="bsa-product-styling-tip">💡 <strong>Styling tip:</strong> ${product.stylingTip}</p>
+                    <p class="bsa-product-styling-tip"><strong>Styling tip:</strong> ${product.stylingTip}</p>
                   ` : ''}
                   <a href="https://${this.config.shopDomain}/products/${product.handle}" class="bsa-btn bsa-btn-primary" target="_blank">View Product</a>
                 </div>
@@ -1138,7 +1138,7 @@ class BodyShapeAdvisor {
 
     return `
       <div class="bsa-path-selection">
-        <h3>🎨 Discover Your Skin Color Season</h3>
+        <h3>Discover Your Skin Color Season</h3>
 
         <p style="text-align: center; color: #64748b; margin-bottom: 2rem; font-size: 16px;">
           How would you like to find your color season?
@@ -1146,7 +1146,7 @@ class BodyShapeAdvisor {
 
         <div class="bsa-options">
           <div class="bsa-option">
-            <div class="bsa-option-icon">📋</div>
+            <div class="bsa-option-icon"></div>
             <h4>Take the Color Season Test</h4>
             <p>Answer 3 quick questions to discover your perfect color palette</p>
             <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.goToStep('colorSeason')">
@@ -1155,7 +1155,7 @@ class BodyShapeAdvisor {
           </div>
 
           <div class="bsa-option">
-            <div class="bsa-option-icon">✨</div>
+            <div class="bsa-option-icon"></div>
             <h4>I Know My Color Season</h4>
             <p>Skip to recommendations if you already know your season</p>
             <button class="bsa-btn bsa-btn-secondary" onclick="bodyShapeAdvisor.goToStep('knownColorSeason')">
@@ -1180,7 +1180,7 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-color-season">
         <div class="bsa-header">
-          <h3>🎨 Color Season Test</h3>
+          <h3>Color Season Test</h3>
           <button class="bsa-btn bsa-btn-link" onclick="window.bodyShapeAdvisor.goToStep('colorSeasonPathSelection')">← Back</button>
         </div>
 
@@ -1194,58 +1194,58 @@ class BodyShapeAdvisor {
 
           <!-- Question 1: Skin Undertone -->
           <div class="bsa-form-section" style="background: #f9fafb; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
-            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">1️⃣ What's your skin undertone?</h4>
+            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">1. What's your skin undertone?</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1.25rem;">
-              💡 Tip: Check your wrist veins or which jewelry flatters you more
+              Tip: Check your wrist veins or which jewelry flatters you more
             </p>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="undertone" value="warm" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>☀️ Warm</strong> — Green veins, gold jewelry looks best on me</span>
+                <span style="font-size: 15px;"><strong>Warm</strong> — Green veins, gold jewelry looks best on me</span>
               </label>
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="undertone" value="cool" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>❄️ Cool</strong> — Blue/purple veins, silver jewelry looks best on me</span>
+                <span style="font-size: 15px;"><strong>Cool</strong> — Blue/purple veins, silver jewelry looks best on me</span>
               </label>
             </div>
           </div>
 
           <!-- Question 2: Hair & Eye Depth -->
           <div class="bsa-form-section" style="background: #f9fafb; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
-            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">2️⃣ How would you describe your natural coloring?</h4>
+            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">2. How would you describe your natural coloring?</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1.25rem;">
-              💡 Tip: Think about your natural hair and eye color
+              Tip: Think about your natural hair and eye color
             </p>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="depth" value="light" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>🌤️ Light</strong> — Blonde or light brown hair, light colored eyes</span>
+                <span style="font-size: 15px;"><strong>Light</strong> — Blonde or light brown hair, light colored eyes</span>
               </label>
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="depth" value="medium" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>🌥️ Medium</strong> — Medium brown hair, hazel or green eyes</span>
+                <span style="font-size: 15px;"><strong>Medium</strong> — Medium brown hair, hazel or green eyes</span>
               </label>
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="depth" value="deep" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>🌑 Deep</strong> — Dark brown or black hair, dark eyes</span>
+                <span style="font-size: 15px;"><strong>Deep</strong> — Dark brown or black hair, dark eyes</span>
               </label>
             </div>
           </div>
 
           <!-- Question 3: Intensity -->
           <div class="bsa-form-section" style="background: #f9fafb; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
-            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">3️⃣ What colors make you look most vibrant?</h4>
+            <h4 style="color: #1f2937; margin-bottom: 0.75rem;">3. What colors make you look most vibrant?</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1.25rem;">
-              💡 Tip: Think about which colors get you the most compliments
+              Tip: Think about which colors get you the most compliments
             </p>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="intensity" value="bright" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>✨ Bright</strong> — Saturated colors, jewel tones, vivid shades</span>
+                <span style="font-size: 15px;"><strong>Bright</strong> — Saturated colors, jewel tones, vivid shades</span>
               </label>
               <label class="bsa-radio-option" style="background: white; padding: 1rem; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s;">
                 <input type="radio" name="intensity" value="muted" required style="margin-right: 0.75rem;">
-                <span style="font-size: 15px;"><strong>🌫️ Soft & Muted</strong> — Pastels, dusty shades, subtle colors</span>
+                <span style="font-size: 15px;"><strong>Soft & Muted</strong> — Pastels, dusty shades, subtle colors</span>
               </label>
             </div>
           </div>
@@ -1262,25 +1262,25 @@ class BodyShapeAdvisor {
     const seasons = [
       {
         name: "Spring",
-        icon: "🌸",
+        icon: "",
         desc: "Warm undertone, light/medium depth, bright colors",
         colors: "Peach, coral, light turquoise, warm pastels"
       },
       {
         name: "Summer",
-        icon: "☀️",
+        icon: "",
         desc: "Cool undertone, light/medium depth, soft colors",
         colors: "Pastel blue, rose, lavender, cool pastels"
       },
       {
         name: "Autumn",
-        icon: "🍂",
+        icon: "",
         desc: "Warm undertone, medium/deep depth, muted colors",
         colors: "Olive, mustard, terracotta, warm earth tones"
       },
       {
         name: "Winter",
-        icon: "❄️",
+        icon: "",
         desc: "Cool undertone, deep depth, bright colors",
         colors: "Jewel tones, icy blue, black, pure white"
       }
@@ -1383,11 +1383,11 @@ class BodyShapeAdvisor {
   async getClaudeColorSeasonAnalysis(colorSeason, colorAnalysis) {
     // DEPRECATED: This function is no longer used
     // All analysis is now done in getCombinedAnalysis() after values questionnaire
-    console.log('⚠️ getClaudeColorSeasonAnalysis is deprecated - use getCombinedAnalysis instead');
+    console.log('WARNING: getClaudeColorSeasonAnalysis is deprecated - use getCombinedAnalysis instead');
   }
 
   async getCombinedAnalysis() {
-    console.log(`🤖 Getting combined Gemini AI analysis (body shape + color season + values + celebrity)...`);
+    console.log(`Getting combined Gemini AI analysis (body shape + color season + values + celebrity)...`);
 
     try {
       const apiUrl = `${this.config.apiEndpoint}/api/gemini/combined-analysis`;
@@ -1401,7 +1401,7 @@ class BodyShapeAdvisor {
         shop: this.config.shopDomain
       };
 
-      console.log('📤 Sending combined analysis request:', requestBody);
+      console.log('Sending combined analysis request:', requestBody);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1421,7 +1421,7 @@ class BodyShapeAdvisor {
       const data = await response.json();
 
       if (data.success) {
-        console.log('✅ Got combined Gemini AI analysis');
+        console.log('Got combined Gemini AI analysis');
 
         // Store all analyses
         this.combinedAnalysis = {
@@ -1431,14 +1431,14 @@ class BodyShapeAdvisor {
           celebrityRecommendations: data.celebrityRecommendations
         };
 
-        console.log('📊 Combined analysis data:', this.combinedAnalysis);
+        console.log('Combined analysis data:', this.combinedAnalysis);
         return true;
       } else {
-        console.error('❌ Combined analysis failed:', data);
+        console.error('ERROR: Combined analysis failed:', data);
         return false;
       }
     } catch (error) {
-      console.error('❌ Error getting combined analysis:', error);
+      console.error('ERROR: Error getting combined analysis:', error);
       return false;
     }
   }
@@ -1460,7 +1460,7 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-values-questionnaire">
         <div class="bsa-header">
-          <h3>📋 Shopping Preferences & Values</h3>
+          <h3>Shopping Preferences & Values</h3>
           <button class="bsa-btn bsa-btn-link" onclick="bodyShapeAdvisor.goToStep('${backStep}')">
             ← Back
           </button>
@@ -1472,7 +1472,7 @@ class BodyShapeAdvisor {
 
         <form class="bsa-form" onsubmit="bodyShapeAdvisor.handleValuesSubmit(event)">
           <div class="bsa-form-section">
-            <h4>🌱 Sustainability</h4>
+            <h4>Sustainability</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
               Do you prefer sustainable and eco-friendly fashion?
             </p>
@@ -1491,7 +1491,7 @@ class BodyShapeAdvisor {
           </div>
 
           <div class="bsa-form-section">
-            <h4>💰 Budget Range</h4>
+            <h4>Budget Range</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
               What's your typical spending range per item? (optional)
             </p>
@@ -1507,7 +1507,7 @@ class BodyShapeAdvisor {
           </div>
 
           <div class="bsa-form-section">
-            <h4>✨ Style Preferences</h4>
+            <h4>Style Preferences</h4>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 1rem;">
               Select all styles that resonate with you (optional):
             </p>
@@ -1593,7 +1593,7 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-loading" style="text-align: center; padding: 3rem;">
         <div class="bsa-spinner" style="margin: 0 auto 2rem;"></div>
-        <h3 style="margin-bottom: 1rem;">✨ Creating Your Complete Style Profile...</h3>
+        <h3 style="margin-bottom: 1rem;">Creating Your Complete Style Profile...</h3>
         <p style="color: #6b7280; font-size: 14px; max-width: 500px; margin: 0 auto;">
           Our AI is analyzing your body shape, color season, and personal values to create a comprehensive style guide just for you...
         </p>
@@ -1605,7 +1605,7 @@ class BodyShapeAdvisor {
     if (!this.combinedAnalysis) {
       return `
         <div style="text-align: center; padding: 3rem; max-width: 600px; margin: 0 auto;">
-          <div style="font-size: 4rem; margin-bottom: 1rem;">😔</div>
+          <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
           <h3 style="color: #1f2937; margin-bottom: 1rem;">Style Profile Not Available</h3>
           <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.6;">
             Your style profile data is not available. This might happen if the page was refreshed or if there was an error during analysis.
@@ -1632,14 +1632,14 @@ class BodyShapeAdvisor {
     return `
       <div class="bsa-combined-results">
         <div class="bsa-header" style="text-align: center; margin-bottom: 2rem;">
-          <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">✨ Your Complete Style Profile</h2>
+          <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Your Complete Style Profile</h2>
           <p style="color: #6b7280;">A comprehensive guide based on your unique measurements, coloring, and values</p>
         </div>
 
         <!-- Body Shape Analysis Section -->
         <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h3 style="color: #4f46e5; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.5rem;">👗</span>
+            <span style="font-size: 1.5rem;"></span>
             Your Body Shape: ${this.bodyShapeResult.shape}
           </h3>
 
@@ -1688,7 +1688,7 @@ class BodyShapeAdvisor {
         ${colorSeasonAnalysis && this.colorSeasonResult ? `
         <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h3 style="color: #db2777; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.5rem;">🎨</span>
+            <span style="font-size: 1.5rem;"></span>
             Your Color Season: ${this.colorSeasonResult}
           </h3>
 
@@ -1739,7 +1739,7 @@ class BodyShapeAdvisor {
         ${valuesAnalysis && this.valuesPreferences.completed ? `
           <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="color: #059669; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.5rem;">💚</span>
+              <span style="font-size: 1.5rem;"></span>
               Your Shopping Values & Style
             </h3>
 
@@ -1773,7 +1773,7 @@ class BodyShapeAdvisor {
         ${celebrityRecommendations && celebrityRecommendations.celebrities && celebrityRecommendations.celebrities.length > 0 ? `
           <div class="bsa-analysis-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="color: #f59e0b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.5rem;">⭐</span>
+              <span style="font-size: 1.5rem;"></span>
               Your Celebrity Style Icons
             </h3>
 
@@ -1787,7 +1787,7 @@ class BodyShapeAdvisor {
                   <!-- Celebrity Image -->
                   <div id="celebrity-image-${index}" class="bsa-celebrity-image" style="width: 150px; height: 150px; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center;">
                     <div style="text-align: center; padding: 1rem;">
-                      <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+                      <div style="font-size: 3rem; margin-bottom: 0.5rem;"></div>
                       <div style="font-size: 12px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
                     </div>
                   </div>
@@ -1824,7 +1824,7 @@ class BodyShapeAdvisor {
         <!-- Call to Action -->
         <div style="text-align: center; margin-top: 2rem;">
           <button class="bsa-btn bsa-btn-primary" onclick="bodyShapeAdvisor.browseProducts()" style="padding: 1rem 2rem; font-size: 1.125rem; font-weight: 600;">
-            🛍️ Show Me Perfect Products!
+            Show Me Perfect Products!
           </button>
         </div>
       </div>
@@ -1934,7 +1934,7 @@ class BodyShapeAdvisor {
       if (!container) return;
 
       try {
-        console.log(`🖼️ Loading image for: ${celeb.name}`);
+        console.log(`Loading image for: ${celeb.name}`);
 
         // First, try direct title lookup
         let searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(celeb.name)}&prop=pageimages&pithumbsize=300`;
@@ -1945,11 +1945,11 @@ class BodyShapeAdvisor {
         let pageId = Object.keys(pages)[0];
         let imageUrl = pages[pageId]?.thumbnail?.source;
 
-        console.log(`📄 Direct lookup result for ${celeb.name}:`, { pageId, hasImage: !!imageUrl });
+        console.log(`Direct lookup result for ${celeb.name}:`, { pageId, hasImage: !!imageUrl });
 
         // If no image found, try Wikipedia search as fallback
         if (!imageUrl || pageId === '-1') {
-          console.log(`🔍 Trying search fallback for: ${celeb.name}`);
+          console.log(`Trying search fallback for: ${celeb.name}`);
 
           // Use Wikipedia search to find the correct article
           const searchApiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(celeb.name)}&srlimit=1`;
@@ -1958,7 +1958,7 @@ class BodyShapeAdvisor {
 
           if (searchData.query.search.length > 0) {
             const correctTitle = searchData.query.search[0].title;
-            console.log(`✓ Found Wikipedia article: "${correctTitle}"`);
+            console.log(`Found Wikipedia article: "${correctTitle}"`);
 
             // Now fetch the image using the correct title
             const imageApiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(correctTitle)}&prop=pageimages&pithumbsize=300`;
@@ -1969,35 +1969,35 @@ class BodyShapeAdvisor {
             const imagePageId = Object.keys(imagePages)[0];
             imageUrl = imagePages[imagePageId]?.thumbnail?.source;
 
-            console.log(`📸 Search fallback result:`, { pageId: imagePageId, hasImage: !!imageUrl });
+            console.log(`Search fallback result:`, { pageId: imagePageId, hasImage: !!imageUrl });
           }
         }
 
         if (imageUrl) {
-          console.log(`✅ Successfully loaded image for ${celeb.name}`);
+          console.log(`Successfully loaded image for ${celeb.name}`);
           // Replace placeholder with actual image
           container.innerHTML = `
             <img src="${imageUrl}"
                  alt="${celeb.name}"
                  style="width: 100%; height: 100%; object-fit: cover;"
-                 onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'>⭐</div><div style=\\'font-size: 14px; font-weight: 600; color: white;\\'>${celeb.name}</div></div>'">
+                 onerror="this.parentElement.innerHTML='<div style=\\'text-align: center; padding: 1rem;\\'><div style=\\'font-size: 3rem;\\'></div><div style=\\'font-size: 14px; font-weight: 600; color: white;\\'>${celeb.name}</div></div>'">
           `;
         } else {
-          console.log(`⚠️ No image found for ${celeb.name}, showing placeholder`);
+          console.log(`WARNING: No image found for ${celeb.name}, showing placeholder`);
           // No image found, show nice placeholder
           container.innerHTML = `
             <div style="text-align: center; padding: 1rem;">
-              <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+              <div style="font-size: 3rem; margin-bottom: 0.5rem;"></div>
               <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
             </div>
           `;
         }
       } catch (error) {
-        console.error(`❌ Failed to load image for ${celeb.name}:`, error);
+        console.error(`ERROR: Failed to load image for ${celeb.name}:`, error);
         // Show placeholder on error
         container.innerHTML = `
           <div style="text-align: center; padding: 1rem;">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⭐</div>
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;"></div>
             <div style="font-size: 14px; font-weight: 600; color: white; line-height: 1.2;">${celeb.name}</div>
           </div>
         `;
@@ -2017,21 +2017,21 @@ class BodyShapeAdvisor {
   }
 
   skipBodyShape() {
-    console.log('⏭️ User skipped body shape analysis');
+    console.log('User skipped body shape analysis');
     this.bodyShapeResult = null;
     this.measurements = {};
     this.goToStep('colorSeasonPathSelection');
   }
 
   skipColorSeason() {
-    console.log('⏭️ User skipped color season analysis');
+    console.log('User skipped color season analysis');
     this.colorSeasonResult = null;
     this.colorAnalysis = {};
     this.goToStep('valuesQuestionnaire');
   }
 
   skipValues() {
-    console.log('⏭️ User skipped values questionnaire');
+    console.log('User skipped values questionnaire');
     this.valuesPreferences = {
       sustainability: false,
       budgetRange: null,
@@ -2055,7 +2055,7 @@ class BodyShapeAdvisor {
   renderInsufficientData() {
     return `
       <div style="text-align: center; padding: 3rem; max-width: 600px; margin: 0 auto;">
-        <div style="font-size: 4rem; margin-bottom: 1rem;">😔</div>
+        <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
         <h3 style="color: #1f2937; margin-bottom: 1rem;">We Need More Information</h3>
         <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.6;">
           Sorry! We can't provide personalized recommendations without any data.
@@ -2075,18 +2075,18 @@ class BodyShapeAdvisor {
   }
 
   backToCombinedResults() {
-    console.log('🔙 Back button clicked, checking combined analysis...');
+    console.log('Back button clicked, checking combined analysis...');
 
     // If we already have the data, just go there
     if (this.combinedAnalysis) {
-      console.log('✅ Analysis data found, navigating...');
+      console.log('Analysis data found, navigating...');
       this.currentStep = 'combinedResults';
       this.render();
       return;
     }
 
     // Data missing - re-fetch
-    console.log('⚠️ Analysis data missing, re-fetching...');
+    console.log('WARNING: Analysis data missing, re-fetching...');
     this.proceedToRecommendations();
   }
 
@@ -2103,7 +2103,7 @@ class BodyShapeAdvisor {
           this.render();
           this.loadCelebrityImages();
         } else {
-          console.log('⚠️ Analysis failed, going to products directly');
+          console.log('WARNING: Analysis failed, going to products directly');
           this.currentStep = 'products';
           this.render();
         }
@@ -2131,9 +2131,9 @@ class BodyShapeAdvisor {
     // Mark questionnaire as completed
     this.valuesPreferences.completed = true;
 
-    console.log('✅ Values preferences:', this.valuesPreferences);
-    console.log('📊 Body shape:', this.bodyShapeResult.shape);
-    console.log('🎨 Color season:', this.colorSeasonResult);
+    console.log('Values preferences:', this.valuesPreferences);
+    console.log('Body shape:', this.bodyShapeResult.shape);
+    console.log('Color season:', this.colorSeasonResult);
 
     // Show loading screen while getting combined Gemini AI analysis
     this.currentStep = 'combinedAnalysisLoading';
@@ -2149,7 +2149,7 @@ class BodyShapeAdvisor {
       this.loadCelebrityImages();
     } else {
       // If analysis fails, go to products directly
-      console.log('⚠️ Analysis failed, going to products directly');
+      console.log('WARNING: Analysis failed, going to products directly');
       this.goToStep('products');
     }
   }
@@ -2163,11 +2163,11 @@ class BodyShapeAdvisor {
 (function() {
   const container = document.getElementById('body-shape-advisor-app');
   if (container && window.BodyShapeAdvisorConfig) {
-    console.log('🚀 Initializing Body Shape Advisor...');
+    console.log('Initializing Body Shape Advisor...');
     window.bodyShapeAdvisor = new BodyShapeAdvisor('body-shape-advisor-app', window.BodyShapeAdvisorConfig);
-    console.log('✅ Body Shape Advisor initialized successfully');
+    console.log('Body Shape Advisor initialized successfully');
   } else {
-    console.error('❌ Failed to initialize: container or config missing', {
+    console.error('ERROR: Failed to initialize: container or config missing', {
       container: !!container,
       config: !!window.BodyShapeAdvisorConfig
     });

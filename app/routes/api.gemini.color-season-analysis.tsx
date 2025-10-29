@@ -47,7 +47,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY not set in database or environment");
+      console.error("ERROR: GEMINI_API_KEY not set in database or environment");
       return json({ error: "API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
@@ -126,7 +126,7 @@ Make your recommendations specific, practical, and empowering. Focus on helping 
     const responseText = result.response.text();
     const analysis = JSON.parse(responseText);
 
-    console.log("✓ Got Gemini AI color season analysis");
+    console.log("INFO: Got Gemini AI color season analysis");
 
     return json({
       success: true,

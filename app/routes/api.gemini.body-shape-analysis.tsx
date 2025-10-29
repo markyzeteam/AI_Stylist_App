@@ -47,7 +47,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY not set in database or environment");
+      console.error("ERROR: GEMINI_API_KEY not set in database or environment");
       return json({ error: "API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
@@ -73,7 +73,7 @@ Customer measurements:
     // Use custom bodyShapePrompt from settings, or fall back to default
     const bodyShapePrompt = geminiSettings.bodyShapePrompt || "You are an expert fashion stylist and personal shopper.";
 
-    console.log('🔍 BODY SHAPE ANALYSIS - Using prompt:', {
+    console.log('INFO: BODY SHAPE ANALYSIS - Using prompt:', {
       hasCustomPrompt: !!geminiSettings.bodyShapePrompt,
       promptLength: bodyShapePrompt.length,
       promptPreview: bodyShapePrompt.substring(0, 80)
@@ -132,7 +132,7 @@ Make your recommendations specific, practical, and empowering. Focus on helping 
     const responseText = result.response.text();
     const analysis = JSON.parse(responseText);
 
-    console.log("✓ Got Gemini AI style analysis");
+    console.log("INFO: Got Gemini AI style analysis");
 
     return json({
       success: true,
@@ -147,7 +147,7 @@ Make your recommendations specific, practical, and empowering. Focus on helping 
     const isOverloaded = error?.status === 503 || error?.message?.includes('overloaded');
 
     if (isOverloaded) {
-      console.log("⚠️ Gemini API is overloaded, returning fallback body shape analysis");
+      console.log("WARNING: Gemini API is overloaded, returning fallback body shape analysis");
 
       // Return fallback analysis based on body shape
       const fallbackAnalysis = getFallbackBodyShapeAnalysis(bodyShape);

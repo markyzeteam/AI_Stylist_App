@@ -214,7 +214,7 @@ export async function saveGeminiSettings(
   settings: GeminiSettings
 ): Promise<boolean> {
   try {
-    console.log("Saving Gemini settings:", {
+    console.log("INFO: Saving Gemini settings:", {
       shop,
       budgetLowMax: settings.budgetLowMax,
       budgetMediumMax: settings.budgetMediumMax,
@@ -265,10 +265,10 @@ export async function saveGeminiSettings(
       },
     });
 
-    console.log("✅ Gemini settings saved successfully for shop:", shop);
+    console.log("INFO: Gemini settings saved successfully for shop:", shop);
     return true;
   } catch (error) {
-    console.error("Error saving Gemini settings:", error);
+    console.error("ERROR: Error saving Gemini settings:", error);
     return false;
   }
 }
@@ -310,7 +310,7 @@ export async function retryWithBackoff<T>(
       const jitter = Math.random() * 0.3 * delay; // Add 0-30% jitter
       const totalDelay = delay + jitter;
 
-      console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(totalDelay)}ms...`);
+      console.log(`INFO: Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(totalDelay)}ms...`);
       await new Promise(resolve => setTimeout(resolve, totalDelay));
     }
   }
@@ -335,14 +335,14 @@ export async function analyzeProductImage(
     const settings = await loadGeminiSettings(shop);
 
     if (!settings.enabled) {
-      console.log(`⏭ Gemini image analysis disabled for ${shop}`);
+      console.log(`INFO: Gemini image analysis disabled for ${shop}`);
       return null;
     }
 
     // Get API key
     const apiKey = settings.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("❌ No Gemini API key configured");
+      console.error("ERROR: No Gemini API key configured");
       return null;
     }
 
@@ -350,12 +350,12 @@ export async function analyzeProductImage(
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: settings.model });
 
-    console.log(`🖼️  Analyzing image for: ${productTitle}`);
+    console.log(`INFO: Analyzing image for: ${productTitle}`);
 
     // Fetch image as base64
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      console.error(`❌ Failed to fetch image: ${imageResponse.statusText}`);
+      console.error(`ERROR: Failed to fetch image: ${imageResponse.statusText}`);
       return null;
     }
 
@@ -405,7 +405,7 @@ ${FIXED_JSON_FORMAT_INSTRUCTION}`;
     const response = await result.response;
     const text = response.text();
 
-    console.log(`✅ Gemini response received (${text.length} chars)`);
+    console.log(`INFO: Gemini response received (${text.length} chars)`);
 
     // Clean markdown if present
     let cleanedText = text.trim();
@@ -419,7 +419,7 @@ ${FIXED_JSON_FORMAT_INSTRUCTION}`;
     const analysis = parseGeminiAnalysis(cleanedText);
 
     if (!analysis) {
-      console.error("❌ Failed to parse Gemini analysis");
+      console.error("ERROR: Failed to parse Gemini analysis");
       return null;
     }
 
@@ -428,7 +428,7 @@ ${FIXED_JSON_FORMAT_INSTRUCTION}`;
     try {
       rawAnalysis = JSON.parse(cleanedText);
     } catch (error) {
-      console.error("❌ Failed to parse raw analysis:", error);
+      console.error("ERROR: Failed to parse raw analysis:", error);
       console.error("   Cleaned text:", cleanedText.substring(0, 500));
       rawAnalysis = null;
     }
@@ -438,7 +438,7 @@ ${FIXED_JSON_FORMAT_INSTRUCTION}`;
       rawAnalysis,
     };
   } catch (error) {
-    console.error(`❌ Error analyzing image for ${productTitle}:`, error);
+    console.error(`ERROR: Error analyzing image for ${productTitle}:`, error);
     return null;
   }
 }
@@ -460,7 +460,7 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
 
     // Check if the response is plain text (error message from Gemini)
     if (!jsonText.startsWith('{') && !jsonText.startsWith('[')) {
-      console.error("❌ Gemini returned plain text instead of JSON:", jsonText.substring(0, 200));
+      console.error("ERROR: Gemini returned plain text instead of JSON:", jsonText.substring(0, 200));
       return null;
     }
 
@@ -468,7 +468,7 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
 
     // Validate that parsed result has expected structure
     if (typeof parsed !== 'object' || parsed === null) {
-      console.error("❌ Gemini response is not a valid JSON object");
+      console.error("ERROR: Gemini response is not a valid JSON object");
       return null;
     }
 
@@ -483,7 +483,7 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
       additionalNotes: parsed.additionalNotes || undefined,
     };
   } catch (error) {
-    console.error("❌ Error parsing Gemini analysis:", error);
+    console.error("ERROR: Error parsing Gemini analysis:", error);
     console.error("   Raw text:", text.substring(0, 500));
     return null;
   }
@@ -494,7 +494,7 @@ function parseGeminiAnalysis(text: string): Omit<ProductImageAnalysis, 'rawAnaly
  */
 export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct[]> {
   try {
-    console.log(`🔄 Fetching products from Shopify for ${shop}...`);
+    console.log(`INFO: Fetching products from Shopify for ${shop}...`);
 
     // Get access token from database
     const sessionRecord = await prisma.session.findFirst({
@@ -503,7 +503,7 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
     });
 
     if (!sessionRecord || !sessionRecord.accessToken) {
-      console.error('❌ No session/access token found for shop:', shop);
+      console.error('ERROR: No session/access token found for shop:', shop);
       return [];
     }
 
@@ -538,7 +538,7 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
     );
 
     const onlineStoreId = onlineStore?.node?.id;
-    console.log(`✓ Found Online Store publication ID: ${onlineStoreId}`);
+    console.log(`INFO: Found Online Store publication ID: ${onlineStoreId}`);
 
     const allProducts: ShopifyProduct[] = [];
     let hasNextPage = true;
@@ -633,14 +633,14 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
       });
 
       if (!response.ok) {
-        console.error(`❌ Admin API error: ${response.status} ${response.statusText}`);
+        console.error(`ERROR: Admin API error: ${response.status} ${response.statusText}`);
         break;
       }
 
       const data: any = await response.json();
 
       if (data.errors) {
-        console.error('❌ GraphQL errors:', data.errors);
+        console.error('ERROR: GraphQL errors:', data.errors);
         break;
       }
 
@@ -701,13 +701,13 @@ export async function fetchShopifyProducts(shop: string): Promise<ShopifyProduct
       hasNextPage = data?.data?.products?.pageInfo?.hasNextPage || false;
       cursor = data?.data?.products?.pageInfo?.endCursor || null;
 
-      console.log(`✓ Fetched ${transformedProducts.length} products (total: ${allProducts.length})`);
+      console.log(`INFO: Fetched ${transformedProducts.length} products (total: ${allProducts.length})`);
     }
 
-    console.log(`✅ Total products fetched: ${allProducts.length}`);
+    console.log(`INFO: Total products fetched: ${allProducts.length}`);
     return allProducts;
   } catch (error) {
-    console.error('❌ Error fetching products from Shopify:', error);
+    console.error('ERROR: Error fetching products from Shopify:', error);
     return [];
   }
 }
@@ -890,7 +890,7 @@ export async function saveBasicProduct(
 
     return true;
   } catch (error) {
-    console.error(`❌ Error saving basic product ${product.title}:`, error);
+    console.error(`ERROR: Error saving basic product ${product.title}:`, error);
     return false;
   }
 }
@@ -996,7 +996,7 @@ export async function saveAnalyzedProduct(
 
     return true;
   } catch (error) {
-    console.error(`❌ Error saving analyzed product ${product.title}:`, error);
+    console.error(`ERROR: Error saving analyzed product ${product.title}:`, error);
     return false;
   }
 }
@@ -1032,6 +1032,6 @@ export async function logRefreshActivity(
       },
     });
   } catch (error) {
-    console.error("❌ Error logging refresh activity:", error);
+    console.error("ERROR: Error logging refresh activity:", error);
   }
 }

@@ -79,9 +79,9 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     console.log(`\n${"=".repeat(60)}`);
-    console.log(`🤖 GEMINI RECOMMENDATIONS REQUEST`);
+    console.log(`INFO: GEMINI RECOMMENDATIONS REQUEST`);
     console.log(`${"=".repeat(60)}`);
-    console.log(`📊 Settings:`, {
+    console.log(`INFO: Settings:`, {
       shop,
       bodyShape,
       colorSeason: colorSeason || 'none',
@@ -91,7 +91,7 @@ export async function action({ request }: ActionFunctionArgs) {
       onlyInStock,
       hasMeasurements: !!measurements,
     });
-    console.log(`💎 Values Preferences:`, {
+    console.log(`INFO: Values Preferences:`, {
       sustainability,
       budgetRange: budgetRange || 'none',
       stylePreferences: styles.length > 0 ? styles.join(', ') : 'none',
@@ -120,7 +120,7 @@ export async function action({ request }: ActionFunctionArgs) {
       valuesPreferences
     );
 
-    console.log(`\n✅ Returning ${recommendations.length} recommendations to storefront\n`);
+    console.log(`\nINFO: Returning ${recommendations.length} recommendations to storefront\n`);
 
     return json(
       {
@@ -162,7 +162,7 @@ export async function action({ request }: ActionFunctionArgs) {
       { headers }
     );
   } catch (error) {
-    console.error("❌ Error in Gemini recommendations API:", error);
+    console.error("ERROR: Error in Gemini recommendations API:", error);
     return json(
       { error: "Failed to fetch Gemini recommendations" },
       { status: 500, headers }

@@ -55,7 +55,7 @@ export async function loader({ request }: ActionFunctionArgs) {
     hips = url.searchParams.get("hips");
     shoulders = url.searchParams.get("shoulders");
 
-    console.log(`🎬 Celebrity recommendations request: bodyShape=${bodyShape}, gender=${gender}, colorSeason=${colorSeason}, styles=${styles}, measurements={height:${height}, weight:${weight}}, shop=${shop}`);
+    console.log(`INFO: Celebrity recommendations request: bodyShape=${bodyShape}, gender=${gender}, colorSeason=${colorSeason}, styles=${styles}, measurements={height:${height}, weight:${weight}}, shop=${shop}`);
 
     if (!bodyShape) {
       return json({ error: "Body shape is required" }, { status: 400, headers: corsHeaders });
@@ -72,7 +72,7 @@ export async function loader({ request }: ActionFunctionArgs) {
     const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY not set in database or environment");
+      console.error("ERROR: GEMINI_API_KEY not set in database or environment");
       return json({ error: "Gemini API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
@@ -146,7 +146,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
   ]
 }`;
 
-    console.log(`🎬 Getting celebrity recommendations for ${gender || 'unspecified gender'} with ${bodyShape} body shape${colorSeason ? ` / ${colorSeason}` : ''}`);
+    console.log(`INFO: Getting celebrity recommendations for ${gender || 'unspecified gender'} with ${bodyShape} body shape${colorSeason ? ` / ${colorSeason}` : ''}`);
 
     // Call Gemini with retry logic
     const result = await retryWithBackoff(() =>
@@ -171,7 +171,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
       return json({ error: "Invalid response from AI" }, { status: 500, headers: corsHeaders });
     }
 
-    console.log(`✅ Got ${data.celebrities?.length || 0} celebrity recommendations`);
+    console.log(`INFO: Got ${data.celebrities?.length || 0} celebrity recommendations`);
 
     return json({
       success: true,
@@ -195,7 +195,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     }, { headers: corsHeaders });
 
   } catch (error: any) {
-    console.error("❌ Error getting celebrity recommendations:", error);
+    console.error("ERROR: Error getting celebrity recommendations:", error);
     console.error("Error details:", {
       name: error?.name,
       message: error?.message,
@@ -207,7 +207,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     const isOverloaded = error?.status === 503 || error?.message?.includes('overloaded');
 
     if (isOverloaded) {
-      console.log("⚠️ Gemini API is overloaded, returning fallback celebrity recommendations");
+      console.log("WARNING: Gemini API is overloaded, returning fallback celebrity recommendations");
 
       // Return fallback recommendations based on body shape and measurements
       const fallbackData = getFallbackCelebrityRecommendations(

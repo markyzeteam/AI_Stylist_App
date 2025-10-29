@@ -66,7 +66,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: "Shop parameter required" }, { status: 400, headers: corsHeaders });
     }
 
-    console.log(`🎨 Combined analysis request for ${measurements?.gender || 'unspecified'}: ${bodyShape} / ${colorSeason}`);
+    console.log(`INFO: Combined analysis request for ${measurements?.gender || 'unspecified'}: ${bodyShape} / ${colorSeason}`);
 
     // Load Gemini settings from database (includes custom API key and prompts)
     const geminiSettings = await loadGeminiSettings(shop);
@@ -75,7 +75,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const apiKey = geminiSettings.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY not set in database or environment");
+      console.error("ERROR: GEMINI_API_KEY not set in database or environment");
       return json({ error: "API key not configured" }, { status: 500, headers: corsHeaders });
     }
 
@@ -99,7 +99,7 @@ Your role is to provide warm, encouraging, and highly personalized guidance that
 
 Make every customer feel seen, understood, and excited about their personal style journey.`;
 
-    console.log('🔍 COMBINED ANALYSIS - Using customer analysis prompt:', {
+    console.log('INFO: COMBINED ANALYSIS - Using customer analysis prompt:', {
       hasCustomerAnalysisPrompt: !!geminiSettings.customerAnalysisPrompt,
       promptLength: customerAnalysisPrompt.length
     });
@@ -133,7 +133,7 @@ Make every customer feel seen, understood, and excited about their personal styl
     const responseText = result.response.text();
     const analysis = JSON.parse(responseText);
 
-    console.log("✅ Got combined analysis from Gemini");
+    console.log("INFO: Got combined analysis from Gemini");
 
     // Only include analyses that user actually completed
     const hasColorSeason = !!colorSeason;
@@ -152,13 +152,13 @@ Make every customer feel seen, understood, and excited about their personal styl
     }, { headers: corsHeaders });
 
   } catch (error: any) {
-    console.error("❌ Error getting combined analysis:", error);
+    console.error("ERROR: Error getting combined analysis:", error);
 
     // Check if it's a Gemini overload error (503)
     const isOverloaded = error?.status === 503 || error?.message?.includes('overloaded');
 
     if (isOverloaded) {
-      console.log("⚠️ Gemini API is overloaded, returning fallback analysis");
+      console.log("WARNING: Gemini API is overloaded, returning fallback analysis");
 
       // Return fallback analysis
       const fallbackAnalysis = getFallbackCombinedAnalysis(body);
@@ -257,11 +257,11 @@ function buildCombinedPrompt(config: any): string {
   let genderGuidance = "";
   if (measurements?.gender) {
     if (measurements.gender === "man") {
-      genderGuidance = "\n\n⚠️ IMPORTANT: This customer is MALE. All recommendations must be appropriate for men's fashion (shirts, suits, pants, accessories, grooming). DO NOT recommend makeup, dresses, or women's clothing.";
+      genderGuidance = "\n\nIMPORTANT: This customer is MALE. All recommendations must be appropriate for men's fashion (shirts, suits, pants, accessories, grooming). DO NOT recommend makeup, dresses, or women's clothing.";
     } else if (measurements.gender === "woman") {
-      genderGuidance = "\n\n⚠️ IMPORTANT: This customer is FEMALE. Provide styling tips for women's fashion including clothing, accessories, and makeup when relevant.";
+      genderGuidance = "\n\nIMPORTANT: This customer is FEMALE. Provide styling tips for women's fashion including clothing, accessories, and makeup when relevant.";
     } else {
-      genderGuidance = "\n\n⚠️ IMPORTANT: This customer identifies as NON-BINARY. Provide inclusive styling tips that work across different fashion styles, focusing on versatile pieces.";
+      genderGuidance = "\n\nIMPORTANT: This customer identifies as NON-BINARY. Provide inclusive styling tips that work across different fashion styles, focusing on versatile pieces.";
     }
   }
 
